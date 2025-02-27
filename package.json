@@ -15,7 +15,8 @@
     "db:connection": "ts-node -r dotenv/config --project ./scripts/tsconfig.json ./scripts/get-connection-string.ts",
     "db:studio": "drizzle-kit studio",
     "test-agent": "ts-node scripts/test-agent.ts",
-    "test-scraper": "ts-node -r dotenv/config --project ./scripts/tsconfig.json ./scripts/test-scraper.ts"
+    "test-scraper": "ts-node -r dotenv/config --project ./scripts/tsconfig.json ./scripts/test-scraper.ts",
+    "test-results-scraper": "ts-node -r dotenv/config --project ./scripts/tsconfig.json ./scripts/test-results-scraper.ts"
   },
   "dependencies": {
     "@langchain/community": "^0.3.32",

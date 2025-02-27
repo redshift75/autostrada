@@ -327,6 +327,16 @@ export class BringATrailerScraper extends BaseScraper {
           const auction = JSON.parse(jsonStr) as BaTAuction;
           
           if (auction && auction.id && auction.url && auction.title) {
+            // Ensure current_bid is properly formatted
+            if (typeof auction.current_bid === 'string') {
+              auction.current_bid = this.parseBidAmount(auction.current_bid);
+            }
+            
+            // If current_bid_formatted is missing, generate it
+            if (!auction.current_bid_formatted && auction.current_bid) {
+              auction.current_bid_formatted = `USD $${auction.current_bid.toLocaleString()}`;
+            }
+            
             auctions.push(auction);
           }
         } catch (e) {
@@ -360,8 +370,11 @@ export class BringATrailerScraper extends BaseScraper {
           const url = $el.find('a.auction-title').attr('href') || '';
           const title = $el.find('a.auction-title').text().trim();
           const year = $el.find('.auction-year').text().trim();
+          
+          // Improved bid extraction
           const currentBidText = $el.find('.auction-price').text().trim();
-          const currentBid = parseInt(currentBidText.replace(/[^0-9]/g, '')) || 0;
+          const currentBid = this.parseBidAmount(currentBidText);
+          
           const thumbnailUrl = $el.find('img').attr('src') || '';
           const country = $el.find('.auction-location').text().trim();
           
@@ -384,7 +397,7 @@ export class BringATrailerScraper extends BaseScraper {
               title,
               year,
               current_bid: currentBid,
-              current_bid_formatted: currentBidText,
+              current_bid_formatted: currentBidText || `USD $${currentBid.toLocaleString()}`,
               timestamp_end: timestampEnd,
               thumbnail_url: thumbnailUrl,
               country,
@@ -411,12 +424,46 @@ export class BringATrailerScraper extends BaseScraper {
     }
   }
 
+  /**
+   * Parse a bid amount from a string
+   * @param bidText The bid text to parse
+   * @returns The bid amount as a number
+   */
+  private parseBidAmount(bidText: string): number {
+    if (!bidText) return 0;
+    
+    // Check for "No Reserve" or other non-price text
+    if (/no reserve|reserve not met|bid|comment|watching/i.test(bidText) && !/\d/.test(bidText)) {
+      return 0;
+    }
+    
+    // Handle "Bid to" or other prefixes
+    const cleanText = bidText.replace(/^(Bid to|Current Bid:|Price:|Sold for:)\s*/i, '');
+    
+    // Remove currency symbols and commas
+    const numericText = cleanText.replace(/[$,€£¥]/g, '');
+    
+    // Parse the number
+    const amount = parseInt(numericText.trim());
+    return isNaN(amount) ? 0 : amount;
+  }
+
   private convertAuctionToBaTListing(auction: BaTAuction): BaTListing {
     // Extract location from country
     const location = auction.country || '';
     
     // Convert timestamp to Date
     const endDate = auction.timestamp_end * 1000; // Convert to milliseconds
+    
+    // Check if the auction has ended
+    const now = Date.now();
+    const isEnded = endDate < now;
+    
+    // Determine if the auction has a sold price
+    let soldPrice = 0;
+    if (isEnded && auction.current_bid > 0) {
+      soldPrice = auction.current_bid;
+    }
     
     return {
       id: auction.id,
@@ -432,7 +479,9 @@ export class BringATrailerScraper extends BaseScraper {
       image_url_thumb: auction.thumbnail_url,
       location,
       no_reserve: auction.noreserve,
-      premium: auction.premium
+      premium: auction.premium,
+      status: isEnded ? 'ended' : 'active',
+      sold_price: soldPrice > 0 ? soldPrice : undefined
     };
   }
   

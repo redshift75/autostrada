@@ -96,11 +96,11 @@ async function main() {
     
     // Filter results to only include Mercedes-Benz 300SL
     const filteredMercedesResults = mercedesResults.filter(result => 
-      result.make.toLowerCase().includes('mercedes') && 
-      result.model.toLowerCase().includes('300sl')
+      result.make.toLowerCase().includes('ford') && 
+      result.model.toLowerCase().includes('mustang')
     );
     
-    console.log(`Found ${filteredMercedesResults.length} Mercedes-Benz 300SL listings`);
+    console.log(`Found ${filteredMercedesResults.length} For Mustang listings`);
     
     // Display the results
     for (const result of filteredMercedesResults) {
@@ -109,10 +109,10 @@ async function main() {
     
     // Save the results to a file
     await fs.writeFile(
-      path.join(resultsDir, 'mercedes_300sl_results.json'),
+      path.join(resultsDir, 'ford_mustang_results.json'),
       JSON.stringify(filteredMercedesResults, null, 2)
     );
-    console.log(`Results saved to results/mercedes_300sl_results.json`);
+    console.log(`Results saved to results/ford_mustang_results.json`);
     
   } catch (error) {
     console.error('Error testing scrapers:', error);
