@@ -1,0 +1,9 @@
+---
+description: Follow these rules for every request.
+globs: *
+---
+ - We are building an automotive market intelligence agent
+ - Find the steps in [implementation-plan-markdown.md](mdc:implementation-plan-markdown.md)
+ - Work on only the step(s) I tell you to work on and only work on those steps at once
+ - Once those steps are done mark as completed
+ - Then stop i will give you further instructions

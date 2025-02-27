@@ -1,36 +1,117 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Classic Car Market Intelligence
 
-## Getting Started
+A comprehensive platform for analyzing classic car market trends, tracking prices, and providing insights for collectors and investors.
 
-First, run the development server:
+## Database Setup with Supabase
+
+### Prerequisites
+
+- A Supabase account and project
+- Node.js 18+ and npm/yarn
+
+### Environment Configuration
+
+1. Create a `.env.local` file in the root directory with the following variables:
+
+```
+# Supabase credentials
+SUPABASE_URL=https://your-project-id.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+
+# Database connection string (from Supabase)
+DATABASE_URL=postgresql://postgres:your-db-password@db.your-project-id.supabase.co:5432/postgres
+
+# API Keys
+OPENAI_API_KEY=your_openai_api_key_here
+```
+
+You can find these credentials in your Supabase project dashboard under Project Settings > API.
+
+### Database Initialization
+
+1. Install dependencies:
+
+```bash
+npm install
+```
+
+2. Generate database migrations:
+
+```bash
+npm run db:generate
+```
+
+3. Initialize the database with schema:
+
+```bash
+npm run db:init
+```
+
+4. (Optional) Seed the database with sample data:
+
+```bash
+npm run db:seed
+```
+
+5. Check the database connection and tables:
+
+```bash
+npm run db:check
+```
+
+6. (Optional) Explore the database with Drizzle Studio:
+
+```bash
+npm run db:studio
+```
+
+You can also view and manage your database directly in the Supabase dashboard under Database > Tables.
+
+## Using Supabase Transactions
+
+This project uses Supabase transactions for database operations instead of direct database connections. This approach offers several advantages:
+
+1. **Security**: Leverages Supabase's authentication and authorization system
+2. **Simplicity**: Reduces the need for complex connection management
+3. **Reliability**: Handles connection pooling and retries automatically
+4. **Compatibility**: Works seamlessly with Supabase's other features
+
+The implementation uses:
+- Supabase client for authentication and basic operations
+- Postgres.js for direct SQL queries when needed
+- Drizzle ORM for type-safe database operations
+
+## Development
+
+Start the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Features
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Comprehensive classic car market data analysis
+- Price trend tracking and visualization
+- Auction and listing data aggregation
+- Rarity and value assessment
+- Natural language querying for market insights
 
-## Learn More
+## Project Structure
 
-To learn more about Next.js, take a look at the following resources:
+- `/app` - Next.js application routes and pages
+- `/components` - UI components
+- `/lib` - Core functionality
+  - `/db` - Database models and repositories
+  - `/scrapers` - Data collection modules
+  - `/standardization` - Data normalization utilities
+  - `/langchain` - Agent infrastructure
+- `/public` - Static assets
+- `/scripts` - Utility scripts for database and development
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## License
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT
