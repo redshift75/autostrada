@@ -24,7 +24,8 @@ async function testResultsScraper() {
   console.log('\nSearching for completed Porsche 911 auctions...');
   const porscheResults = await scraper.scrape({
     make: 'Porsche',
-    model: '911'
+    model: '911',
+    maxPages: 3 // Fetch up to 3 pages
   });
   
   console.log(`Found ${porscheResults.length} completed auctions for Porsche 911`);
@@ -45,7 +46,8 @@ async function testResultsScraper() {
   // Test with Ferrari
   console.log('\nSearching for completed Ferrari auctions...');
   const ferrariResults = await scraper.scrape({
-    make: 'Ferrari'
+    make: 'Ferrari',
+    maxPages: 2 // Fetch up to 2 pages
   });
   
   console.log(`Found ${ferrariResults.length} completed auctions for Ferrari`);
@@ -67,7 +69,8 @@ async function testResultsScraper() {
   console.log('\nSearching for completed Mercedes-Benz 300SL auctions...');
   const mercedesResults = await scraper.scrape({
     make: 'Mercedes-Benz',
-    model: '300SL'
+    model: '300SL',
+    maxPages: 2 // Fetch up to 2 pages
   });
   
   console.log(`Found ${mercedesResults.length} completed auctions for Mercedes-Benz 300SL`);

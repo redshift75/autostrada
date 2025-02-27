@@ -26,6 +26,7 @@ export interface BaTResultsScraperParams {
   model?: string;
   yearMin?: number;
   yearMax?: number;
+  maxPages?: number; // Maximum number of pages to fetch
 }
 
 export class BringATrailerResultsScraper extends BaseScraper {
@@ -45,18 +46,50 @@ export class BringATrailerResultsScraper extends BaseScraper {
       const searchUrl = this.buildSearchUrl(params);
       console.log(`Searching for completed auctions at: ${searchUrl}`);
       
-      const html = await this.fetchHtml(searchUrl);
+      // Fetch first page to get pagination info
+      const firstPageHtml = await this.fetchHtml(searchUrl);
       
-      // Save debug HTML
+      // Save debug HTML for first page
       const debugFilePath = path.join(this.debugDir, `bat_results_debug_${Date.now()}.html`);
-      fs.writeFileSync(debugFilePath, html);
+      fs.writeFileSync(debugFilePath, firstPageHtml);
       console.log(`Debug HTML saved to: ${debugFilePath}`);
       
-      // Extract completed listings from HTML
-      const completedListings = this.extractCompletedListings(html, params.make, params.model, params.yearMin);
+      // Extract pagination info
+      const paginationInfo = this.extractPaginationInfo(firstPageHtml);
+      console.log(`Found ${paginationInfo.totalItems} total auctions across ${paginationInfo.totalPages} pages`);
+      
+      // Determine how many pages to fetch
+      const maxPages = params.maxPages || 1;
+      const pagesToFetch = Math.min(maxPages, paginationInfo.totalPages);
+      
+      // Extract listings from first page
+      let allListings: BaTCompletedListing[] = this.extractCompletedListings(firstPageHtml, params.make, params.model, params.yearMin);
+      
+      // Fetch additional pages if needed
+      if (pagesToFetch > 1) {
+        console.log(`Fetching ${pagesToFetch - 1} additional pages...`);
+        
+        for (let page = 2; page <= pagesToFetch; page++) {
+          console.log(`Fetching page ${page}/${pagesToFetch}...`);
+          const pageUrl = this.buildPageUrl(searchUrl, page);
+          const pageHtml = await this.fetchHtml(pageUrl);
+          
+          // Extract listings from this page
+          const pageListings = this.extractCompletedListings(pageHtml, params.make, params.model, params.yearMin);
+          allListings = [...allListings, ...pageListings];
+          
+          // Optional: add a small delay to avoid rate limiting
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
       
       // Filter by make, model, and year if provided
-      const filteredListings = this.filterListings(completedListings, params);
+      const filteredListings = this.filterListings(allListings, params);
+      
+      console.log(`Found ${filteredListings.length} completed auctions after filtering`);
+      if (filteredListings.length > 0) {
+        console.log(`First result: ${filteredListings[0].title}`);
+      }
       
       return filteredListings;
     } catch (error) {
@@ -82,6 +115,57 @@ export class BringATrailerResultsScraper extends BaseScraper {
     }
     
     return url;
+  }
+  
+  private buildPageUrl(baseUrl: string, page: number): string {
+    // Check if the URL already has query parameters
+    const hasParams = baseUrl.includes('?');
+    
+    // Add page parameter
+    if (hasParams) {
+      return `${baseUrl}&page=${page}`;
+    } else {
+      return `${baseUrl}?page=${page}`;
+    }
+  }
+  
+  private extractPaginationInfo(html: string): { currentPage: number; totalPages: number; itemsPerPage: number; totalItems: number } {
+    try {
+      // Extract the auctionsCompletedInitialData from the HTML
+      const auctionsDataMatch = html.match(/var\s+auctionsCompletedInitialData\s*=\s*({.*?});/);
+      
+      if (auctionsDataMatch && auctionsDataMatch[1]) {
+        try {
+          // Parse the JSON data
+          const auctionsData = JSON.parse(auctionsDataMatch[1]);
+          
+          return {
+            currentPage: auctionsData.page_current || 1,
+            totalPages: auctionsData.pages_total || 1,
+            itemsPerPage: auctionsData.items_per_page || 24,
+            totalItems: auctionsData.items_total || 0
+          };
+        } catch (error) {
+          console.error('Error parsing pagination info:', error);
+        }
+      }
+      
+      // Default values if we couldn't extract pagination info
+      return {
+        currentPage: 1,
+        totalPages: 1,
+        itemsPerPage: 24,
+        totalItems: 0
+      };
+    } catch (error) {
+      console.error('Error extracting pagination info:', error);
+      return {
+        currentPage: 1,
+        totalPages: 1,
+        itemsPerPage: 24,
+        totalItems: 0
+      };
+    }
   }
 
   private async fetchHtml(url: string): Promise<string> {
