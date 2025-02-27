@@ -25,7 +25,7 @@ async function testResultsScraper() {
   const porscheResults = await scraper.scrape({
     make: 'Porsche',
     model: '911',
-    maxPages: 3 // Fetch up to 3 pages
+    maxPages: 10 // Fetch up to 10 pages
   });
   
   console.log(`Found ${porscheResults.length} completed auctions for Porsche 911`);

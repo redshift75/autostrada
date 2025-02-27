@@ -5,7 +5,7 @@ import axios from 'axios';
 import * as cheerio from 'cheerio';
 
 // Define our own BaTListing interface
-export interface BaTListing {
+export interface BaTActiveListing {
   id: number;
   url: string;
   title: string;
@@ -51,14 +51,14 @@ interface BaTAuctionsData {
 }
 
 // Interface for scraper parameters
-export interface BaTScraperParams {
+export interface BaTActiveScraperParams {
   make?: string;
   model?: string;
   yearMin?: number;
   yearMax?: number;
 }
 
-export class BringATrailerScraper extends BaseScraper {
+export class BringATrailerActiveListingScraper extends BaseScraper {
   private baseUrl = 'https://bringatrailer.com';
   private searchUrl = 'https://bringatrailer.com/auctions/';
 
@@ -94,7 +94,7 @@ export class BringATrailerScraper extends BaseScraper {
     }
   }
 
-  async scrape(): Promise<BaTListing[]> {
+  async scrape(): Promise<BaTActiveListing[]> {
     try {
       console.log(`Fetching recent listings from ${this.searchUrl}`);
       const html = await this.fetchHtml(this.searchUrl);
@@ -117,7 +117,7 @@ export class BringATrailerScraper extends BaseScraper {
       
       console.log(`Found ${auctionsData.auctions.length} auctions`);
       
-      const listings: BaTListing[] = auctionsData.auctions.map(auction => 
+      const listings: BaTActiveListing[] = auctionsData.auctions.map(auction => 
         this.convertAuctionToBaTListing(auction)
       );
       
@@ -133,52 +133,23 @@ export class BringATrailerScraper extends BaseScraper {
     }
   }
 
-  async searchListings(params: BaTScraperParams): Promise<BaTListing[]> {
+  async searchListings(params: BaTActiveScraperParams): Promise<BaTActiveListing[]> {
     try {
-      // Construct search URL based on parameters
-      let searchUrl = this.searchUrl;
+      // First, fetch all active listings
+      console.log('Fetching all active listings first...');
+      const allListings = await this.scrape();
       
-      // Add query parameters if provided
-      const queryParams: string[] = [];
-      if (params.make) {
-        queryParams.push(`s=${encodeURIComponent(params.make)}`);
-      }
-      
-      if (queryParams.length > 0) {
-        searchUrl += `?${queryParams.join('&')}`;
-      }
-      
-      console.log(`Searching listings with URL: ${searchUrl}`);
-      
-      const html = await this.fetchHtml(searchUrl);
-      
-      // Save HTML for debugging
-      const debugDir = path.join(process.cwd(), 'debug');
-      if (!fs.existsSync(debugDir)) {
-        fs.mkdirSync(debugDir);
-      }
-      const debugFile = path.join(debugDir, `bat_debug_${Date.now()}.html`);
-      fs.writeFileSync(debugFile, html);
-      console.log(`Saved debug HTML to ${debugFile}`);
-      
-      const auctionsData = await this.extractAuctionsData(html);
-      
-      if (!auctionsData || !auctionsData.auctions || auctionsData.auctions.length === 0) {
-        console.log('No auction data found for query');
+      if (allListings.length === 0) {
+        console.log('No active listings found');
         return [];
       }
       
-      console.log(`Found ${auctionsData.auctions.length} auctions for query`);
+      console.log(`Found ${allListings.length} active listings, now filtering...`);
       
-      // First convert auctions to BaTListings to have make and model extracted
-      const listings: BaTListing[] = auctionsData.auctions.map(auction => 
-        this.convertAuctionToBaTListing(auction)
-      );
+      // Filter the listings based on parameters
+      let filteredListings = allListings;
       
-      // Now filter the listings based on parameters
-      let filteredListings = listings;
-      
-      // Filter by make if provided - use exact match on the extracted make field
+      // Filter by make if provided
       if (params.make) {
         const makeLower = params.make.toLowerCase();
         console.log(`Filtering by make: ${params.make}`);
@@ -243,7 +214,7 @@ export class BringATrailerScraper extends BaseScraper {
    * @param makeLower The make to filter by (lowercase)
    * @returns Filtered listings
    */
-  private filterListingsByMake(listings: BaTListing[], makeLower: string): BaTListing[] {
+  private filterListingsByMake(listings: BaTActiveListing[], makeLower: string): BaTActiveListing[] {
     // First try exact match on make field
     const exactMatches = listings.filter(listing => 
       listing.make.toLowerCase() === makeLower
@@ -448,7 +419,7 @@ export class BringATrailerScraper extends BaseScraper {
     return isNaN(amount) ? 0 : amount;
   }
 
-  private convertAuctionToBaTListing(auction: BaTAuction): BaTListing {
+  private convertAuctionToBaTListing(auction: BaTAuction): BaTActiveListing {
     // Extract location from country
     const location = auction.country || '';
     

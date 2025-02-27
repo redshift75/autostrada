@@ -15,8 +15,15 @@
     "db:connection": "ts-node -r dotenv/config --project ./scripts/tsconfig.json ./scripts/get-connection-string.ts",
     "db:studio": "drizzle-kit studio",
     "test-agent": "ts-node scripts/test-agent.ts",
-    "test-scraper": "ts-node -r dotenv/config --project ./scripts/tsconfig.json ./scripts/test-scraper.ts",
-    "test-results-scraper": "ts-node -r dotenv/config --project ./scripts/tsconfig.json ./scripts/test-results-scraper.ts"
+    "test-results-scraper": "ts-node -r dotenv/config --project ./scripts/tsconfig.json ./scripts/test-results-scraper.ts",
+    "test-active-scraper": "ts-node -r dotenv/config --project ./scripts/tsconfig.json ./scripts/test-active-scraper.ts",
+    "upload-to-supabase": "ts-node -r dotenv/config --project ./scripts/tsconfig.json ./scripts/upload-to-supabase.ts",
+    "upload-completed": "ts-node -r dotenv/config --project ./scripts/tsconfig.json ./scripts/upload-to-supabase.ts --completed",
+    "upload-active": "ts-node -r dotenv/config --project ./scripts/tsconfig.json ./scripts/upload-to-supabase.ts --active",
+    "create-supabase-tables": "ts-node -r dotenv/config --project ./scripts/tsconfig.json ./scripts/create-supabase-tables.ts",
+    "create-supabase-tables-direct": "ts-node -r dotenv/config --project ./scripts/tsconfig.json ./scripts/create-supabase-tables-direct.ts",
+    "test-supabase": "ts-node -r dotenv/config --project ./scripts/tsconfig.json ./scripts/test-supabase-connection.ts",
+    "check-supabase-url": "ts-node -r dotenv/config --project ./scripts/tsconfig.json ./scripts/check-supabase-url.ts"
   },
   "dependencies": {
     "@langchain/community": "^0.3.32",

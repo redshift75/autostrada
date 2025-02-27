@@ -115,3 +115,132 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 ## License
 
 MIT
+
+# Bring a Trailer Scraper
+
+This project provides tools for scraping auction data from Bring a Trailer (BaT) and uploading it to Supabase for analysis.
+
+## Features
+
+- Scrape completed auction results with pagination support
+- Scrape active auction listings
+- Upload data to Supabase for storage and analysis
+- Filter results by make, model, and year
+
+## Setup
+
+1. Clone the repository
+2. Install dependencies:
+   ```
+   npm install
+   ```
+3. Copy the `.env.example` file to `.env` and update with your Supabase credentials:
+   ```
+   cp .env.example .env
+   ```
+4. Create the necessary tables in Supabase:
+   ```
+   npm run create-supabase-tables
+   ```
+
+## Usage
+
+### Scraping Completed Auction Results
+
+To scrape completed auction results:
+
+```
+npm run test-results-scraper
+```
+
+This will scrape completed auction results for:
+- Porsche 911 (3 pages)
+- Ferrari (2 pages)
+- Mercedes-Benz 300SL (2 pages)
+
+The results will be saved to the `results` directory as JSON files.
+
+### Scraping Active Auction Listings
+
+To scrape active auction listings:
+
+```
+npm run test-active-scraper
+```
+
+This will scrape all active auction listings and filter for:
+- All active listings
+- Porsche 911 active listings
+- Ferrari active listings
+
+The results will be saved to the `results` directory as JSON files.
+
+### Uploading Data to Supabase
+
+To upload all data to Supabase:
+
+```
+npm run upload-to-supabase
+```
+
+To upload only completed auction results:
+
+```
+npm run upload-completed
+```
+
+To upload only active auction listings:
+
+```
+npm run upload-active
+```
+
+## Database Schema
+
+### Completed Auctions Table
+
+The `bat_completed_auctions` table stores data about completed auctions:
+
+- `id`: Auto-incrementing primary key
+- `listing_id`: Unique identifier for the listing
+- `url`: URL of the auction listing
+- `title`: Title of the auction listing
+- `image_url`: URL of the main image
+- `sold_price`: Final sale price (if sold)
+- `sold_date`: Date when the auction ended
+- `bid_amount`: Highest bid amount
+- `bid_date`: Date of the highest bid
+- `status`: Status of the auction (sold or unsold)
+- `year`: Year of the vehicle
+- `make`: Make of the vehicle
+- `model`: Model of the vehicle
+- `source_file`: Source file from which the data was loaded
+- `created_at`: Timestamp when the record was created
+- `updated_at`: Timestamp when the record was last updated
+
+### Active Auctions Table
+
+The `bat_active_auctions` table stores data about active auctions:
+
+- `id`: Auto-incrementing primary key
+- `listing_id`: Unique identifier for the listing
+- `url`: URL of the auction listing
+- `title`: Title of the auction listing
+- `image_url`: URL of the main image
+- `current_bid`: Current bid amount
+- `current_bid_formatted`: Formatted current bid (e.g., "USD $10,000")
+- `end_date`: Date when the auction ends
+- `status`: Status of the auction (active or ended)
+- `year`: Year of the vehicle
+- `make`: Make of the vehicle
+- `model`: Model of the vehicle
+- `location`: Location of the vehicle
+- `no_reserve`: Whether the auction has no reserve
+- `premium`: Whether the auction is a premium listing
+- `source_file`: Source file from which the data was loaded
+- `created_at`: Timestamp when the record was created
+- `updated_at`: Timestamp when the record was last updated
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
