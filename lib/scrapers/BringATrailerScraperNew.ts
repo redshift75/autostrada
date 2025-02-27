@@ -170,31 +170,46 @@ export class BringATrailerScraper extends BaseScraper {
       
       console.log(`Found ${auctionsData.auctions.length} auctions for query`);
       
-      // Filter results based on parameters
-      let filteredAuctions = auctionsData.auctions;
+      // First convert auctions to BaTListings to have make and model extracted
+      const listings: BaTListing[] = auctionsData.auctions.map(auction => 
+        this.convertAuctionToBaTListing(auction)
+      );
       
-      // Filter by make if provided
+      // Now filter the listings based on parameters
+      let filteredListings = listings;
+      
+      // Filter by make if provided - use exact match on the extracted make field
       if (params.make) {
         const makeLower = params.make.toLowerCase();
-        filteredAuctions = filteredAuctions.filter(auction => {
-          // Check if make is in title or searchable field
-          return auction.title.toLowerCase().includes(makeLower);
-        });
+        console.log(`Filtering by make: ${params.make}`);
+        
+        filteredListings = this.filterListingsByMake(filteredListings, makeLower);
+        console.log(`After make filtering: ${filteredListings.length} listings`);
       }
       
       // Filter by model if provided
       if (params.model) {
         const modelLower = params.model.toLowerCase();
-        filteredAuctions = filteredAuctions.filter(auction => {
-          // Check if model is in title or searchable field
-          return auction.title.toLowerCase().includes(modelLower);
+        console.log(`Filtering by model: ${params.model}`);
+        
+        filteredListings = filteredListings.filter(listing => {
+          // Check if the extracted model matches the requested model
+          const modelMatches = listing.model.toLowerCase() === modelLower ||
+                              listing.model.toLowerCase().includes(modelLower) ||
+                              modelLower.includes(listing.model.toLowerCase());
+                              
+          // Also check if model appears in title as a fallback
+          const titleContainsModel = listing.title.toLowerCase().includes(modelLower);
+          
+          return modelMatches || titleContainsModel;
         });
+        console.log(`After model filtering: ${filteredListings.length} listings`);
       }
       
       // Filter by year range if provided
       if (params.yearMin || params.yearMax) {
-        filteredAuctions = filteredAuctions.filter(auction => {
-          const year = parseInt(auction.year);
+        filteredListings = filteredListings.filter(listing => {
+          const year = parseInt(listing.year);
           if (isNaN(year)) return false;
           
           if (params.yearMin && year < params.yearMin) return false;
@@ -202,19 +217,57 @@ export class BringATrailerScraper extends BaseScraper {
           
           return true;
         });
+        console.log(`After year filtering: ${filteredListings.length} listings`);
       }
       
-      console.log(`Filtered to ${filteredAuctions.length} auctions`);
+      console.log(`Filtered to ${filteredListings.length} listings`);
       
-      const listings: BaTListing[] = filteredAuctions.map(auction => 
-        this.convertAuctionToBaTListing(auction)
-      );
+      // Log the makes of the first 10 listings to verify filtering
+      if (filteredListings.length > 0) {
+        console.log("Sample of filtered listings makes:");
+        filteredListings.slice(0, Math.min(10, filteredListings.length)).forEach(listing => {
+          console.log(`- ${listing.title} (${listing.make})`);
+        });
+      }
       
-      return listings;
+      return filteredListings;
     } catch (error) {
       console.error('Error searching BaT listings:', error);
       return [];
     }
+  }
+  
+  /**
+   * Filter listings by make
+   * @param listings The listings to filter
+   * @param makeLower The make to filter by (lowercase)
+   * @returns Filtered listings
+   */
+  private filterListingsByMake(listings: BaTListing[], makeLower: string): BaTListing[] {
+    // First try exact match on make field
+    const exactMatches = listings.filter(listing => 
+      listing.make.toLowerCase() === makeLower
+    );
+    
+    if (exactMatches.length > 0) {
+      console.log(`Found ${exactMatches.length} exact make matches for "${makeLower}"`);
+      return exactMatches;
+    }
+    
+    // If no exact matches, try partial matches
+    const partialMatches = listings.filter(listing => {
+      // Check if the extracted make contains or is contained by the requested make
+      const makeMatches = listing.make.toLowerCase().includes(makeLower) ||
+                         makeLower.includes(listing.make.toLowerCase());
+                         
+      // Also check if make appears in title as a fallback
+      const titleContainsMake = listing.title.toLowerCase().includes(makeLower);
+      
+      return makeMatches || titleContainsMake;
+    });
+    
+    console.log(`Found ${partialMatches.length} partial make matches for "${makeLower}"`);
+    return partialMatches;
   }
 
   private async extractAuctionsData(html: string): Promise<BaTAuctionsData | null> {

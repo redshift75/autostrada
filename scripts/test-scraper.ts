@@ -36,11 +36,17 @@ async function main() {
       sources: [ListingSource.BRING_A_TRAILER]
     });
     
-    console.log(`Found ${porscheResults.length} Porsche 911 listings`);
+    // Filter results to only include Porsche 911s
+    const filteredPorscheResults = porscheResults.filter(result => 
+      result.make.toLowerCase() === 'porsche' && 
+      result.model.toLowerCase().includes('911')
+    );
+    
+    console.log(`Found ${filteredPorscheResults.length} Porsche 911 listings`);
     
     // Display the results
-    for (const result of porscheResults) {
-      console.log(`- ${result.title} (${result.status}): ${result.price ? '$' + result.price.toLocaleString() : 'No price'}`);
+    for (const result of filteredPorscheResults) {
+      console.log(`- ${result.title} (${result.make} ${result.model}): ${result.current_bid ? '$' + result.current_bid.toLocaleString() : 'No price'}`);
     }
     
     // Save the results to a file
@@ -48,7 +54,7 @@ async function main() {
     await fs.mkdir(resultsDir, { recursive: true });
     await fs.writeFile(
       path.join(resultsDir, 'porsche_911_results.json'),
-      JSON.stringify(porscheResults, null, 2)
+      JSON.stringify(filteredPorscheResults, null, 2)
     );
     console.log(`Results saved to results/porsche_911_results.json`);
     
@@ -60,17 +66,22 @@ async function main() {
       sources: [ListingSource.BRING_A_TRAILER]
     });
     
-    console.log(`Found ${ferrariResults.length} Ferrari listings`);
+    // Filter results to only include Ferraris
+    const filteredFerrariResults = ferrariResults.filter(result => 
+      result.make.toLowerCase() === 'ferrari'
+    );
+    
+    console.log(`Found ${filteredFerrariResults.length} Ferrari listings`);
     
     // Display the results
-    for (const result of ferrariResults) {
-      console.log(`- ${result.title} (${result.status}): ${result.price ? '$' + result.price.toLocaleString() : 'No price'}`);
+    for (const result of filteredFerrariResults) {
+      console.log(`- ${result.title} (${result.make}): ${result.current_bid ? '$' + result.current_bid.toLocaleString() : 'No price'}`);
     }
     
     // Save the results to a file
     await fs.writeFile(
       path.join(resultsDir, 'ferrari_results.json'),
-      JSON.stringify(ferrariResults, null, 2)
+      JSON.stringify(filteredFerrariResults, null, 2)
     );
     console.log(`Results saved to results/ferrari_results.json`);
     
@@ -83,17 +94,23 @@ async function main() {
       sources: [ListingSource.BRING_A_TRAILER]
     });
     
-    console.log(`Found ${mercedesResults.length} Mercedes-Benz 300SL listings`);
+    // Filter results to only include Mercedes-Benz 300SL
+    const filteredMercedesResults = mercedesResults.filter(result => 
+      result.make.toLowerCase().includes('mercedes') && 
+      result.model.toLowerCase().includes('300sl')
+    );
+    
+    console.log(`Found ${filteredMercedesResults.length} Mercedes-Benz 300SL listings`);
     
     // Display the results
-    for (const result of mercedesResults) {
-      console.log(`- ${result.title} (${result.status}): ${result.price ? '$' + result.price.toLocaleString() : 'No price'}`);
+    for (const result of filteredMercedesResults) {
+      console.log(`- ${result.title} (${result.make} ${result.model}): ${result.current_bid ? '$' + result.current_bid.toLocaleString() : 'No price'}`);
     }
     
     // Save the results to a file
     await fs.writeFile(
       path.join(resultsDir, 'mercedes_300sl_results.json'),
-      JSON.stringify(mercedesResults, null, 2)
+      JSON.stringify(filteredMercedesResults, null, 2)
     );
     console.log(`Results saved to results/mercedes_300sl_results.json`);
     
