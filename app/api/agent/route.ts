@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { initClassicCarAgent } from '@/lib/langchain';
+import { initializeAgent } from '@/lib/langchain';
+import '@/lib/server-only';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,7 +14,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Initialize the agent
-    const agent = await initClassicCarAgent();
+    const agent = await initializeAgent();
     
     // Process the query
     const result = await agent.invoke({

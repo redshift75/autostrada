@@ -8,10 +8,49 @@
  * - Caching mechanisms for responses
  */
 
-import { setTimeout } from 'node:timers/promises';
-import { createHash } from 'crypto';
-import fs from 'fs/promises';
-import path from 'path';
+import '../server-only';
+
+// Import Node.js modules conditionally
+let setTimeout: any;
+let createHash: any;
+let fs: any;
+let path: any;
+
+// Only import Node.js modules on the server
+if (typeof window === 'undefined') {
+  // Use regular imports instead of node: protocol
+  import('timers/promises').then(module => { setTimeout = module.setTimeout }).catch(() => {
+    // Fallback to global setTimeout if module import fails
+    setTimeout = global.setTimeout;
+  });
+  
+  import('crypto').then(module => { createHash = module.createHash }).catch(() => {
+    // Provide a fallback or no-op implementation
+    createHash = (algorithm: string) => ({
+      update: (data: string) => ({
+        digest: (encoding: string) => 'mock-hash'
+      })
+    });
+  });
+  
+  import('fs/promises').then(module => { fs = module }).catch(() => {
+    // Provide a fallback or no-op implementation
+    fs = {
+      readFile: async () => '',
+      writeFile: async () => {},
+      mkdir: async () => {},
+      access: async () => { throw new Error('File not found'); }
+    };
+  });
+  
+  import('path').then(module => { path = module }).catch(() => {
+    // Provide a fallback or no-op implementation
+    path = {
+      join: (...parts: string[]) => parts.join('/'),
+      dirname: (p: string) => p.split('/').slice(0, -1).join('/')
+    };
+  });
+}
 
 // Types for scraper configuration
 export interface ScraperConfig {

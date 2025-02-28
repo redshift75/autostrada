@@ -2,6 +2,60 @@
 
 A comprehensive platform for analyzing classic car market trends, tracking prices, and providing insights for collectors and investors.
 
+## Deployment to Vercel
+
+### Prerequisites
+
+- A Vercel account (you can sign up at [vercel.com](https://vercel.com))
+- Git repository with your project (GitHub, GitLab, or Bitbucket)
+
+### Deployment Steps
+
+1. **Push your code to a Git repository**
+
+   If you haven't already, push your code to a Git repository:
+
+   ```bash
+   git init
+   git add .
+   git commit -m "Initial commit"
+   git remote add origin your-repository-url
+   git push -u origin main
+   ```
+
+2. **Connect to Vercel**
+
+   - Go to [Vercel Dashboard](https://vercel.com/dashboard)
+   - Click "Add New" > "Project"
+   - Import your Git repository
+   - Configure your project:
+     - Framework Preset: Next.js
+     - Root Directory: ./
+     - Build Command: npm run build
+     - Output Directory: .next
+
+3. **Configure Environment Variables**
+
+   Add the following environment variables in the Vercel project settings:
+
+   - `SUPABASE_URL`
+   - `SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_KEY`
+   - `OPENAI_API_KEY`
+   - Any other variables from your `.env` file that are needed
+
+4. **Deploy**
+
+   Click "Deploy" and wait for the build to complete.
+
+5. **Update NEXT_PUBLIC_APP_URL**
+
+   After deployment, update the `NEXT_PUBLIC_APP_URL` environment variable to match your Vercel deployment URL.
+
+### Continuous Deployment
+
+Vercel automatically deploys when you push changes to your repository. You can configure deployment settings in the Vercel dashboard.
+
 ## Database Setup with Supabase
 
 ### Prerequisites

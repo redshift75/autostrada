@@ -1,7 +1,16 @@
 import axios from 'axios';
-import * as fs from 'fs';
-import * as path from 'path';
+import '../server-only';
 import { BaseScraper } from './BaseScraper';
+
+// Import Node.js modules conditionally
+let fs: any;
+let path: any;
+
+// Only import Node.js modules on the server
+if (typeof window === 'undefined') {
+  import('fs').then(module => { fs = module });
+  import('path').then(module => { path = module });
+}
 
 // Define interface for completed auction listings
 export interface BaTCompletedListing {
