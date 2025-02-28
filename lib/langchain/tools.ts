@@ -1,5 +1,7 @@
 import { DynamicStructuredTool } from "@langchain/core/tools";
 import { z } from "zod";
+import { BringATrailerResultsScraper, BaTCompletedListing } from "../scrapers/BringATrailerResultsScraper";
+import { generatePriceTimeSeriesChart, generatePriceHistogram, generatePriceYearScatterPlot } from "../utils/visualization";
 
 // Tool to search for vehicles by criteria
 export const createVehicleSearchTool = () => {
@@ -145,4 +147,148 @@ export const createMarketAnalysisTool = () => {
       });
     },
   });
-}; 
+};
+
+// Tool to fetch real-time auction results from Bring a Trailer
+export const createAuctionResultsTool = () => {
+  return new DynamicStructuredTool({
+    name: "fetch_auction_results",
+    description: "Fetch recent auction results from Bring a Trailer for a specific make and model",
+    schema: z.object({
+      make: z.string().describe("The manufacturer of the vehicle"),
+      model: z.string().optional().describe("The model of the vehicle"),
+      yearMin: z.number().optional().describe("The minimum year to filter results"),
+      yearMax: z.number().optional().describe("The maximum year to filter results"),
+      maxPages: z.number().optional().describe("Maximum number of pages to fetch (default: 2)"),
+      generateVisualizations: z.boolean().optional().describe("Whether to generate visualizations of the results (default: false)"),
+    }),
+    func: async ({ make, model, yearMin, yearMax, maxPages, generateVisualizations = false }) => {
+      try {
+        console.log(`Fetching auction results for ${make} ${model || ''} (${yearMin || 'any'}-${yearMax || 'any'})`);
+        
+        // Initialize the scraper
+        const scraper = new BringATrailerResultsScraper();
+        
+        // Scrape the results
+        const results = await scraper.scrape({
+          make,
+          model,
+          yearMin,
+          yearMax,
+          maxPages: maxPages || 2,
+          perPage: 50
+        });
+        
+        // Format the results for better readability
+        const formattedResults = results.map(item => ({
+          title: item.title,
+          year: item.year,
+          make: item.make,
+          model: item.model,
+          sold_price: item.sold_price ? `$${item.sold_price}` : 'Not sold',
+          bid_amount: item.bid_amount ? `$${item.bid_amount}` : 'No bids',
+          sold_date: item.sold_date,
+          status: item.status,
+          url: item.url,
+          country: item.country,
+          noreserve: item.noreserve ? 'No Reserve' : 'Reserve',
+          premium: item.premium ? 'Premium' : 'Standard'
+        }));
+        
+        // Generate visualizations if requested
+        let visualizations = {};
+        if (generateVisualizations && results.length > 0) {
+          console.log('Generating visualizations...');
+          try {
+            // Create the public/charts directory if it doesn't exist
+            const outputPath = 'public/charts';
+            
+            // Generate time series chart
+            const timeSeriesChartPath = await generatePriceTimeSeriesChart(results, outputPath);
+            
+            // Generate price histogram
+            const priceHistogramPath = await generatePriceHistogram(results, outputPath);
+            
+            // Generate price vs. year scatter plot if we have year data
+            const hasYearData = results.some(item => item.year !== undefined);
+            let priceYearScatterPath = null;
+            if (hasYearData) {
+              priceYearScatterPath = await generatePriceYearScatterPlot(results, outputPath);
+            }
+            
+            visualizations = {
+              timeSeriesChart: timeSeriesChartPath,
+              priceHistogram: priceHistogramPath,
+              priceYearScatter: priceYearScatterPath
+            };
+            
+            console.log('Visualizations generated successfully');
+          } catch (error) {
+            console.error('Error generating visualizations:', error);
+            visualizations = {
+              error: 'Failed to generate visualizations',
+              details: error instanceof Error ? error.message : 'Unknown error'
+            };
+          }
+        }
+        
+        // Return a summary, visualizations (if generated), and the results
+        return JSON.stringify({
+          query: {
+            make,
+            model: model || 'Any',
+            yearRange: `${yearMin || 'Any'}-${yearMax || 'Any'}`
+          },
+          summary: {
+            totalResults: results.length,
+            averageSoldPrice: calculateAverageSoldPrice(results),
+            highestSoldPrice: findHighestSoldPrice(results),
+            lowestSoldPrice: findLowestSoldPrice(results),
+            soldPercentage: calculateSoldPercentage(results)
+          },
+          visualizations: generateVisualizations ? visualizations : undefined,
+          results: formattedResults
+        });
+      } catch (error: unknown) {
+        console.error('Error fetching auction results:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        return JSON.stringify({
+          error: 'Failed to fetch auction results',
+          details: errorMessage
+        });
+      }
+    },
+  });
+};
+
+// Helper functions for the auction results tool
+function calculateAverageSoldPrice(results: BaTCompletedListing[]): string {
+  const soldItems = results.filter(item => item.status === 'sold' && item.sold_price);
+  if (soldItems.length === 0) return 'N/A';
+  
+  const total = soldItems.reduce((sum: number, item: BaTCompletedListing) => sum + parseInt(item.sold_price), 0);
+  return `$${Math.round(total / soldItems.length).toLocaleString()}`;
+}
+
+function findHighestSoldPrice(results: BaTCompletedListing[]): string {
+  const soldItems = results.filter(item => item.status === 'sold' && item.sold_price);
+  if (soldItems.length === 0) return 'N/A';
+  
+  const highest = Math.max(...soldItems.map(item => parseInt(item.sold_price)));
+  return `$${highest.toLocaleString()}`;
+}
+
+function findLowestSoldPrice(results: BaTCompletedListing[]): string {
+  const soldItems = results.filter(item => item.status === 'sold' && item.sold_price);
+  if (soldItems.length === 0) return 'N/A';
+  
+  const lowest = Math.min(...soldItems.map(item => parseInt(item.sold_price)));
+  return `$${lowest.toLocaleString()}`;
+}
+
+function calculateSoldPercentage(results: BaTCompletedListing[]): string {
+  if (results.length === 0) return 'N/A';
+  
+  const soldItems = results.filter(item => item.status === 'sold');
+  return `${Math.round((soldItems.length / results.length) * 100)}%`;
+} 

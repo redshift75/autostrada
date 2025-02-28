@@ -12,33 +12,69 @@ export * from './clients';
 
 // Create a convenience function to initialize the entire agent system
 import { ChatOpenAI } from "@langchain/openai";
-import { initOpenAIClient, initSupabaseVectorStore } from './clients';
-import { createAgent, createAgentPrompt } from './config';
-import { 
-  createVehicleSearchTool, 
+import { AgentExecutor, createOpenAIFunctionsAgent } from "langchain/agents";
+import { SupabaseVectorStore } from "@langchain/community/vectorstores/supabase";
+import { OpenAIEmbeddings } from "@langchain/openai";
+import { createAgentPrompt } from "./config";
+import {
+  createVehicleSearchTool,
   createPriceHistoryTool,
   createVehicleDetailTool,
-  createMarketAnalysisTool
-} from './tools';
+  createMarketAnalysisTool,
+  createAuctionResultsTool
+} from "./tools";
+import { initOpenAIClient, initSupabaseVectorStore } from "./clients";
 
-export const initClassicCarAgent = async () => {
+export async function initializeAgent() {
   // Initialize the LLM
   const llm = initOpenAIClient();
-  
-  // Initialize vector store
-  const vectorStore = initSupabaseVectorStore();
-  
-  // Create tools
-  const tools = [
-    createVehicleSearchTool(),
-    createPriceHistoryTool(),
-    createVehicleDetailTool(),
-    createMarketAnalysisTool(),
-  ];
-  
-  // Create prompt
+
+  // Create the tools
+  const vehicleSearchTool = createVehicleSearchTool();
+  const priceHistoryTool = createPriceHistoryTool();
+  const vehicleDetailTool = createVehicleDetailTool();
+  const marketAnalysisTool = createMarketAnalysisTool();
+  const auctionResultsTool = createAuctionResultsTool();
+
+  // Create the prompt template
   const prompt = createAgentPrompt();
-  
-  // Create and return the agent
-  return createAgent(llm, tools, prompt);
-}; 
+
+  // Create the agent
+  const agent = await createOpenAIFunctionsAgent({
+    llm,
+    tools: [
+      vehicleSearchTool,
+      priceHistoryTool,
+      vehicleDetailTool,
+      marketAnalysisTool,
+      auctionResultsTool,
+    ],
+    prompt,
+  });
+
+  // Create the agent executor
+  const agentExecutor = AgentExecutor.fromAgentAndTools({
+    agent,
+    tools: [
+      vehicleSearchTool,
+      priceHistoryTool,
+      vehicleDetailTool,
+      marketAnalysisTool,
+      auctionResultsTool,
+    ],
+    verbose: true,
+  });
+
+  return agentExecutor;
+}
+
+export async function initializeVectorStore() {
+  try {
+    // Initialize the vector store
+    const vectorStore = initSupabaseVectorStore();
+    return vectorStore;
+  } catch (error) {
+    console.error("Error initializing vector store:", error);
+    return null;
+  }
+} 

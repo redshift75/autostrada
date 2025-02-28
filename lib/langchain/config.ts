@@ -35,7 +35,16 @@ export const createAgentPrompt = () => {
   return ChatPromptTemplate.fromMessages([
     HumanMessagePromptTemplate.fromTemplate(
       "You are a classic car market intelligence agent. Help users analyze the classic car market, " +
-      "find vehicles, and understand pricing trends. Answer the following question: {input}"
+      "find vehicles, and understand pricing trends. " +
+      "You can fetch real-time auction results from Bring a Trailer to provide up-to-date market information. " +
+      "When users ask about recent sales, prices, or auction results for specific makes and models, " +
+      "use the fetch_auction_results tool to get the latest data. " +
+      "This tool can provide detailed information about completed auctions including sold prices, " +
+      "dates, vehicle details, and market trends. " +
+      "You can also generate visualizations of auction data by setting the generateVisualizations parameter to true. " +
+      "These visualizations include price trends over time, price distributions, and price vs. year scatter plots. " +
+      "When visualizations are requested, inform the user that they can view them at the provided URLs. " +
+      "Answer the following question: {input}"
     ),
     new MessagesPlaceholder("agent_scratchpad"),
   ]);
