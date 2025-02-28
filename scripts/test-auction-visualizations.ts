@@ -14,7 +14,7 @@ async function testAuctionVisualizations() {
       model: '911',
       yearMin: 2015,
       yearMax: 2023,
-      maxPages: 1,
+      maxPages: 10,
       generateVisualizations: true
     });
     
@@ -41,11 +41,6 @@ async function testAuctionVisualizations() {
       if (parsedResult.visualizations.priceHistogram) {
         console.log('- Price Histogram:', parsedResult.visualizations.priceHistogram);
         console.log('  File exists:', fs.existsSync(parsedResult.visualizations.priceHistogram));
-      }
-      
-      if (parsedResult.visualizations.priceYearScatter) {
-        console.log('- Price-Year Scatter Plot:', parsedResult.visualizations.priceYearScatter);
-        console.log('  File exists:', fs.existsSync(parsedResult.visualizations.priceYearScatter));
       }
       
       // Create an HTML file to view the visualizations
@@ -85,13 +80,6 @@ async function testAuctionVisualizations() {
           <div class="visualization">
             <h2>Price Distribution</h2>
             <img src="/${parsedResult.visualizations.priceHistogram.replace('public/', '')}" alt="Price Distribution">
-          </div>
-          ` : ''}
-          
-          ${parsedResult.visualizations.priceYearScatter ? `
-          <div class="visualization">
-            <h2>Prices by Year</h2>
-            <img src="/${parsedResult.visualizations.priceYearScatter.replace('public/', '')}" alt="Prices by Year">
           </div>
           ` : ''}
         </body>

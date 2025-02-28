@@ -18,23 +18,19 @@ function convertMarkdownImagesToHtml(text: string): string {
 // Function to extract visualization paths from the response
 function extractVisualizationPaths(response: string): { 
   timeSeriesChart: string, 
-  priceHistogram: string, 
-  priceYearScatter: string 
+  priceHistogram: string
 } {
   const result = {
     timeSeriesChart: '/charts/auction_prices_1740713648149.svg',
-    priceHistogram: '/charts/price_histogram_1740713648163.svg',
-    priceYearScatter: '/charts/price_year_scatter_1740713648174.svg'
+    priceHistogram: '/charts/price_histogram_1740713648163.svg'
   };
   
   // Extract paths using regex
   const timeSeriesMatch = response.match(/auction_prices_(\d+)\.svg/);
   const histogramMatch = response.match(/price_histogram_(\d+)\.svg/);
-  const scatterMatch = response.match(/price_year_scatter_(\d+)\.svg/);
   
   if (timeSeriesMatch) result.timeSeriesChart = `/charts/auction_prices_${timeSeriesMatch[1]}.svg`;
   if (histogramMatch) result.priceHistogram = `/charts/price_histogram_${histogramMatch[1]}.svg`;
-  if (scatterMatch) result.priceYearScatter = `/charts/price_year_scatter_${scatterMatch[1]}.svg`;
   
   return result;
 }
@@ -104,11 +100,6 @@ async function testAgentWithAuctionTool() {
           <div class="visualization">
             <h3>Price Distribution</h3>
             <img src="${visualizationPaths.priceHistogram || '/charts/price_histogram_1740713648163.svg'}" alt="Price Distribution">
-          </div>
-          
-          <div class="visualization">
-            <h3>Prices by Year</h3>
-            <img src="${visualizationPaths.priceYearScatter || '/charts/price_year_scatter_1740713648174.svg'}" alt="Prices by Year">
           </div>
         </div>
       </body>

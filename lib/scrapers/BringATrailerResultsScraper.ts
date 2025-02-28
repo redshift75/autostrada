@@ -78,7 +78,9 @@ export class BringATrailerResultsScraper extends BaseScraper {
             per_page: perPage,
             get_items: 1,
             get_stats: 0,
-            include_s: searchTerm
+            include_s: searchTerm,
+            minimum_year: params.yearMin,
+            maximum_year: params.yearMax
           };
           
           // Make POST request to the API
