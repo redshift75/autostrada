@@ -99,14 +99,16 @@ export class BringATrailerActiveListingScraper extends BaseScraper {
       console.log(`Fetching recent listings from ${this.searchUrl}`);
       const html = await this.fetchHtml(this.searchUrl);
       
-      // Save HTML for debugging
-      const debugDir = path.join(process.cwd(), 'debug');
-      if (!fs.existsSync(debugDir)) {
-        fs.mkdirSync(debugDir);
+      // Save HTML for debugging only in development environment
+      if (process.env.NODE_ENV !== 'production') {
+        const debugDir = path.join(process.cwd(), 'debug');
+        if (!fs.existsSync(debugDir)) {
+          fs.mkdirSync(debugDir);
+        }
+        const debugFile = path.join(debugDir, `bat_debug_${Date.now()}.html`);
+        fs.writeFileSync(debugFile, html);
+        console.log(`Saved debug HTML to ${debugFile}`);
       }
-      const debugFile = path.join(debugDir, `bat_debug_${Date.now()}.html`);
-      fs.writeFileSync(debugFile, html);
-      console.log(`Saved debug HTML to ${debugFile}`);
       
       const auctionsData = await this.extractAuctionsData(html);
       

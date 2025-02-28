@@ -16,6 +16,11 @@ export async function generatePriceTimeSeriesChart(
 ): Promise<string> {
   try {
     // Ensure the output directory exists
+    if (process.env.NODE_ENV === 'production') {
+      // In production, use a path that's writable in Vercel
+      outputPath = path.join('/tmp', 'charts');
+    }
+    
     if (!fs.existsSync(outputPath)) {
       fs.mkdirSync(outputPath, { recursive: true });
     }
@@ -110,6 +115,11 @@ export async function generatePriceHistogram(
 ): Promise<string> {
   try {
     // Ensure the output directory exists
+    if (process.env.NODE_ENV === 'production') {
+      // In production, use a path that's writable in Vercel
+      outputPath = path.join('/tmp', 'charts');
+    }
+    
     if (!fs.existsSync(outputPath)) {
       fs.mkdirSync(outputPath, { recursive: true });
     }
@@ -190,6 +200,11 @@ export async function generatePriceYearScatterPlot(
 ): Promise<string> {
   try {
     // Ensure the output directory exists
+    if (process.env.NODE_ENV === 'production') {
+      // In production, use a path that's writable in Vercel
+      outputPath = path.join('/tmp', 'charts');
+    }
+    
     if (!fs.existsSync(outputPath)) {
       fs.mkdirSync(outputPath, { recursive: true });
     }

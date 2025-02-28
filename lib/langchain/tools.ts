@@ -203,7 +203,12 @@ export const createAuctionResultsTool = () => {
           console.log('Generating visualizations...');
           try {
             // Create the public/charts directory if it doesn't exist
-            const outputPath = 'public/charts';
+            let outputPath = 'public/charts';
+            
+            // In production, use a path that's writable in Vercel
+            if (process.env.NODE_ENV === 'production') {
+              outputPath = '/tmp/charts';
+            }
             
             // Generate time series chart
             const timeSeriesChartPath = await generatePriceTimeSeriesChart(results, outputPath);

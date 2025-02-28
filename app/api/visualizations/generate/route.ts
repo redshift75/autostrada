@@ -119,14 +119,14 @@ export async function POST(request: NextRequest) {
         ${parsedResult.visualizations.timeSeriesChart ? `
         <div class="visualization">
           <h2>Price Trends Over Time</h2>
-          <img src="/${parsedResult.visualizations.timeSeriesChart.replace('public/', '')}" alt="Price Trends">
+          <img src="/${parsedResult.visualizations.timeSeriesChart.replace('public/', '').replace('/tmp/', 'tmp/')}" alt="Price Trends">
         </div>
         ` : ''}
         
         ${parsedResult.visualizations.priceHistogram ? `
         <div class="visualization">
           <h2>Price Distribution</h2>
-          <img src="/${parsedResult.visualizations.priceHistogram.replace('public/', '')}" alt="Price Distribution">
+          <img src="/${parsedResult.visualizations.priceHistogram.replace('public/', '').replace('/tmp/', 'tmp/')}" alt="Price Distribution">
         </div>
         ` : ''}
 
@@ -152,20 +152,26 @@ export async function POST(request: NextRequest) {
       </html>
     `;
     
-    const htmlPath = path.join(process.cwd(), 'public', 'auction_visualizations.html');
-    fs.writeFileSync(htmlPath, htmlContent);
+    // Only write files in development environment
+    let htmlPath = '';
+    let resultsPath = '';
     
-    // Save the auction results data to a JSON file
-    const timestamp = Date.now();
-    const resultsPath = path.join(process.cwd(), 'public', `auction_results_${timestamp}.json`);
-    fs.writeFileSync(resultsPath, JSON.stringify(parsedResult, null, 2));
+    if (process.env.NODE_ENV !== 'production') {
+      htmlPath = path.join(process.cwd(), 'public', 'auction_visualizations.html');
+      fs.writeFileSync(htmlPath, htmlContent);
+      
+      // Save the auction results data to a JSON file
+      const timestamp = Date.now();
+      resultsPath = path.join(process.cwd(), 'public', `auction_results_${timestamp}.json`);
+      fs.writeFileSync(resultsPath, JSON.stringify(parsedResult, null, 2));
+    }
     
     // Prepare the response data
     const visualizations = {
       timeSeriesChart: parsedResult.visualizations.timeSeriesChart ? 
-        `/${parsedResult.visualizations.timeSeriesChart.replace('public/', '')}` : null,
+        `/${parsedResult.visualizations.timeSeriesChart.replace('public/', '').replace('/tmp/', 'tmp/')}` : null,
       priceHistogram: parsedResult.visualizations.priceHistogram ? 
-        `/${parsedResult.visualizations.priceHistogram.replace('public/', '')}` : null,
+        `/${parsedResult.visualizations.priceHistogram.replace('public/', '').replace('/tmp/', 'tmp/')}` : null,
     };
     
     return NextResponse.json({
