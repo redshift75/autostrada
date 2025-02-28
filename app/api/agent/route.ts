@@ -34,5 +34,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
-export const runtime = 'edge'; // Optional: Use edge runtime for better performance 
