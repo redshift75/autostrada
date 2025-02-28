@@ -41,6 +41,32 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    // In production, read the SVG files and convert them to base64
+    let timeSeriesBase64 = null;
+    let priceHistogramBase64 = null;
+    
+    if (process.env.NODE_ENV === 'production' && parsedResult.visualizations) {
+      try {
+        if (parsedResult.visualizations.timeSeriesChart) {
+          const timeSeriesPath = parsedResult.visualizations.timeSeriesChart;
+          if (fs.existsSync(timeSeriesPath)) {
+            const svgContent = fs.readFileSync(timeSeriesPath, 'utf8');
+            timeSeriesBase64 = Buffer.from(svgContent).toString('base64');
+          }
+        }
+        
+        if (parsedResult.visualizations.priceHistogram) {
+          const histogramPath = parsedResult.visualizations.priceHistogram;
+          if (fs.existsSync(histogramPath)) {
+            const svgContent = fs.readFileSync(histogramPath, 'utf8');
+            priceHistogramBase64 = Buffer.from(svgContent).toString('base64');
+          }
+        }
+      } catch (error) {
+        console.error('Error reading visualization files:', error);
+      }
+    }
+    
     // Create an HTML file to view the visualizations
     const htmlContent = `
       <!DOCTYPE html>
@@ -116,17 +142,27 @@ export async function POST(request: NextRequest) {
           <p>Sold Percentage: ${parsedResult.summary.soldPercentage}</p>
         </div>
         
-        ${parsedResult.visualizations.timeSeriesChart ? `
+        ${process.env.NODE_ENV === 'production' && timeSeriesBase64 ? `
         <div class="visualization">
           <h2>Price Trends Over Time</h2>
-          <img src="/${parsedResult.visualizations.timeSeriesChart.replace('public/', '').replace('/tmp/', 'tmp/')}" alt="Price Trends">
+          <img src="data:image/svg+xml;base64,${timeSeriesBase64}" alt="Price Trends">
+        </div>
+        ` : parsedResult.visualizations.timeSeriesChart ? `
+        <div class="visualization">
+          <h2>Price Trends Over Time</h2>
+          <img src="/${parsedResult.visualizations.timeSeriesChart.replace('public/', '')}" alt="Price Trends">
         </div>
         ` : ''}
         
-        ${parsedResult.visualizations.priceHistogram ? `
+        ${process.env.NODE_ENV === 'production' && priceHistogramBase64 ? `
         <div class="visualization">
           <h2>Price Distribution</h2>
-          <img src="/${parsedResult.visualizations.priceHistogram.replace('public/', '').replace('/tmp/', 'tmp/')}" alt="Price Distribution">
+          <img src="data:image/svg+xml;base64,${priceHistogramBase64}" alt="Price Distribution">
+        </div>
+        ` : parsedResult.visualizations.priceHistogram ? `
+        <div class="visualization">
+          <h2>Price Distribution</h2>
+          <img src="/${parsedResult.visualizations.priceHistogram.replace('public/', '')}" alt="Price Distribution">
         </div>
         ` : ''}
 
@@ -168,10 +204,16 @@ export async function POST(request: NextRequest) {
     
     // Prepare the response data
     const visualizations = {
-      timeSeriesChart: parsedResult.visualizations.timeSeriesChart ? 
-        `/${parsedResult.visualizations.timeSeriesChart.replace('public/', '').replace('/tmp/', 'tmp/')}` : null,
-      priceHistogram: parsedResult.visualizations.priceHistogram ? 
-        `/${parsedResult.visualizations.priceHistogram.replace('public/', '').replace('/tmp/', 'tmp/')}` : null,
+      timeSeriesChart: process.env.NODE_ENV === 'production' && timeSeriesBase64 
+        ? `data:image/svg+xml;base64,${timeSeriesBase64}` 
+        : parsedResult.visualizations.timeSeriesChart 
+          ? `/${parsedResult.visualizations.timeSeriesChart.replace('public/', '')}` 
+          : null,
+      priceHistogram: process.env.NODE_ENV === 'production' && priceHistogramBase64 
+        ? `data:image/svg+xml;base64,${priceHistogramBase64}` 
+        : parsedResult.visualizations.priceHistogram 
+          ? `/${parsedResult.visualizations.priceHistogram.replace('public/', '')}` 
+          : null,
     };
     
     return NextResponse.json({
