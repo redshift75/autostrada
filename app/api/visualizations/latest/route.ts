@@ -53,7 +53,38 @@ export async function GET() {
       priceHistogram: priceHistogramMatch ? `/charts/${priceHistogramMatch[1]}` : null,
     };
     
-    return NextResponse.json({ summary, visualizations });
+    // Try to find the latest auction results data
+    let results = [];
+    try {
+      // Look for the most recent auction results file
+      const files = fs.readdirSync(publicDir);
+      const jsonFiles = files.filter(file => file.endsWith('.json') && file.includes('auction_results_'));
+      
+      if (jsonFiles.length > 0) {
+        // Sort by timestamp (newest first)
+        jsonFiles.sort((a, b) => {
+          const timestampA = parseInt(a.split('_').pop()?.replace('.json', '') || '0', 10);
+          const timestampB = parseInt(b.split('_').pop()?.replace('.json', '') || '0', 10);
+          return timestampB - timestampA;
+        });
+        
+        // Read the most recent file
+        const latestFile = jsonFiles[0];
+        const resultsPath = path.join(publicDir, latestFile);
+        const resultsData = fs.readFileSync(resultsPath, 'utf-8');
+        const parsedResults = JSON.parse(resultsData);
+        
+        // Extract results if available
+        if (parsedResults && parsedResults.results && Array.isArray(parsedResults.results)) {
+          results = parsedResults.results.slice(0, 20); // Limit to 20 results for performance
+        }
+      }
+    } catch (err) {
+      console.error('Error reading auction results:', err);
+      // Continue without results if there's an error
+    }
+    
+    return NextResponse.json({ summary, visualizations, results });
   } catch (error) {
     console.error('Error fetching latest visualizations:', error);
     return NextResponse.json(

@@ -23,6 +23,18 @@ export interface BaTCompletedListing {
   premium?: boolean;
   timestamp_end?: number;
   excerpt?: string;
+  images?: {
+    small?: {
+      url: string;
+      width: number;
+      height: number;
+    };
+    large?: {
+      url: string;
+      width: number;
+      height: number;
+    };
+  };
 }
 
 // Interface for scraper parameters
@@ -216,6 +228,15 @@ export class BringATrailerResultsScraper extends BaseScraper {
           bidAmount = item.current_bid.toString();
         }
         
+        // Extract images if available
+        let images = undefined;
+        if (item.images) {
+          images = {
+            small: item.images.small,
+            large: item.images.large
+          };
+        }
+        
         return {
           id: item.id?.toString() || '',
           url: item.url || '',
@@ -234,7 +255,8 @@ export class BringATrailerResultsScraper extends BaseScraper {
           noreserve: item.noreserve || false,
           premium: item.premium || false,
           timestamp_end: item.timestamp_end || 0,
-          excerpt: item.excerpt || ''
+          excerpt: item.excerpt || '',
+          images: images
         };
       });
     } catch (error) {

@@ -20,7 +20,9 @@
 
 # production
 /build
-/public/charts
+public/charts
+public/*.json
+public/*.html
 
 # misc
 .DS_Store
@@ -41,4 +43,3 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-

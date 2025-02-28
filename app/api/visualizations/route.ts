@@ -74,7 +74,48 @@ export async function GET(request: NextRequest) {
       priceHistogram: priceHistogramMatch ? `/charts/${priceHistogramMatch[1]}` : null,
     };
     
-    return NextResponse.json({ summary, visualizations });
+    // Try to find auction results data for this make and model
+    let results = [];
+    try {
+      // Look for auction results files
+      const files = fs.readdirSync(publicDir);
+      const jsonFiles = files.filter(file => file.endsWith('.json') && file.includes('auction_results_'));
+      
+      if (jsonFiles.length > 0) {
+        // Sort by timestamp (newest first)
+        jsonFiles.sort((a, b) => {
+          const timestampA = parseInt(a.split('_').pop()?.replace('.json', '') || '0', 10);
+          const timestampB = parseInt(b.split('_').pop()?.replace('.json', '') || '0', 10);
+          return timestampB - timestampA;
+        });
+        
+        // Try each file until we find results for this make and model
+        for (const jsonFile of jsonFiles) {
+          const resultsPath = path.join(publicDir, jsonFile);
+          const resultsData = fs.readFileSync(resultsPath, 'utf-8');
+          const parsedResults = JSON.parse(resultsData);
+          
+          // Check if this file has the right make and model
+          if (parsedResults && 
+              parsedResults.query && 
+              parsedResults.query.make && 
+              parsedResults.query.model && 
+              parsedResults.query.make.toLowerCase() === make.toLowerCase() && 
+              parsedResults.query.model.toLowerCase() === model.toLowerCase() && 
+              parsedResults.results && 
+              Array.isArray(parsedResults.results)) {
+            
+            results = parsedResults.results;
+            break;
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error reading auction results:', err);
+      // Continue without results if there's an error
+    }
+    
+    return NextResponse.json({ summary, visualizations, results });
   } catch (error) {
     console.error('Error fetching visualizations:', error);
     return NextResponse.json(

@@ -9,33 +9,367 @@
           .visualization { margin-bottom: 30px; }
           .visualization h2 { color: #555; }
           img { max-width: 100%; border: 1px solid #ddd; }
+          .results-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+          }
+          .result-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+          }
+          .result-card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border: none;
+            border-bottom: 1px solid #ddd;
+          }
+          .result-info {
+            padding: 15px;
+          }
+          .result-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+          }
+          .result-price {
+            color: #2c7c2c;
+            font-weight: bold;
+            font-size: 1.2em;
+            margin-bottom: 8px;
+          }
+          .result-details {
+            font-size: 0.9em;
+            color: #666;
+          }
+          .result-link {
+            display: block;
+            text-align: center;
+            margin-top: 10px;
+            background: #f0f0f0;
+            padding: 8px;
+            text-decoration: none;
+            color: #333;
+            border-radius: 4px;
+          }
+          .result-link:hover {
+            background: #e0e0e0;
+          }
         </style>
       </head>
       <body>
-        <h1>Auction Results for Mclaren 675LT</h1>
+        <h1>Auction Results for ferrari 599</h1>
         
         <div class="summary">
           <h2>Summary</h2>
-          <p>Total Results: 16</p>
-          <p>Average Sold Price: $280,258</p>
-          <p>Highest Sold Price: $338,000</p>
-          <p>Lowest Sold Price: $251,000</p>
-          <p>Sold Percentage: 50%</p>
+          <p>Total Results: 103</p>
+          <p>Average Sold Price: $196,268</p>
+          <p>Highest Sold Price: $701,000</p>
+          <p>Lowest Sold Price: $10,000</p>
+          <p>Sold Percentage: 70%</p>
         </div>
         
         
         <div class="visualization">
           <h2>Price Trends Over Time</h2>
-          <img src="/charts/auction_prices_1740751938904.svg" alt="Price Trends">
+          <img src="/charts/auction_prices_1740753705349.svg" alt="Price Trends">
         </div>
         
         
         
         <div class="visualization">
           <h2>Price Distribution</h2>
-          <img src="/charts/price_histogram_1740751938935.svg" alt="Price Distribution">
+          <img src="/charts/price_histogram_1740753705356.svg" alt="Price Distribution">
         </div>
         
+
+        <h2>Recent Auction Results</h2>
+        <div class="results-grid">
+          
+            <div class="result-card">
+              <img src="https://bringatrailer.com/wp-content/uploads/2024/12/2008_ferrari_599-gtb-fiorano_T7__8829-40389-scaled.jpg?resize=470%2C318" alt="12k-Mile 2008 Ferrari 599 GTB Fiorano">
+              <div class="result-info">
+                <div class="result-title">12k-Mile 2008 Ferrari 599 GTB Fiorano</div>
+                <div class="result-price">$190000</div>
+                <div class="result-details">
+                  <div>Status: sold</div>
+                  <div>Sold Date: 2/27/25</div>
+                  <div>Reserve: No Reserve</div>
+                </div>
+                <a href="https://bringatrailer.com/listing/2008-ferrari-599-gtb-fiorano-18/" target="_blank" class="result-link">View Listing</a>
+              </div>
+            </div>
+          
+            <div class="result-card">
+              <img src="https://bringatrailer.com/wp-content/uploads/2025/02/2007_ferrari_599-gtb-fiorano_dsc04613-enhanced-nr-80738.jpg?resize=470%2C318" alt="16k-Mile 2007 Ferrari 599 GTB Fiorano">
+              <div class="result-info">
+                <div class="result-title">16k-Mile 2007 Ferrari 599 GTB Fiorano</div>
+                <div class="result-price">$152000</div>
+                <div class="result-details">
+                  <div>Status: sold</div>
+                  <div>Sold Date: 2/20/25</div>
+                  <div>Reserve: Reserve</div>
+                </div>
+                <a href="https://bringatrailer.com/listing/2007-ferrari-599-gtb-fiorano-67/" target="_blank" class="result-link">View Listing</a>
+              </div>
+            </div>
+          
+            <div class="result-card">
+              <img src="https://bringatrailer.com/wp-content/uploads/2025/01/2008_ferrari_599-gtb-fiorano_img_4359-62149.jpg?resize=470%2C318" alt="10k-Mile 2008 Ferrari 599 GTB Fiorano">
+              <div class="result-info">
+                <div class="result-title">10k-Mile 2008 Ferrari 599 GTB Fiorano</div>
+                <div class="result-price">Not sold</div>
+                <div class="result-details">
+                  <div>Status: unsold</div>
+                  <div>Sold Date: 2/13/25</div>
+                  <div>Reserve: Reserve</div>
+                </div>
+                <a href="https://bringatrailer.com/listing/2008-ferrari-599-gtb-fiorano-19/" target="_blank" class="result-link">View Listing</a>
+              </div>
+            </div>
+          
+            <div class="result-card">
+              <img src="https://bringatrailer.com/wp-content/uploads/2025/01/2007_ferrari_599-gtb-fiorano_t7__5400-95466.jpg?resize=470%2C318" alt="15k-Mile 2007 Ferrari 599 GTB Fiorano">
+              <div class="result-info">
+                <div class="result-title">15k-Mile 2007 Ferrari 599 GTB Fiorano</div>
+                <div class="result-price">$150000</div>
+                <div class="result-details">
+                  <div>Status: sold</div>
+                  <div>Sold Date: 1/29/25</div>
+                  <div>Reserve: Reserve</div>
+                </div>
+                <a href="https://bringatrailer.com/listing/2007-ferrari-599-gtb-fiorano-30-2/" target="_blank" class="result-link">View Listing</a>
+              </div>
+            </div>
+          
+            <div class="result-card">
+              <img src="https://bringatrailer.com/wp-content/uploads/2025/01/2007_ferrari_599-gtb-fiorano_img_8869-66017.jpeg?resize=470%2C318" alt="2007 Ferrari 599 GTB Fiorano">
+              <div class="result-info">
+                <div class="result-title">2007 Ferrari 599 GTB Fiorano</div>
+                <div class="result-price">$147000</div>
+                <div class="result-details">
+                  <div>Status: sold</div>
+                  <div>Sold Date: 1/22/25</div>
+                  <div>Reserve: Reserve</div>
+                </div>
+                <a href="https://bringatrailer.com/listing/2007-ferrari-599-gtb-fiorano-65/" target="_blank" class="result-link">View Listing</a>
+              </div>
+            </div>
+          
+            <div class="result-card">
+              <img src="https://bringatrailer.com/wp-content/uploads/2024/11/2010_ferrari_599-gtb-fiorano_001-34552.jpg?resize=470%2C318" alt="18k-Mile 2010 Ferrari 599 GTB Fiorano HGTE">
+              <div class="result-info">
+                <div class="result-title">18k-Mile 2010 Ferrari 599 GTB Fiorano HGTE</div>
+                <div class="result-price">$177000</div>
+                <div class="result-details">
+                  <div>Status: sold</div>
+                  <div>Sold Date: 1/15/25</div>
+                  <div>Reserve: Reserve</div>
+                </div>
+                <a href="https://bringatrailer.com/listing/2010-ferrari-599-gtb-fiorano-17/" target="_blank" class="result-link">View Listing</a>
+              </div>
+            </div>
+          
+            <div class="result-card">
+              <img src="https://bringatrailer.com/wp-content/uploads/2024/11/2007_ferrari_599-gtb-fiorano_t7__9886-22811.jpg?resize=470%2C318" alt="2007 Ferrari 599 GTB Fiorano 6-Speed Conversion">
+              <div class="result-info">
+                <div class="result-title">2007 Ferrari 599 GTB Fiorano 6-Speed Conversion</div>
+                <div class="result-price">$186000</div>
+                <div class="result-details">
+                  <div>Status: sold</div>
+                  <div>Sold Date: 12/16/24</div>
+                  <div>Reserve: No Reserve</div>
+                </div>
+                <a href="https://bringatrailer.com/listing/2007-ferrari-599-gtb-fiorano-64/" target="_blank" class="result-link">View Listing</a>
+              </div>
+            </div>
+          
+            <div class="result-card">
+              <img src="https://bringatrailer.com/wp-content/uploads/2024/09/2007_ferrari_599-gtb-fiorano_dsc_0554-29762.jpeg?resize=470%2C318" alt="2007 Ferrari 599 GTB Fiorano 6-Speed Conversion">
+              <div class="result-info">
+                <div class="result-title">2007 Ferrari 599 GTB Fiorano 6-Speed Conversion</div>
+                <div class="result-price">$180000</div>
+                <div class="result-details">
+                  <div>Status: sold</div>
+                  <div>Sold Date: 10/16/24</div>
+                  <div>Reserve: Reserve</div>
+                </div>
+                <a href="https://bringatrailer.com/listing/2007-ferrari-599-gtb-fiorano-60/" target="_blank" class="result-link">View Listing</a>
+              </div>
+            </div>
+          
+            <div class="result-card">
+              <img src="https://bringatrailer.com/wp-content/uploads/2024/09/2009_ferrari_599-gtb-fiorano_003-31415.jpg?resize=470%2C318" alt="8k-Mile 2009 Ferrari 599 GTB Fiorano">
+              <div class="result-info">
+                <div class="result-title">8k-Mile 2009 Ferrari 599 GTB Fiorano</div>
+                <div class="result-price">$172500</div>
+                <div class="result-details">
+                  <div>Status: sold</div>
+                  <div>Sold Date: 10/7/24</div>
+                  <div>Reserve: Reserve</div>
+                </div>
+                <a href="https://bringatrailer.com/listing/2009-ferrari-599-gtb-fiorano-7/" target="_blank" class="result-link">View Listing</a>
+              </div>
+            </div>
+          
+            <div class="result-card">
+              <img src="https://bringatrailer.com/wp-content/uploads/2024/09/2010_ferrari_599-gtb-fiorano_img_9465-57516.jpeg?resize=470%2C318" alt="2010 Ferrari 599 GTB Fiorano">
+              <div class="result-info">
+                <div class="result-title">2010 Ferrari 599 GTB Fiorano</div>
+                <div class="result-price">$138500</div>
+                <div class="result-details">
+                  <div>Status: sold</div>
+                  <div>Sold Date: 9/30/24</div>
+                  <div>Reserve: Reserve</div>
+                </div>
+                <a href="https://bringatrailer.com/listing/2010-ferrari-599-gtb-fiorano-15/" target="_blank" class="result-link">View Listing</a>
+              </div>
+            </div>
+          
+            <div class="result-card">
+              <img src="https://bringatrailer.com/wp-content/uploads/2024/08/2007_ferrari_599-gtb-fiorano_4K6A2532-2-38753.jpg?resize=470%2C318" alt="11k-Mile 2007 Ferrari 599 GTB Fiorano">
+              <div class="result-info">
+                <div class="result-title">11k-Mile 2007 Ferrari 599 GTB Fiorano</div>
+                <div class="result-price">Not sold</div>
+                <div class="result-details">
+                  <div>Status: unsold</div>
+                  <div>Sold Date: 9/11/24</div>
+                  <div>Reserve: Reserve</div>
+                </div>
+                <a href="https://bringatrailer.com/listing/2007-ferrari-599-gtb-fiorano-58/" target="_blank" class="result-link">View Listing</a>
+              </div>
+            </div>
+          
+            <div class="result-card">
+              <img src="https://bringatrailer.com/wp-content/uploads/2024/07/2007_ferrari_599-gtb-fiorano_dsc0903-36083.jpg?resize=470%2C318" alt="8k-Mile 2007 Ferrari 599 GTB Fiorano">
+              <div class="result-info">
+                <div class="result-title">8k-Mile 2007 Ferrari 599 GTB Fiorano</div>
+                <div class="result-price">$172500</div>
+                <div class="result-details">
+                  <div>Status: sold</div>
+                  <div>Sold Date: 8/22/24</div>
+                  <div>Reserve: No Reserve</div>
+                </div>
+                <a href="https://bringatrailer.com/listing/2007-ferrari-599-gtb-fiorano-57/" target="_blank" class="result-link">View Listing</a>
+              </div>
+            </div>
+          
+            <div class="result-card">
+              <img src="https://bringatrailer.com/wp-content/uploads/2024/08/2010_ferrari_599-gtb-fiorano_IMG-10228-59870-scaled.jpg?resize=470%2C318" alt="12k-Mile 2010 Ferrari 599 GTB Fiorano HGTE">
+              <div class="result-info">
+                <div class="result-title">12k-Mile 2010 Ferrari 599 GTB Fiorano HGTE</div>
+                <div class="result-price">$166000</div>
+                <div class="result-details">
+                  <div>Status: sold</div>
+                  <div>Sold Date: 8/18/24</div>
+                  <div>Reserve: Reserve</div>
+                </div>
+                <a href="https://bringatrailer.com/listing/2010-ferrari-599-gtb-fiorano-14-2/" target="_blank" class="result-link">View Listing</a>
+              </div>
+            </div>
+          
+            <div class="result-card">
+              <img src="https://bringatrailer.com/wp-content/uploads/2024/07/2007_ferrari_599-gtb-fiorano_20240707_125558-22869.jpg?resize=470%2C318" alt="22k-Mile 2007 Ferrari 599 GTB Fiorano">
+              <div class="result-info">
+                <div class="result-title">22k-Mile 2007 Ferrari 599 GTB Fiorano</div>
+                <div class="result-price">Not sold</div>
+                <div class="result-details">
+                  <div>Status: unsold</div>
+                  <div>Sold Date: 8/11/24</div>
+                  <div>Reserve: Reserve</div>
+                </div>
+                <a href="https://bringatrailer.com/listing/2007-ferrari-599-gtb-fiorano-56/" target="_blank" class="result-link">View Listing</a>
+              </div>
+            </div>
+          
+            <div class="result-card">
+              <img src="https://bringatrailer.com/wp-content/uploads/2024/06/2008_ferrari_599-gtb-fiorano_img_9857-03426.jpg?resize=470%2C318" alt="19k-Mile 2008 Ferrari 599 GTB Fiorano">
+              <div class="result-info">
+                <div class="result-title">19k-Mile 2008 Ferrari 599 GTB Fiorano</div>
+                <div class="result-price">$130000</div>
+                <div class="result-details">
+                  <div>Status: sold</div>
+                  <div>Sold Date: 8/4/24</div>
+                  <div>Reserve: Reserve</div>
+                </div>
+                <a href="https://bringatrailer.com/listing/2008-ferrari-599-gtb-fiorano-15/" target="_blank" class="result-link">View Listing</a>
+              </div>
+            </div>
+          
+            <div class="result-card">
+              <img src="https://bringatrailer.com/wp-content/uploads/2023/10/2010_ferrari_599-gtb-fiorano_2010_ferrari_599-gtb-fiorano_0a01af49-0b94-40c6-9568-7fc29a42a052-t6ncbo-45351-58319.jpg?resize=470%2C318" alt="7k-Mile 2010 Ferrari 599 GTB Fiorano 6-Speed Conversion">
+              <div class="result-info">
+                <div class="result-title">7k-Mile 2010 Ferrari 599 GTB Fiorano 6-Speed Conversion</div>
+                <div class="result-price">Not sold</div>
+                <div class="result-details">
+                  <div>Status: unsold</div>
+                  <div>Sold Date: 7/31/24</div>
+                  <div>Reserve: Reserve</div>
+                </div>
+                <a href="https://bringatrailer.com/listing/2010-ferrari-599-gtb-fiorano-10/" target="_blank" class="result-link">View Listing</a>
+              </div>
+            </div>
+          
+            <div class="result-card">
+              <img src="https://bringatrailer.com/wp-content/uploads/2024/07/2007_ferrari_599-gtb-fiorano_2007_ferrari_599-gtb-fiorano_21850f71-6274-4ed2-9de5-604663f66672-typov2-79725-32168.jpg?resize=470%2C318" alt="2007 Ferrari 599 GTB Fiorano">
+              <div class="result-info">
+                <div class="result-title">2007 Ferrari 599 GTB Fiorano</div>
+                <div class="result-price">Not sold</div>
+                <div class="result-details">
+                  <div>Status: unsold</div>
+                  <div>Sold Date: 7/24/24</div>
+                  <div>Reserve: Reserve</div>
+                </div>
+                <a href="https://bringatrailer.com/listing/2007-ferrari-599-gtb-fiorano-53/" target="_blank" class="result-link">View Listing</a>
+              </div>
+            </div>
+          
+            <div class="result-card">
+              <img src="https://bringatrailer.com/wp-content/uploads/2024/06/2009_ferrari_599-gtb-fiorano_2009-ferrari-599-gtb-fiorano-189-05575.jpg?resize=470%2C318" alt="24k-Kilometer 2009 Ferrari 599 GTB Fiorano">
+              <div class="result-info">
+                <div class="result-title">24k-Kilometer 2009 Ferrari 599 GTB Fiorano</div>
+                <div class="result-price">$139599</div>
+                <div class="result-details">
+                  <div>Status: sold</div>
+                  <div>Sold Date: 7/17/24</div>
+                  <div>Reserve: Reserve</div>
+                </div>
+                <a href="https://bringatrailer.com/listing/2009-ferrari-599-gtb-fiorano-6/" target="_blank" class="result-link">View Listing</a>
+              </div>
+            </div>
+          
+            <div class="result-card">
+              <img src="https://bringatrailer.com/wp-content/uploads/2024/06/2010_ferrari_599-gtb-fiorano_img-2061-65570-scaled.jpg?resize=470%2C318" alt="12k-Mile 2010 Ferrari 599 GTB Fiorano HGTE">
+              <div class="result-info">
+                <div class="result-title">12k-Mile 2010 Ferrari 599 GTB Fiorano HGTE</div>
+                <div class="result-price">Not sold</div>
+                <div class="result-details">
+                  <div>Status: unsold</div>
+                  <div>Sold Date: 7/8/24</div>
+                  <div>Reserve: Reserve</div>
+                </div>
+                <a href="https://bringatrailer.com/listing/2010-ferrari-599-gtb-fiorano-14/" target="_blank" class="result-link">View Listing</a>
+              </div>
+            </div>
+          
+            <div class="result-card">
+              <img src="https://bringatrailer.com/wp-content/uploads/2024/06/2008_ferrari_599-gtb-fiorano_2008_ferrari_599-gtb-fiorano_bce41951-68c0-4e75-8cda-7e26640d8b40-IyQAOK-96987-96989-scaled.jpg?resize=470%2C318" alt="18k-Mile 2008 Ferrari 599 GTB Fiorano">
+              <div class="result-info">
+                <div class="result-title">18k-Mile 2008 Ferrari 599 GTB Fiorano</div>
+                <div class="result-price">$162500</div>
+                <div class="result-details">
+                  <div>Status: sold</div>
+                  <div>Sold Date: 6/30/24</div>
+                  <div>Reserve: Reserve</div>
+                </div>
+                <a href="https://bringatrailer.com/listing/2008-ferrari-599-gtb-fiorano-13/" target="_blank" class="result-link">View Listing</a>
+              </div>
+            </div>
+          
+        </div>
       </body>
       </html>
     

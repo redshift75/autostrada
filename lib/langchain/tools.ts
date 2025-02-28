@@ -192,7 +192,9 @@ export const createAuctionResultsTool = () => {
           url: item.url,
           country: item.country,
           noreserve: item.noreserve ? 'No Reserve' : 'Reserve',
-          premium: item.premium ? 'Premium' : 'Standard'
+          premium: item.premium ? 'Premium' : 'Standard',
+          image_url: item.image_url,
+          images: item.images
         }));
         
         // Generate visualizations if requested
