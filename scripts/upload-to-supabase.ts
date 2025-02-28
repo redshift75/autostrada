@@ -33,6 +33,22 @@ const COMPLETED_AUCTIONS_TABLE = 'bat_completed_auctions';
 const ACTIVE_AUCTIONS_TABLE = 'bat_active_auctions';
 
 /**
+ * Deduplicate listings by listing_id
+ * @param listings Array of listings
+ * @returns Deduplicated array
+ */
+function deduplicateListings<T extends { listing_id: string }>(listings: T[]): T[] {
+  const seen = new Set<string>();
+  return listings.filter(listing => {
+    if (seen.has(listing.listing_id)) {
+      return false;
+    }
+    seen.add(listing.listing_id);
+    return true;
+  });
+}
+
+/**
  * Upload completed auction results to Supabase
  */
 async function uploadCompletedAuctionsToSupabase() {
@@ -94,29 +110,65 @@ async function uploadCompletedAuctionsToSupabase() {
         updated_at: new Date()
       }));
       
+      // Deduplicate listings to avoid the "ON CONFLICT DO UPDATE command cannot affect row a second time" error
+      const uniqueDbListings = deduplicateListings(dbListings);
+      if (uniqueDbListings.length < dbListings.length) {
+        console.log(`Removed ${dbListings.length - uniqueDbListings.length} duplicate listings`);
+      }
+      
       // Upload in batches to avoid hitting Supabase limits
       const BATCH_SIZE = 100;
       let successCount = 0;
       let errorCount = 0;
       
-      for (let i = 0; i < dbListings.length; i += BATCH_SIZE) {
-        const batch = dbListings.slice(i, i + BATCH_SIZE);
-        console.log(`Uploading batch ${i / BATCH_SIZE + 1} of ${Math.ceil(dbListings.length / BATCH_SIZE)}...`);
+      for (let i = 0; i < uniqueDbListings.length; i += BATCH_SIZE) {
+        const batch = uniqueDbListings.slice(i, i + BATCH_SIZE);
+        console.log(`Uploading batch ${i / BATCH_SIZE + 1} of ${Math.ceil(uniqueDbListings.length / BATCH_SIZE)}...`);
         
-        // Insert data with upsert (update if exists, insert if not)
-        const { data, error } = await supabase
-          .from(COMPLETED_AUCTIONS_TABLE)
-          .upsert(batch, { 
-            onConflict: 'listing_id',
-            ignoreDuplicates: false
-          });
-        
-        if (error) {
-          console.error(`Error uploading batch: ${error.message}`);
-          errorCount += batch.length;
-        } else {
-          console.log(`Successfully uploaded batch of ${batch.length} listings`);
-          successCount += batch.length;
+        try {
+          // Insert data with upsert (update if exists, insert if not)
+          const { data, error } = await supabase
+            .from(COMPLETED_AUCTIONS_TABLE)
+            .upsert(batch, { 
+              onConflict: 'listing_id',
+              ignoreDuplicates: true // Changed to true to ignore duplicates
+            });
+          
+          if (error) {
+            console.error(`Error uploading batch: ${error.message}`);
+            errorCount += batch.length;
+          } else {
+            console.log(`Successfully uploaded batch of ${batch.length} listings`);
+            successCount += batch.length;
+          }
+        } catch (error: any) {
+          console.error(`Exception during batch upload: ${error.message}`);
+          
+          // If batch upload fails, try uploading one by one
+          console.log('Attempting to upload listings one by one...');
+          for (const listing of batch) {
+            try {
+              const { error } = await supabase
+                .from(COMPLETED_AUCTIONS_TABLE)
+                .upsert([listing], { 
+                  onConflict: 'listing_id',
+                  ignoreDuplicates: true
+                });
+              
+              if (error) {
+                console.error(`Error uploading listing ${listing.listing_id}: ${error.message}`);
+                errorCount++;
+              } else {
+                successCount++;
+              }
+            } catch (itemError: any) {
+              console.error(`Exception uploading listing ${listing.listing_id}: ${itemError.message}`);
+              errorCount++;
+            }
+            
+            // Add a small delay between individual uploads
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
         }
         
         // Add a small delay to avoid rate limiting
@@ -198,29 +250,65 @@ async function uploadActiveAuctionsToSupabase() {
         updated_at: new Date()
       }));
       
+      // Deduplicate listings to avoid the "ON CONFLICT DO UPDATE command cannot affect row a second time" error
+      const uniqueDbListings = deduplicateListings(dbListings);
+      if (uniqueDbListings.length < dbListings.length) {
+        console.log(`Removed ${dbListings.length - uniqueDbListings.length} duplicate listings`);
+      }
+      
       // Upload in batches to avoid hitting Supabase limits
       const BATCH_SIZE = 100;
       let successCount = 0;
       let errorCount = 0;
       
-      for (let i = 0; i < dbListings.length; i += BATCH_SIZE) {
-        const batch = dbListings.slice(i, i + BATCH_SIZE);
-        console.log(`Uploading batch ${i / BATCH_SIZE + 1} of ${Math.ceil(dbListings.length / BATCH_SIZE)}...`);
+      for (let i = 0; i < uniqueDbListings.length; i += BATCH_SIZE) {
+        const batch = uniqueDbListings.slice(i, i + BATCH_SIZE);
+        console.log(`Uploading batch ${i / BATCH_SIZE + 1} of ${Math.ceil(uniqueDbListings.length / BATCH_SIZE)}...`);
         
-        // Insert data with upsert (update if exists, insert if not)
-        const { data, error } = await supabase
-          .from(ACTIVE_AUCTIONS_TABLE)
-          .upsert(batch, { 
-            onConflict: 'listing_id',
-            ignoreDuplicates: false
-          });
-        
-        if (error) {
-          console.error(`Error uploading batch: ${error.message}`);
-          errorCount += batch.length;
-        } else {
-          console.log(`Successfully uploaded batch of ${batch.length} listings`);
-          successCount += batch.length;
+        try {
+          // Insert data with upsert (update if exists, insert if not)
+          const { data, error } = await supabase
+            .from(ACTIVE_AUCTIONS_TABLE)
+            .upsert(batch, { 
+              onConflict: 'listing_id',
+              ignoreDuplicates: true // Changed to true to ignore duplicates
+            });
+          
+          if (error) {
+            console.error(`Error uploading batch: ${error.message}`);
+            errorCount += batch.length;
+          } else {
+            console.log(`Successfully uploaded batch of ${batch.length} listings`);
+            successCount += batch.length;
+          }
+        } catch (error: any) {
+          console.error(`Exception during batch upload: ${error.message}`);
+          
+          // If batch upload fails, try uploading one by one
+          console.log('Attempting to upload listings one by one...');
+          for (const listing of batch) {
+            try {
+              const { error } = await supabase
+                .from(ACTIVE_AUCTIONS_TABLE)
+                .upsert([listing], { 
+                  onConflict: 'listing_id',
+                  ignoreDuplicates: true
+                });
+              
+              if (error) {
+                console.error(`Error uploading listing ${listing.listing_id}: ${error.message}`);
+                errorCount++;
+              } else {
+                successCount++;
+              }
+            } catch (itemError: any) {
+              console.error(`Exception uploading listing ${listing.listing_id}: ${itemError.message}`);
+              errorCount++;
+            }
+            
+            // Add a small delay between individual uploads
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
         }
         
         // Add a small delay to avoid rate limiting

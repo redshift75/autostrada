@@ -1,5 +1,4 @@
 import axios from 'axios';
-import * as cheerio from 'cheerio';
 import * as fs from 'fs';
 import * as path from 'path';
 import { BaseScraper } from './BaseScraper';
@@ -18,6 +17,12 @@ export interface BaTCompletedListing {
   year?: number;
   make?: string;
   model?: string;
+  country?: string;
+  country_code?: string;
+  noreserve?: boolean;
+  premium?: boolean;
+  timestamp_end?: number;
+  excerpt?: string;
 }
 
 // Interface for scraper parameters
@@ -27,10 +32,12 @@ export interface BaTResultsScraperParams {
   yearMin?: number;
   yearMax?: number;
   maxPages?: number; // Maximum number of pages to fetch
+  perPage?: number; // Number of items per page
 }
 
 export class BringATrailerResultsScraper extends BaseScraper {
   private baseUrl = 'https://bringatrailer.com/auctions/results/';
+  private apiBaseUrl = 'https://bringatrailer.com/wp-json/bringatrailer/1.0/data/listings-filter';
   private debugDir: string;
 
   constructor() {
@@ -43,43 +50,99 @@ export class BringATrailerResultsScraper extends BaseScraper {
 
   async scrape(params: BaTResultsScraperParams = {}): Promise<BaTCompletedListing[]> {
     try {
-      const searchUrl = this.buildSearchUrl(params);
-      console.log(`Searching for completed auctions at: ${searchUrl}`);
+      // Set default values
+      const perPage = params.perPage || 50;
+      let maxPages = params.maxPages || 1;
+      let allListings: BaTCompletedListing[] = [];
+      const seenIds = new Set<string>();
       
-      // Fetch first page to get pagination info
-      const firstPageHtml = await this.fetchHtml(searchUrl);
+      // Prepare search term for McLaren (can be customized based on params)
+      let searchTerm = 'McLaren';
+      if (params.make) {
+        searchTerm = params.make;
+        if (params.model) {
+          searchTerm += ` ${params.model}`;
+        }
+      }
       
-      // Save debug HTML for first page
-      const debugFilePath = path.join(this.debugDir, `bat_results_debug_${Date.now()}.html`);
-      fs.writeFileSync(debugFilePath, firstPageHtml);
-      console.log(`Debug HTML saved to: ${debugFilePath}`);
+      console.log(`Searching for: ${searchTerm}`);
       
-      // Extract pagination info
-      const paginationInfo = this.extractPaginationInfo(firstPageHtml);
-      console.log(`Found ${paginationInfo.totalItems} total auctions across ${paginationInfo.totalPages} pages`);
-      
-      // Determine how many pages to fetch
-      const maxPages = params.maxPages || 1;
-      const pagesToFetch = Math.min(maxPages, paginationInfo.totalPages);
-      
-      // Extract listings from first page
-      let allListings: BaTCompletedListing[] = this.extractCompletedListings(firstPageHtml, params.make, params.model, params.yearMin);
-      
-      // Fetch additional pages if needed
-      if (pagesToFetch > 1) {
-        console.log(`Fetching ${pagesToFetch - 1} additional pages...`);
+      // Fetch all requested pages
+      for (let page = 1; page <= maxPages; page++) {
+        console.log(`Fetching page ${page}/${maxPages}...`);
         
-        for (let page = 2; page <= pagesToFetch; page++) {
-          console.log(`Fetching page ${page}/${pagesToFetch}...`);
-          const pageUrl = this.buildPageUrl(searchUrl, page);
-          const pageHtml = await this.fetchHtml(pageUrl);
+        try {
+          // Prepare request data
+          const requestData = {
+            page: page,
+            per_page: perPage,
+            get_items: 1,
+            get_stats: 0,
+            include_s: searchTerm
+          };
           
-          // Extract listings from this page
-          const pageListings = this.extractCompletedListings(pageHtml, params.make, params.model, params.yearMin);
-          allListings = [...allListings, ...pageListings];
+          // Make POST request to the API
+          const response = await axios.post(this.apiBaseUrl, requestData, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'Accept-Language': 'en-US,en;q=0.5',
+              'Connection': 'keep-alive',
+              'Referer': 'https://bringatrailer.com/auctions/results/'
+            }
+          });
           
-          // Optional: add a small delay to avoid rate limiting
-          await new Promise(resolve => setTimeout(resolve, 500));
+          // Save debug response
+          const debugFilePath = path.join(this.debugDir, `bat_api_response_page_${page}_${Date.now()}.json`);
+          fs.writeFileSync(debugFilePath, JSON.stringify(response.data, null, 2));
+          
+          if (!response.data || !response.data.items || !Array.isArray(response.data.items)) {
+            console.error(`Failed to get valid data for page ${page}`);
+            continue;
+          }
+          
+          // If it's the first page, get the total pages info and adjust maxPages if needed
+          if (page === 1) {
+            const totalPages = response.data.pages_total || 1;
+            const totalItems = response.data.items_total || 0;
+            console.log(`Found ${totalItems} total auctions across ${totalPages} pages`);
+            
+            // Adjust maxPages if it's more than the total available pages
+            if (maxPages > totalPages) {
+              console.log(`Adjusting requested pages from ${maxPages} to ${totalPages} (total available)`);
+              maxPages = totalPages;
+            }
+          }
+          
+          // Extract listings from the API response
+          const pageListings = this.extractCompletedListingsFromApiData(response.data);
+          console.log(`Page ${page}: Found ${pageListings.length} listings`);
+          
+          // Only add listings that we haven't seen before
+          const newListings = pageListings.filter(listing => !seenIds.has(listing.id));
+          console.log(`Page ${page}: Adding ${newListings.length} new unique listings (${pageListings.length - newListings.length} duplicates filtered out)`);
+          
+          // Update the set of seen IDs
+          newListings.forEach(listing => seenIds.add(listing.id));
+          
+          // Add new listings to our results
+          allListings = [...allListings, ...newListings];
+          
+          // If we didn't get any new listings, we might have reached the end
+          if (newListings.length === 0) {
+            console.log('No new listings found, stopping pagination');
+            break;
+          }
+        } catch (error) {
+          console.error(`Error fetching page ${page}:`, error);
+          console.warn(`Failed to fetch page ${page}, stopping pagination`);
+          break;
+        }
+        
+        // Add a small delay to avoid rate limiting (except for the last page)
+        if (page < maxPages) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
         }
       }
       
@@ -98,240 +161,82 @@ export class BringATrailerResultsScraper extends BaseScraper {
     }
   }
 
-  private buildSearchUrl(params: BaTResultsScraperParams): string {
-    let url = this.baseUrl;
-    
-    // Add search parameters
-    const searchParams = [];
-    if (params.make) {
-      searchParams.push(params.make);
-    }
-    if (params.model) {
-      searchParams.push(params.model);
-    }
-    
-    if (searchParams.length > 0) {
-      url += `?s=${encodeURIComponent(searchParams.join(' '))}`;
-    }
-    
-    return url;
-  }
-  
-  private buildPageUrl(baseUrl: string, page: number): string {
-    // Check if the URL already has query parameters
-    const hasParams = baseUrl.includes('?');
-    
-    // Add page parameter
-    if (hasParams) {
-      return `${baseUrl}&page=${page}`;
-    } else {
-      return `${baseUrl}?page=${page}`;
-    }
-  }
-  
-  private extractPaginationInfo(html: string): { currentPage: number; totalPages: number; itemsPerPage: number; totalItems: number } {
+  private extractCompletedListingsFromApiData(data: any): BaTCompletedListing[] {
     try {
-      // Extract the auctionsCompletedInitialData from the HTML
-      const auctionsDataMatch = html.match(/var\s+auctionsCompletedInitialData\s*=\s*({.*?});/);
-      
-      if (auctionsDataMatch && auctionsDataMatch[1]) {
-        try {
-          // Parse the JSON data
-          const auctionsData = JSON.parse(auctionsDataMatch[1]);
-          
-          return {
-            currentPage: auctionsData.page_current || 1,
-            totalPages: auctionsData.pages_total || 1,
-            itemsPerPage: auctionsData.items_per_page || 24,
-            totalItems: auctionsData.items_total || 0
-          };
-        } catch (error) {
-          console.error('Error parsing pagination info:', error);
-        }
+      if (!data || !data.items || !Array.isArray(data.items)) {
+        return [];
       }
       
-      // Default values if we couldn't extract pagination info
-      return {
-        currentPage: 1,
-        totalPages: 1,
-        itemsPerPage: 24,
-        totalItems: 0
-      };
-    } catch (error) {
-      console.error('Error extracting pagination info:', error);
-      return {
-        currentPage: 1,
-        totalPages: 1,
-        itemsPerPage: 24,
-        totalItems: 0
-      };
-    }
-  }
-
-  private async fetchHtml(url: string): Promise<string> {
-    try {
-      const response = await axios.get(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.5',
-          'Connection': 'keep-alive',
-          'Upgrade-Insecure-Requests': '1',
-          'Cache-Control': 'max-age=0'
-        }
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching HTML:', error);
-      throw error;
-    }
-  }
-
-  private extractCompletedListings(html: string, make?: string, model?: string, year?: number): BaTCompletedListing[] {
-    try {
-      // First, try to extract the auctionsCompletedInitialData from the HTML
-      const auctionsDataMatch = html.match(/var\s+auctionsCompletedInitialData\s*=\s*({.*?});/);
-      
-      if (auctionsDataMatch && auctionsDataMatch[1]) {
-        try {
-          // Parse the JSON data
-          const auctionsData = JSON.parse(auctionsDataMatch[1]);
-          
-          if (auctionsData && auctionsData.items && Array.isArray(auctionsData.items)) {
-            return auctionsData.items.map((item: any) => {
-              // Extract year, make, model from title if available
-              let itemYear: number | undefined = undefined;
-              let itemMake = make;
-              let itemModel = model;
-              
-              if (item.title) {
-                // Try to extract year from title (e.g., "2016 Porsche 911 GT3 RS")
-                const yearMatch = item.title.match(/^(\d{4})/);
-                if (yearMatch) {
-                  itemYear = parseInt(yearMatch[1], 10);
-                }
-              }
-              
-              // Extract sold price and date from sold_text
-              let soldPrice = '';
-              let soldDate = '';
-              
-              if (item.sold_text) {
-                const priceMatch = item.sold_text.match(/USD\s+\$([0-9,]+)/);
-                if (priceMatch) {
-                  soldPrice = priceMatch[1].replace(/,/g, '');
-                }
-                
-                const dateMatch = item.sold_text.match(/on\s+(\d+\/\d+\/\d+)/);
-                if (dateMatch) {
-                  soldDate = dateMatch[1];
-                }
-              }
-              
-              // Determine status (sold or bid to)
-              let status = 'unsold';
-              if (item.sold_text && item.sold_text.includes('Sold for')) {
-                status = 'sold';
-              }
-              
-              return {
-                id: item.id?.toString() || '',
-                url: item.url || '',
-                title: item.title || '',
-                image_url: item.thumbnail_url || '',
-                sold_price: soldPrice,
-                sold_date: soldDate,
-                bid_amount: item.current_bid ? item.current_bid.toString() : '',
-                bid_date: '',  // Bid date is not directly available in the data
-                status: status,
-                year: itemYear || (item.year ? parseInt(item.year, 10) : undefined),
-                make: itemMake,
-                model: itemModel
-              };
-            });
-          }
-        } catch (error) {
-          console.error('Error parsing auctionsCompletedInitialData:', error);
-        }
-      }
-      
-      // If we couldn't extract from the JavaScript data, fall back to HTML parsing
-      console.log('Falling back to HTML parsing');
-      const $ = cheerio.load(html);
-      const listings: BaTCompletedListing[] = [];
-      
-      // Find all listing cards
-      $('.auctions-completed-item').each((_, element) => {
-        const $element = $(element);
-        const url = $element.find('a.auctions-item-title').attr('href') || '';
-        const title = $element.find('a.auctions-item-title').text().trim();
-        const id = url.split('/').filter(Boolean).pop() || '';
-        const imageUrl = $element.find('img').attr('src') || '';
+      return data.items.map((item: any) => {
+        // Extract year, make, model from title if available
+        let itemYear: number | undefined = undefined;
+        let itemMake: string | undefined = undefined;
+        let itemModel: string | undefined = undefined;
         
-        // Extract sold price and date
-        const soldText = $element.find('.sold-text').text().trim();
+        if (item.title) {
+          // Try to extract year from title (e.g., "2016 Porsche 911 GT3 RS")
+          const yearMatch = item.title.match(/^(\d{4})/);
+          if (yearMatch) {
+            itemYear = parseInt(yearMatch[1], 10);
+          }
+          
+          // Extract make and model from title
+          const titleInfo = this.parseTitle(item.title);
+          itemMake = titleInfo.make;
+          itemModel = titleInfo.model;
+        }
+        
+        // Extract sold price and date from sold_text
         let soldPrice = '';
         let soldDate = '';
         let status = 'unsold';
-        
-        if (soldText) {
-          const priceMatch = soldText.match(/USD\s+\$([0-9,]+)/);
-          if (priceMatch) {
-            soldPrice = priceMatch[1].replace(/,/g, '');
-          }
-          
-          const dateMatch = soldText.match(/on\s+(\d+\/\d+\/\d+)/);
-          if (dateMatch) {
-            soldDate = dateMatch[1];
-          }
-          
-          if (soldText.includes('Sold for')) {
-            status = 'sold';
-          }
-        }
-        
-        // Extract bid amount
-        const bidText = $element.find('.current-bid').text().trim();
         let bidAmount = '';
         
-        if (bidText) {
-          const bidMatch = bidText.match(/\$([0-9,]+)/);
-          if (bidMatch) {
+        if (item.sold_text) {
+          // Example: "Sold for USD $28,050 on 2/27/25" or "Bid to USD $12,750 on 2/27/25"
+          const soldMatch = item.sold_text.match(/Sold for USD \$([0-9,]+) <span> on (\d+\/\d+\/\d+)/);
+          const bidMatch = item.sold_text.match(/Bid to USD \$([0-9,]+) <span> on (\d+\/\d+\/\d+)/);
+          
+          if (soldMatch) {
+            soldPrice = soldMatch[1].replace(/,/g, '');
+            soldDate = soldMatch[2];
+            bidAmount = soldPrice; // For sold items, bid amount equals sold price
+            status = 'sold';
+          } else if (bidMatch) {
             bidAmount = bidMatch[1].replace(/,/g, '');
+            soldDate = bidMatch[2];
+            status = 'unsold';
           }
         }
         
-        // Extract year from title
-        let itemYear: number | undefined = undefined;
-        const yearMatch = title.match(/^(\d{4})/);
-        if (yearMatch) {
-          itemYear = parseInt(yearMatch[1], 10);
+        // Use current_bid if available
+        if (item.current_bid && !bidAmount) {
+          bidAmount = item.current_bid.toString();
         }
         
-        // Filter by year if provided
-        if (year && itemYear !== year) {
-          return;
-        }
-        
-        listings.push({
-          id,
-          url,
-          title,
-          image_url: imageUrl,
+        return {
+          id: item.id?.toString() || '',
+          url: item.url || '',
+          title: item.title || '',
+          image_url: item.thumbnail_url || '',
           sold_price: soldPrice,
           sold_date: soldDate,
           bid_amount: bidAmount,
-          bid_date: '',
-          status,
+          bid_date: soldDate, // Using sold date as bid date since they're the same in the API
+          status: status,
           year: itemYear,
-          make,
-          model
-        });
+          make: itemMake,
+          model: itemModel,
+          country: item.country || '',
+          country_code: item.country_code || '',
+          noreserve: item.noreserve || false,
+          premium: item.premium || false,
+          timestamp_end: item.timestamp_end || 0,
+          excerpt: item.excerpt || ''
+        };
       });
-      
-      return listings;
     } catch (error) {
-      console.error('Error extracting completed listings:', error);
+      console.error('Error extracting listings from API data:', error);
       return [];
     }
   }

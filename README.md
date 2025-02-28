@@ -170,8 +170,6 @@ npm run test-active-scraper
 
 This will scrape all active auction listings and filter for:
 - All active listings
-- Porsche 911 active listings
-- Ferrari active listings
 
 The results will be saved to the `results` directory as JSON files.
 
