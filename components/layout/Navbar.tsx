@@ -32,14 +32,14 @@ export default function Navbar() {
               Home
             </Link>
             <Link 
-              href="/dashboard" 
+              href="/auctions" 
               className={`px-3 py-2 rounded-md text-sm font-medium ${
-                isActive('/dashboard') 
+                isActive('/auctions') 
                   ? 'bg-gray-900 text-white dark:bg-gray-700' 
                   : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
               }`}
             >
-              Dashboard
+              Auctions
             </Link>
             <Link 
               href="/listings" 
@@ -89,14 +89,14 @@ export default function Navbar() {
             Home
           </Link>
           <Link 
-            href="/dashboard" 
+            href="/auctions" 
             className={`block px-3 py-2 rounded-md text-base font-medium ${
-              isActive('/dashboard') 
+              isActive('/auctions') 
                 ? 'bg-gray-900 text-white dark:bg-gray-700' 
                 : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
             }`}
           >
-            Dashboard
+            Auctions
           </Link>
           <Link 
             href="/listings" 

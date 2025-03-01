@@ -22,6 +22,34 @@ type SearchResponse = {
   error?: string;
 };
 
+// Define types for car data from Supabase
+type CarMake = {
+  Make: string;
+};
+
+type CarModel = {
+  baseModel: string;
+};
+
+// Debounce function to delay search execution
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+  
+  useEffect(() => {
+    // Set a timeout to update the debounced value after the specified delay
+    const timer = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+    
+    // Clear the timeout if the value changes before the delay expires
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [value, delay]);
+  
+  return debouncedValue;
+}
+
 // Create a separate component that uses useSearchParams
 function ListingsContent() {
   const router = useRouter();
@@ -32,7 +60,25 @@ function ListingsContent() {
   const [model, setModel] = useState(searchParams.get('model') || '');
   const [yearMin, setYearMin] = useState(searchParams.get('yearMin') || '');
   const [yearMax, setYearMax] = useState(searchParams.get('yearMax') || '');
-
+  
+  // State for suggestions
+  const [makeSuggestions, setMakeSuggestions] = useState<string[]>([]);
+  const [modelSuggestions, setModelSuggestions] = useState<string[]>([]);
+  const [showMakeSuggestions, setShowMakeSuggestions] = useState(false);
+  const [showModelSuggestions, setShowModelSuggestions] = useState(false);
+  
+  // Debounce timers
+  const makeDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const modelDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // State for database connection status
+  const [dbConnectionError, setDbConnectionError] = useState(false);
+  
+  // Debounced form values
+  const debouncedMake = useDebounce(make, 300);
+  const debouncedModel = useDebounce(model, 300);
+  const debouncedYearMin = useDebounce(yearMin, 300);
+  const debouncedYearMax = useDebounce(yearMax, 300);
   
   // Results state
   const [results, setResults] = useState<Listing[]>([]);
@@ -54,6 +100,193 @@ function ListingsContent() {
   
   // Track if this is an initial load or a user-initiated search
   const isInitialLoad = useRef(true);
+
+  // Fetch make suggestions from Supabase with debounce
+  const fetchMakeSuggestions = async (query: string) => {
+    if (!query || query.length < 2) {
+      setMakeSuggestions([]);
+      return;
+    }
+    
+    try {
+      console.log('Fetching make suggestions for query:', query);
+      const response = await fetch(`/api/cars/makes?query=${encodeURIComponent(query)}`);
+      
+      if (response.status === 503) {
+        // Database connection error
+        setDbConnectionError(true);
+        setMakeSuggestions([]);
+        return;
+      }
+      
+      if (!response.ok) {
+        console.error('Make suggestions API error:', response.status, response.statusText);
+        // Don't throw error, just log it and return empty array
+        setMakeSuggestions([]);
+        return;
+      }
+      
+      // Reset connection error state if we got a successful response
+      setDbConnectionError(false);
+      
+      const data = await response.json();
+      console.log('Received make suggestions data:', data);
+      
+      if (!data || !Array.isArray(data)) {
+        console.error('Invalid make suggestions data format:', data);
+        setMakeSuggestions([]);
+        return;
+      }
+      
+      // Get unique makes using Set to remove duplicates
+      const uniqueMakes = Array.from(new Set(data.map((item: CarMake) => item.Make)))
+        .filter((make): make is string => !!make)
+        .sort()
+        .slice(0, 5); // Limit to 5 results
+      
+      console.log('Processed unique makes:', uniqueMakes);
+      setMakeSuggestions(uniqueMakes);
+      setShowMakeSuggestions(uniqueMakes.length > 0);
+    } catch (error) {
+      console.error('Error fetching make suggestions:', error);
+      // Don't show error to user, just silently fail
+      setMakeSuggestions([]);
+      setShowMakeSuggestions(false);
+    }
+  };
+  
+  // Debounced version of fetchMakeSuggestions
+  const debouncedFetchMakeSuggestions = (query: string) => {
+    // Clear any existing timer
+    if (makeDebounceTimerRef.current) {
+      clearTimeout(makeDebounceTimerRef.current);
+    }
+    
+    // Set a new timer
+    makeDebounceTimerRef.current = setTimeout(() => {
+      fetchMakeSuggestions(query);
+    }, 300); // 300ms delay
+  };
+  
+  // Fetch model suggestions from Supabase based on selected make
+  const fetchModelSuggestions = async (query: string) => {
+    if (!query || query.length < 2) {
+      setModelSuggestions([]);
+      return;
+    }
+    
+    try {
+      console.log('Fetching model suggestions for query:', query, 'make:', make);
+      const makeParam = make ? `&make=${encodeURIComponent(make)}` : '';
+      const response = await fetch(`/api/cars/models?query=${encodeURIComponent(query)}${makeParam}`);
+      
+      if (!response.ok) {
+        console.error('Model suggestions API error:', response.status, response.statusText);
+        // Don't throw error, just log it and return empty array
+        setModelSuggestions([]);
+        return;
+      }
+      
+      const data = await response.json();
+      console.log('Received model suggestions data:', data);
+      
+      if (!data || !Array.isArray(data)) {
+        console.error('Invalid model suggestions data format:', data);
+        setModelSuggestions([]);
+        return;
+      }
+      
+      const uniqueModels = Array.from(new Set(data.map((item: CarModel) => item.baseModel)))
+        .filter((baseModel): baseModel is string => !!baseModel)
+        .sort()
+        .slice(0, 5); // Limit to 5 results
+      
+      console.log('Processed unique models:', uniqueModels);
+      setModelSuggestions(uniqueModels);
+      setShowModelSuggestions(uniqueModels.length > 0);
+    } catch (error) {
+      console.error('Error fetching model suggestions:', error);
+      // Don't show error to user, just silently fail
+      setModelSuggestions([]);
+      setShowModelSuggestions(false);
+    }
+  };
+  
+  // Debounced version of fetchModelSuggestions
+  const debouncedFetchModelSuggestions = (query: string) => {
+    // Clear any existing timer
+    if (modelDebounceTimerRef.current) {
+      clearTimeout(modelDebounceTimerRef.current);
+    }
+    
+    // Set a new timer
+    modelDebounceTimerRef.current = setTimeout(() => {
+      fetchModelSuggestions(query);
+    }, 300); // 300ms delay
+  };
+  
+  // Handle input changes with debounce for suggestions
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    
+    if (name === 'make') {
+      setMake(value);
+      debouncedFetchMakeSuggestions(value);
+      // Clear model when make changes
+      if (model) {
+        setModel('');
+        setModelSuggestions([]);
+      }
+    } else if (name === 'model') {
+      setModel(value);
+      debouncedFetchModelSuggestions(value);
+    } else if (name === 'yearMin') {
+      setYearMin(value);
+    } else if (name === 'yearMax') {
+      setYearMax(value);
+    }
+  };
+  
+  // Handle suggestion selection
+  const handleSuggestionClick = (name: string, value: string) => {
+    if (name === 'make') {
+      setMake(value);
+      setShowMakeSuggestions(false);
+      // Focus the model input after selecting a make
+      const modelInput = document.getElementById('model');
+      if (modelInput) {
+        modelInput.focus();
+      }
+    } else if (name === 'model') {
+      setModel(value);
+      setShowModelSuggestions(false);
+    }
+  };
+  
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setShowMakeSuggestions(false);
+      setShowModelSuggestions(false);
+    };
+    
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, []);
+  
+  // Clean up timers on unmount
+  useEffect(() => {
+    return () => {
+      if (makeDebounceTimerRef.current) {
+        clearTimeout(makeDebounceTimerRef.current);
+      }
+      if (modelDebounceTimerRef.current) {
+        clearTimeout(modelDebounceTimerRef.current);
+      }
+    };
+  }, []);
 
   // Define handleSearch as a useCallback to prevent unnecessary re-creation
   const handleSearch = useCallback(async (e?: React.FormEvent) => {
@@ -194,34 +427,88 @@ function ListingsContent() {
       {/* Search Form */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
         <h2 className="text-xl font-semibold mb-4">Search Listings</h2>
+        
+        {dbConnectionError && (
+          <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-6">
+            <p className="font-medium">Database connection unavailable</p>
+            <p className="text-sm">Autocomplete suggestions are not available. You can still enter make and model manually.</p>
+          </div>
+        )}
+        
         <form onSubmit={handleSearch} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="flex flex-col">
+          <div className="flex flex-col relative">
             <label htmlFor="make" className="mb-1 font-medium">
               Make <span className="text-red-500">*</span>
             </label>
             <input
               id="make"
               type="text"
+              name="make"
               value={make}
-              onChange={(e) => setMake(e.target.value)}
+              onChange={handleInputChange}
+              onFocus={() => make.length >= 2 && debouncedFetchMakeSuggestions(make)}
+              onClick={(e) => e.stopPropagation()}
               className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
-              placeholder="e.g. Toyota"
+              placeholder={dbConnectionError ? "Enter car make manually..." : "Start typing to see suggestions..."}
               required
+              autoComplete="off"
             />
+            {showMakeSuggestions && makeSuggestions.length > 0 && (
+              <div className="absolute z-10 w-full mt-1 top-full bg-white dark:bg-gray-700 shadow-lg rounded-md border border-gray-200 dark:border-gray-600 max-h-60 overflow-y-auto">
+                <div className="py-1">
+                  {makeSuggestions.map((suggestion, index) => (
+                    <div
+                      key={index}
+                      className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer transition-colors duration-150"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleSuggestionClick('make', suggestion);
+                      }}
+                    >
+                      {suggestion}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
           
-          <div className="flex flex-col">
+          <div className="flex flex-col relative">
             <label htmlFor="model" className="mb-1 font-medium">
               Model
             </label>
             <input
               id="model"
               type="text"
+              name="model"
               value={model}
-              onChange={(e) => setModel(e.target.value)}
+              onChange={handleInputChange}
+              onFocus={() => model.length >= 2 && debouncedFetchModelSuggestions(model)}
+              onClick={(e) => e.stopPropagation()}
               className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
-              placeholder="e.g. Camry"
+              placeholder={dbConnectionError 
+                ? "Enter model manually..." 
+                : (make ? `Enter ${make} model...` : "First select a make...")}
+              autoComplete="off"
             />
+            {showModelSuggestions && modelSuggestions.length > 0 && (
+              <div className="absolute z-10 w-full mt-1 top-full bg-white dark:bg-gray-700 shadow-lg rounded-md border border-gray-200 dark:border-gray-600 max-h-60 overflow-y-auto">
+                <div className="py-1">
+                  {modelSuggestions.map((suggestion, index) => (
+                    <div
+                      key={index}
+                      className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer transition-colors duration-150"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleSuggestionClick('model', suggestion);
+                      }}
+                    >
+                      {suggestion}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
           
           <div className="flex flex-col">
@@ -231,8 +518,9 @@ function ListingsContent() {
             <input
               id="yearMin"
               type="number"
+              name="yearMin"
               value={yearMin}
-              onChange={(e) => setYearMin(e.target.value)}
+              onChange={handleInputChange}
               className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
               placeholder="e.g. 2015"
               min="1900"
@@ -247,8 +535,9 @@ function ListingsContent() {
             <input
               id="yearMax"
               type="number"
+              name="yearMax"
               value={yearMax}
-              onChange={(e) => setYearMax(e.target.value)}
+              onChange={handleInputChange}
               className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
               placeholder="e.g. 2023"
               min="1900"

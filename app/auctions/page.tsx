@@ -218,7 +218,7 @@ function VegaChart({
 }
 
 // Create a client component that uses useSearchParams
-function DashboardContent() {
+function AuctionsContent() {
   const router = useRouter();
   
   // Form state for generating new visualizations
@@ -245,7 +245,7 @@ function DashboardContent() {
   const [filteredResults, setFilteredResults] = useState<AuctionResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useState(true);
   
   // State for database connection status
   const [dbConnectionError, setDbConnectionError] = useState(false);
@@ -764,7 +764,7 @@ function DashboardContent() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Auction Results Dashboard</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Auction Results</h1>
         <button
           onClick={() => setShowForm(!showForm)}
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition duration-200"
@@ -1115,11 +1115,11 @@ function DashboardContent() {
   );
 }
 
-// Main dashboard component with Suspense boundary
-export default function Dashboard() {
+// Main auctions component with Suspense boundary
+export default function Auctions() {
   return (
-    <Suspense fallback={<div className="p-8 text-center">Loading dashboard...</div>}>
-      <DashboardContent />
+    <Suspense fallback={<div className="p-8 text-center">Loading auctions...</div>}>
+      <AuctionsContent />
     </Suspense>
   );
 } 
