@@ -6,6 +6,15 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { TopLevelSpec } from 'vega-lite';
 
+// Define types for car data from Supabase
+type CarMake = {
+  Make: string;
+};
+
+type CarModel = {
+  Model: string;
+};
+
 // Define types for auction results
 type AuctionResult = {
   title: string;
@@ -221,12 +230,21 @@ function DashboardContent() {
     maxPages: 2,
   });
   
+  // State for suggestions
+  const [makeSuggestions, setMakeSuggestions] = useState<string[]>([]);
+  const [modelSuggestions, setModelSuggestions] = useState<string[]>([]);
+  const [showMakeSuggestions, setShowMakeSuggestions] = useState(false);
+  const [showModelSuggestions, setShowModelSuggestions] = useState(false);
+  
   // State for auction results and loading status
   const [results, setResults] = useState<AuctionResult[]>([]);
   const [filteredResults, setFilteredResults] = useState<AuctionResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+  
+  // State for database connection status
+  const [dbConnectionError, setDbConnectionError] = useState(false);
   
   // State for visualizations
   const [visualizations, setVisualizations] = useState<{
@@ -255,14 +273,153 @@ function DashboardContent() {
     model: string;
   } | null>(null);
   
-  // Handle form input changes
+  // Fetch make suggestions from Supabase
+  const fetchMakeSuggestions = async (query: string) => {
+    if (!query || query.length < 2) {
+      setMakeSuggestions([]);
+      return;
+    }
+    
+    try {
+      console.log('Fetching make suggestions for query:', query);
+      const response = await fetch(`/api/cars/makes?query=${encodeURIComponent(query)}`);
+      
+      if (response.status === 503) {
+        // Database connection error
+        setDbConnectionError(true);
+        setMakeSuggestions([]);
+        return;
+      }
+      
+      if (!response.ok) {
+        console.error('Make suggestions API error:', response.status, response.statusText);
+        // Don't throw error, just log it and return empty array
+        setMakeSuggestions([]);
+        return;
+      }
+      
+      // Reset connection error state if we got a successful response
+      setDbConnectionError(false);
+      
+      const data = await response.json();
+      console.log('Received make suggestions data:', data);
+      
+      if (!data || !Array.isArray(data)) {
+        console.error('Invalid make suggestions data format:', data);
+        setMakeSuggestions([]);
+        return;
+      }
+      
+      const uniqueMakes = Array.from(new Set(data.map((item: CarMake) => item.Make)))
+        .filter((make): make is string => !!make)
+        .sort();
+      
+      console.log('Processed unique makes:', uniqueMakes);
+      setMakeSuggestions(uniqueMakes);
+      setShowMakeSuggestions(uniqueMakes.length > 0);
+    } catch (error) {
+      console.error('Error fetching make suggestions:', error);
+      // Don't show error to user, just silently fail
+      setMakeSuggestions([]);
+      setShowMakeSuggestions(false);
+    }
+  };
+  
+  // Fetch model suggestions from Supabase based on selected make
+  const fetchModelSuggestions = async (query: string) => {
+    if (!query || query.length < 2) {
+      setModelSuggestions([]);
+      return;
+    }
+    
+    try {
+      console.log('Fetching model suggestions for query:', query, 'make:', formData.make);
+      const makeParam = formData.make ? `&make=${encodeURIComponent(formData.make)}` : '';
+      const response = await fetch(`/api/cars/models?query=${encodeURIComponent(query)}${makeParam}`);
+      
+      if (!response.ok) {
+        console.error('Model suggestions API error:', response.status, response.statusText);
+        // Don't throw error, just log it and return empty array
+        setModelSuggestions([]);
+        return;
+      }
+      
+      const data = await response.json();
+      console.log('Received model suggestions data:', data);
+      
+      if (!data || !Array.isArray(data)) {
+        console.error('Invalid model suggestions data format:', data);
+        setModelSuggestions([]);
+        return;
+      }
+      
+      const uniqueModels = Array.from(new Set(data.map((item: CarModel) => item.Model)))
+        .filter((model): model is string => !!model)
+        .sort();
+      
+      console.log('Processed unique models:', uniqueModels);
+      setModelSuggestions(uniqueModels);
+      setShowModelSuggestions(uniqueModels.length > 0);
+    } catch (error) {
+      console.error('Error fetching model suggestions:', error);
+      // Don't show error to user, just silently fail
+      setModelSuggestions([]);
+      setShowModelSuggestions(false);
+    }
+  };
+  
+  // Handle input changes with debounce for suggestions
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData({
       ...formData,
       [name]: name === 'yearMin' || name === 'yearMax' || name === 'maxPages' ? parseInt(value) : value,
     });
+    
+    // Fetch suggestions for make and model fields
+    if (name === 'make') {
+      fetchMakeSuggestions(value);
+      // Clear model when make changes
+      if (formData.model) {
+        setFormData(prev => ({ ...prev, model: '' }));
+        setModelSuggestions([]);
+      }
+    } else if (name === 'model') {
+      fetchModelSuggestions(value);
+    }
   };
+  
+  // Handle suggestion selection
+  const handleSuggestionClick = (name: string, value: string) => {
+    setFormData({
+      ...formData,
+      [name]: value,
+    });
+    
+    if (name === 'make') {
+      setShowMakeSuggestions(false);
+      // Focus the model input after selecting a make
+      const modelInput = document.getElementById('model');
+      if (modelInput) {
+        modelInput.focus();
+      }
+    } else if (name === 'model') {
+      setShowModelSuggestions(false);
+    }
+  };
+  
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setShowMakeSuggestions(false);
+      setShowModelSuggestions(false);
+    };
+    
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, []);
   
   // Format price for display
   const formatPrice = (price: string) => {
@@ -571,12 +728,19 @@ function DashboardContent() {
         </button>
       </div>
       
+      {dbConnectionError && (
+        <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-6">
+          <p className="font-medium">Database connection unavailable</p>
+          <p className="text-sm">Autocomplete suggestions are not available. You can still enter make and model manually.</p>
+        </div>
+      )}
+      
       {showForm && (
         <div className="bg-white shadow-md rounded-lg p-6 mb-8">
           <h2 className="text-xl font-semibold mb-4">Generate Visualizations</h2>
           <form onSubmit={handleSubmit}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
+              <div className="relative">
                 <label htmlFor="make" className="block text-sm font-medium text-gray-700 mb-1">
                   Make
                 </label>
@@ -586,11 +750,31 @@ function DashboardContent() {
                   name="make"
                   value={formData.make}
                   onChange={handleInputChange}
+                  onFocus={() => formData.make.length >= 2 && fetchMakeSuggestions(formData.make)}
+                  onClick={(e) => e.stopPropagation()}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
+                  autoComplete="off"
+                  placeholder={dbConnectionError ? "Enter car make manually..." : "Start typing to see suggestions..."}
                 />
+                {showMakeSuggestions && makeSuggestions.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white shadow-lg rounded-md border border-gray-200 max-h-60 overflow-y-auto">
+                    {makeSuggestions.map((make, index) => (
+                      <div
+                        key={index}
+                        className="px-4 py-2 hover:bg-blue-50 cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSuggestionClick('make', make);
+                        }}
+                      >
+                        {make}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div>
+              <div className="relative">
                 <label htmlFor="model" className="block text-sm font-medium text-gray-700 mb-1">
                   Model
                 </label>
@@ -600,9 +784,31 @@ function DashboardContent() {
                   name="model"
                   value={formData.model}
                   onChange={handleInputChange}
+                  onFocus={() => formData.model.length >= 2 && fetchModelSuggestions(formData.model)}
+                  onClick={(e) => e.stopPropagation()}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
+                  autoComplete="off"
+                  placeholder={dbConnectionError 
+                    ? "Enter model manually..." 
+                    : (formData.make ? `Enter ${formData.make} model...` : "First select a make...")}
                 />
+                {showModelSuggestions && modelSuggestions.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white shadow-lg rounded-md border border-gray-200 max-h-60 overflow-y-auto">
+                    {modelSuggestions.map((model, index) => (
+                      <div
+                        key={index}
+                        className="px-4 py-2 hover:bg-blue-50 cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSuggestionClick('model', model);
+                        }}
+                      >
+                        {model}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               <div>
                 <label htmlFor="yearMin" className="block text-sm font-medium text-gray-700 mb-1">
