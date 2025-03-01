@@ -46,7 +46,7 @@ function DashboardContent() {
     model: modelParam || '',
     yearMin: 1950,
     yearMax: 2025,
-    maxPages: 5,
+    maxPages: 2,
   });
   
   // State for auction results and loading status
@@ -326,7 +326,7 @@ function DashboardContent() {
                     <p><strong>Lowest Sold Price:</strong> {formatPrice(summary.lowestSoldPrice)}</p>
                   )}
                   {summary.soldPercentage && (
-                    <p><strong>Sold Percentage:</strong> {summary.soldPercentage}%</p>
+                    <p><strong>Sold Percentage:</strong> {summary.soldPercentage}</p>
                   )}
                 </div>
               </div>
@@ -397,7 +397,7 @@ function DashboardContent() {
                                     </h3>
                                     <div className="flex items-center mt-1">
                                       <span className={`text-sm font-semibold ${result.status === 'sold' ? 'text-green-600' : 'text-red-600'}`}>
-                                        {formatPrice(result.sold_price)}
+                                        {result.status === 'sold' ? formatPrice(result.sold_price) : 'N/A'}
                                       </span>
                                       <span className="mx-2 text-gray-400">•</span>
                                       <span className={`text-xs px-2 py-0.5 rounded-full ${

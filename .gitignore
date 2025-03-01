@@ -19,6 +19,7 @@
 /out/
 
 # production
+.cache/
 /build
 public/charts
 public/*.json
@@ -43,3 +44,4 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
