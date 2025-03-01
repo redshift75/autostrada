@@ -19,6 +19,12 @@ export default function Home() {
           >
             Run Search
           </Link>
+          <Link
+            className="rounded-full border border-solid border-foreground transition-colors flex items-center justify-center bg-transparent text-foreground gap-2 hover:bg-foreground hover:text-background text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
+            href="/listings"
+          >
+            Browse Listings
+          </Link>
         </div>
         
         <div className="mt-8 p-6 bg-gray-50 dark:bg-gray-800 rounded-lg max-w-2xl">

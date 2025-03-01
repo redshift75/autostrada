@@ -3,7 +3,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    domains: ['via.placeholder.com'],
+    domains: [
+      'auto.dev',
+      'production-assets2.auto.dev',
+      'vehicle-photos-published.vauto.com',
+      'cdn.max.auto'
+    ],
   },
   eslint: {
     ignoreDuringBuilds: true,
