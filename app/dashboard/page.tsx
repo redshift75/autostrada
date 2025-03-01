@@ -236,6 +236,10 @@ function DashboardContent() {
   const [showMakeSuggestions, setShowMakeSuggestions] = useState(false);
   const [showModelSuggestions, setShowModelSuggestions] = useState(false);
   
+  // Debounce timers
+  const makeDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const modelDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  
   // State for auction results and loading status
   const [results, setResults] = useState<AuctionResult[]>([]);
   const [filteredResults, setFilteredResults] = useState<AuctionResult[]>([]);
@@ -273,7 +277,7 @@ function DashboardContent() {
     model: string;
   } | null>(null);
   
-  // Fetch make suggestions from Supabase
+  // Fetch make suggestions from Supabase with debounce
   const fetchMakeSuggestions = async (query: string) => {
     if (!query || query.length < 2) {
       setMakeSuggestions([]);
@@ -310,9 +314,11 @@ function DashboardContent() {
         return;
       }
       
+      // Get unique makes using Set to remove duplicates
       const uniqueMakes = Array.from(new Set(data.map((item: CarMake) => item.Make)))
         .filter((make): make is string => !!make)
-        .sort();
+        .sort()
+        .slice(0, 5); // Limit to 5 results
       
       console.log('Processed unique makes:', uniqueMakes);
       setMakeSuggestions(uniqueMakes);
@@ -323,6 +329,19 @@ function DashboardContent() {
       setMakeSuggestions([]);
       setShowMakeSuggestions(false);
     }
+  };
+  
+  // Debounced version of fetchMakeSuggestions
+  const debouncedFetchMakeSuggestions = (query: string) => {
+    // Clear any existing timer
+    if (makeDebounceTimerRef.current) {
+      clearTimeout(makeDebounceTimerRef.current);
+    }
+    
+    // Set a new timer
+    makeDebounceTimerRef.current = setTimeout(() => {
+      fetchMakeSuggestions(query);
+    }, 300); // 300ms delay
   };
   
   // Fetch model suggestions from Supabase based on selected make
@@ -355,7 +374,8 @@ function DashboardContent() {
       
       const uniqueModels = Array.from(new Set(data.map((item: CarModel) => item.baseModel)))
         .filter((baseModel): baseModel is string => !!baseModel)
-        .sort();
+        .sort()
+        .slice(0, 5); // Limit to 5 results
       
       console.log('Processed unique models:', uniqueModels);
       setModelSuggestions(uniqueModels);
@@ -368,6 +388,19 @@ function DashboardContent() {
     }
   };
   
+  // Debounced version of fetchModelSuggestions
+  const debouncedFetchModelSuggestions = (query: string) => {
+    // Clear any existing timer
+    if (modelDebounceTimerRef.current) {
+      clearTimeout(modelDebounceTimerRef.current);
+    }
+    
+    // Set a new timer
+    modelDebounceTimerRef.current = setTimeout(() => {
+      fetchModelSuggestions(query);
+    }, 300); // 300ms delay
+  };
+  
   // Handle input changes with debounce for suggestions
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -376,18 +409,30 @@ function DashboardContent() {
       [name]: name === 'yearMin' || name === 'yearMax' || name === 'maxPages' ? parseInt(value) : value,
     });
     
-    // Fetch suggestions for make and model fields
+    // Fetch suggestions for make and model fields with debounce
     if (name === 'make') {
-      fetchMakeSuggestions(value);
+      debouncedFetchMakeSuggestions(value);
       // Clear model when make changes
       if (formData.model) {
         setFormData(prev => ({ ...prev, model: '' }));
         setModelSuggestions([]);
       }
     } else if (name === 'model') {
-      fetchModelSuggestions(value);
+      debouncedFetchModelSuggestions(value);
     }
   };
+  
+  // Clean up timers on unmount
+  useEffect(() => {
+    return () => {
+      if (makeDebounceTimerRef.current) {
+        clearTimeout(makeDebounceTimerRef.current);
+      }
+      if (modelDebounceTimerRef.current) {
+        clearTimeout(modelDebounceTimerRef.current);
+      }
+    };
+  }, []);
   
   // Handle suggestion selection
   const handleSuggestionClick = (name: string, value: string) => {
@@ -750,7 +795,7 @@ function DashboardContent() {
                   name="make"
                   value={formData.make}
                   onChange={handleInputChange}
-                  onFocus={() => formData.make.length >= 2 && fetchMakeSuggestions(formData.make)}
+                  onFocus={() => formData.make.length >= 2 && debouncedFetchMakeSuggestions(formData.make)}
                   onClick={(e) => e.stopPropagation()}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
@@ -759,18 +804,20 @@ function DashboardContent() {
                 />
                 {showMakeSuggestions && makeSuggestions.length > 0 && (
                   <div className="absolute z-10 w-full mt-1 bg-white shadow-lg rounded-md border border-gray-200 max-h-60 overflow-y-auto">
-                    {makeSuggestions.map((make, index) => (
-                      <div
-                        key={index}
-                        className="px-4 py-2 hover:bg-blue-50 cursor-pointer"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSuggestionClick('make', make);
-                        }}
-                      >
-                        {make}
-                      </div>
-                    ))}
+                    <div className="py-1">
+                      {makeSuggestions.map((make, index) => (
+                        <div
+                          key={index}
+                          className="px-4 py-2 hover:bg-blue-50 cursor-pointer transition-colors duration-150"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSuggestionClick('make', make);
+                          }}
+                        >
+                          {make}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -784,7 +831,7 @@ function DashboardContent() {
                   name="model"
                   value={formData.model}
                   onChange={handleInputChange}
-                  onFocus={() => formData.model.length >= 2 && fetchModelSuggestions(formData.model)}
+                  onFocus={() => formData.model.length >= 2 && debouncedFetchModelSuggestions(formData.model)}
                   onClick={(e) => e.stopPropagation()}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
@@ -795,18 +842,20 @@ function DashboardContent() {
                 />
                 {showModelSuggestions && modelSuggestions.length > 0 && (
                   <div className="absolute z-10 w-full mt-1 bg-white shadow-lg rounded-md border border-gray-200 max-h-60 overflow-y-auto">
-                    {modelSuggestions.map((model, index) => (
-                      <div
-                        key={index}
-                        className="px-4 py-2 hover:bg-blue-50 cursor-pointer"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSuggestionClick('model', model);
-                        }}
-                      >
-                        {model}
-                      </div>
-                    ))}
+                    <div className="py-1">
+                      {modelSuggestions.map((model, index) => (
+                        <div
+                          key={index}
+                          className="px-4 py-2 hover:bg-blue-50 cursor-pointer transition-colors duration-150"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSuggestionClick('model', model);
+                          }}
+                        >
+                          {model}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
