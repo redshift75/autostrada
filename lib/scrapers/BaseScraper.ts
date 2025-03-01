@@ -19,10 +19,7 @@ let path: any;
 // Only import Node.js modules on the server
 if (typeof window === 'undefined') {
   // Use regular imports instead of node: protocol
-  import('timers/promises').then(module => { setTimeout = module.setTimeout }).catch(() => {
-    // Fallback to global setTimeout if module import fails
-    setTimeout = global.setTimeout;
-  });
+  setTimeout = global.setTimeout;
   
   import('crypto').then(module => { createHash = module.createHash }).catch(() => {
     // Provide a fallback or no-op implementation
@@ -85,7 +82,7 @@ const DEFAULT_CONFIG: ScraperConfig = {
   maxRetries: 3,
   retryDelay: 1000,
   retryMultiplier: 2,
-  cacheEnabled: false,
+  cacheEnabled: true,
   cacheTTL: 24 * 60 * 60 * 1000, // 24 hours
   cacheDir: '/tmp/cache',
   userAgents: [
@@ -106,11 +103,24 @@ export abstract class BaseScraper {
     // Merge provided config with defaults
     this.config = { ...DEFAULT_CONFIG, ...config };
     
-    // Create cache directory if it doesn't exist
+    // Initialize cache directory asynchronously
     if (this.config.cacheEnabled && this.config.cacheDir) {
-      this.ensureCacheDir().catch(err => {
-        this.log('error', `Failed to create cache directory: ${err.message}`);
-      });
+      // We'll initialize the cache directory asynchronously
+      // but we won't wait for it to complete
+      this.initializeCacheDir();
+    }
+  }
+  
+  /**
+   * Initialize the cache directory asynchronously
+   */
+  private async initializeCacheDir(): Promise<void> {
+    try {
+      // Wait a bit to ensure imports have completed
+      await new Promise(resolve => setTimeout(resolve, 100));
+      await this.ensureCacheDir();
+    } catch (error: any) {
+      this.log('error', `Failed to initialize cache directory: ${error.message}`);
     }
   }
   
@@ -193,7 +203,7 @@ export abstract class BaseScraper {
         this.log('info', `Retrying in ${delay}ms...`);
         
         // Wait before retrying
-        await setTimeout(delay);
+        await new Promise(resolve => setTimeout(resolve, delay));
         retries++;
       }
     }
@@ -218,7 +228,7 @@ export abstract class BaseScraper {
     if (this.requestCount >= (this.config.requestsPerMinute || 30)) {
       const timeToNextMinute = 60000 - (now - this.requestCountResetTime);
       this.log('debug', `Rate limit reached. Waiting ${timeToNextMinute}ms`);
-      await setTimeout(timeToNextMinute);
+      await new Promise(resolve => setTimeout(resolve, timeToNextMinute));
       this.requestCount = 0;
       this.requestCountResetTime = Date.now();
       return;
@@ -229,7 +239,7 @@ export abstract class BaseScraper {
     if (timeSinceLastRequest < (this.config.minRequestInterval || 0)) {
       const waitTime = (this.config.minRequestInterval || 0) - timeSinceLastRequest;
       this.log('debug', `Throttling request. Waiting ${waitTime}ms`);
-      await setTimeout(waitTime);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
     }
     
     // Increment request count
@@ -327,11 +337,27 @@ export abstract class BaseScraper {
       return;
     }
     
+    // Ensure fs is available
+    if (typeof fs === 'undefined') {
+      try {
+        fs = await import('fs/promises');
+      } catch (error: any) {
+        this.log('error', `Failed to import fs module: ${error.message}`);
+        return;
+      }
+    }
+    
     try {
       await fs.access(this.config.cacheDir);
     } catch (error) {
       // Directory doesn't exist, create it
-      await fs.mkdir(this.config.cacheDir, { recursive: true });
+      try {
+        await fs.mkdir(this.config.cacheDir, { recursive: true });
+      } catch (mkdirError: any) {
+        this.log('error', `Failed to create cache directory: ${mkdirError.message}`);
+        // Set cacheEnabled to false to prevent further attempts
+        this.config.cacheEnabled = false;
+      }
     }
   }
   

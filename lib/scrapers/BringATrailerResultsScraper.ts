@@ -63,14 +63,33 @@ export class BringATrailerResultsScraper extends BaseScraper {
 
   constructor() {
     super();
-    // Only create debug directory in development environment
-    if (process.env.NODE_ENV !== 'production') {
-      this.debugDir = path.join(process.cwd(), 'debug');
-      if (!fs.existsSync(this.debugDir)) {
-        fs.mkdirSync(this.debugDir, { recursive: true });
+    
+    // Initialize debugDir asynchronously to ensure modules are loaded
+    this.initializeDebugDir();
+    
+    // Set a default value for debugDir to prevent immediate errors
+    this.debugDir = '/tmp';
+  }
+  
+  private async initializeDebugDir(): Promise<void> {
+    try {
+      // Only create debug directory in development environment
+      if (process.env.NODE_ENV !== 'production') {
+        // Import modules dynamically if needed
+        const fs = await import('fs');
+        const path = await import('path');
+        
+        this.debugDir = path.join(process.cwd(), 'debug');
+        if (!fs.existsSync(this.debugDir)) {
+          fs.mkdirSync(this.debugDir, { recursive: true });
+        }
+      } else {
+        // In production, set to a temporary directory
+        this.debugDir = '/tmp';
       }
-    } else {
-      // In production, set to null or a temporary directory that doesn't require creation
+    } catch (error) {
+      console.error('Failed to initialize debug directory:', error);
+      // Fallback to /tmp
       this.debugDir = '/tmp';
     }
   }

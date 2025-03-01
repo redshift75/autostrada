@@ -6,8 +6,8 @@
  */
 
 import { BaseScraper, ScraperConfig } from './BaseScraper';
-import { BringATrailerScraper, BaTScraperParams } from './BringATrailerScraperNew';
-import { BaTListing } from './BringATrailerScraperNew';
+import { BringATrailerResultsScraper, BaTResultsScraperParams as BaTScraperParams } from './BringATrailerResultsScraper';
+import { BaTCompletedListing as BaTListing } from './BringATrailerResultsScraper';
 import { ListingSource } from '../standardization/listingData';
 
 // Types for scraper manager configuration
@@ -43,7 +43,7 @@ export class ScraperManager {
     // Initialize Bring a Trailer scraper
     this.registerScraper(
       ListingSource.BRING_A_TRAILER,
-      new BringATrailerScraper()
+      new BringATrailerResultsScraper()
     );
     
     // Add more scrapers here as they are implemented

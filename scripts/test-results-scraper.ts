@@ -8,9 +8,16 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { BringATrailerResultsScraper } from '../lib/scrapers/BringATrailerResultsScraper';
+import minimist from 'minimist';
 
 async function testResultsScraper() {
-  console.log('Testing BringATrailerResultsScraper...');
+  // Parse command line arguments
+  const argv = minimist(process.argv.slice(2));
+  const make = argv.make || 'Porsche';
+  const model = argv.model || '911';
+  const maxPages = argv.maxPages || 3;
+
+  console.log(`Testing BringATrailerResultsScraper for ${make} ${model}...`);
   
   // Create results directory if it doesn't exist
   const resultsDir = path.join(process.cwd(), 'results');
@@ -20,29 +27,29 @@ async function testResultsScraper() {
   
   const scraper = new BringATrailerResultsScraper();
   
-  // Test with Porsche
-  console.log('\nSearching for completed Porsche auctions...');
-  const porscheResults = await scraper.scrape({
-    make: 'Porsche',
-  //  model: '911',
-    maxPages: 100
+  // Test with provided make and model
+  console.log(`\nSearching for completed ${make} ${model} auctions...`);
+  const results = await scraper.scrape({
+    make: make,
+    model: model,
+    maxPages: maxPages
   });
   
-  console.log(`Found ${porscheResults.length} completed auctions for Porsche`);
-  if (porscheResults.length > 0) {
+  console.log(`Found ${results.length} completed auctions for ${make} ${model}`);
+  if (results.length > 0) {
     console.log('First result:', {
-      title: porscheResults[0].title,
-      status: porscheResults[0].status,
-      price: porscheResults[0].sold_price || porscheResults[0].bid_amount,
-      url: porscheResults[0].url
+      title: results[0].title,
+      status: results[0].status,
+      price: results[0].sold_price || results[0].bid_amount,
+      url: results[0].url
     });
   }
   
-  // Save results to file
-  const porscheResultsFile = path.join(resultsDir, 'porsche_911_completed_results.json');
-  fs.writeFileSync(porscheResultsFile, JSON.stringify(porscheResults, null, 2));
-  console.log(`Saved ${porscheResults.length} Porsche 911 completed auctions to ${porscheResultsFile}`); 
- }
+  // Save results to file with make and model in the filename
+  const resultsFile = path.join(resultsDir, `${make.toLowerCase()}_${model.toLowerCase()}_completed_results.json`);
+  fs.writeFileSync(resultsFile, JSON.stringify(results, null, 2));
+  console.log(`Saved ${results.length} ${make} ${model} completed auctions to ${resultsFile}`); 
+}
 
 // Run the test
 testResultsScraper().catch(error => {
