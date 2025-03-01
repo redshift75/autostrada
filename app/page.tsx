@@ -3,42 +3,60 @@ import Link from "next/link";
 
 export default function Home() {
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <div className="flex flex-col items-center gap-4">
-          <h1 className="text-3xl font-bold">Auction Results</h1>
-          <p className="text-center max-w-md">
-            View and analyze auction results for classic cars with interactive visualizations.
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800 flex flex-col items-center justify-center p-8">
+      <main className="w-full max-w-4xl mx-auto flex flex-col items-center text-center">
+        <div className="mb-12">
+          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-4">
+            Intelligent Automotive Analytics
+          </h1>
+          <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+            View and analyze listings and auction results for your next vehicle purchase.
           </p>
         </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
+        <div className="flex gap-6 flex-col sm:flex-row justify-center mb-12">
           <Link
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
             href="/auctions"
+            className="px-8 py-3 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium text-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
           >
-            Run Search
+            Auction Results
           </Link>
           <Link
-            className="rounded-full border border-solid border-foreground transition-colors flex items-center justify-center bg-transparent text-foreground gap-2 hover:bg-foreground hover:text-background text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
             href="/listings"
+            className="px-8 py-3 rounded-lg bg-white dark:bg-gray-800 border-2 border-blue-600 dark:border-blue-500 text-blue-600 dark:text-blue-400 font-medium text-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
           >
-            Browse Listings
+            Search Listings
           </Link>
         </div>
         
-        <div className="mt-8 p-6 bg-gray-50 dark:bg-gray-800 rounded-lg max-w-2xl">
-          <h2 className="text-xl font-semibold mb-4">About This Application</h2>
-          <p className="mb-4">
-            This application provides visualizations for auction results from Bring a Trailer. 
-            You can view price trends over time and price distributions for various makes and models.
+        <div className="w-full max-w-3xl bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 border-t-4 border-blue-600">
+          <h2 className="text-2xl font-bold mb-4 text-gray-800 dark:text-white">About This Application</h2>
+          <p className="text-gray-600 dark:text-gray-300 mb-4 text-lg">
+            This application provides comprehensive data on vehicle markets, including auction results from Bring a Trailer and used car listings from across the web.
           </p>
-          <p>
-            The visualizations are generated using Vega-Lite and are served through a Next.js application.
+          <p className="text-gray-600 dark:text-gray-300 text-lg">
+            Explore price trends, compare models, and make informed decisions with our interactive visualizations and search tools.
           </p>
+          
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-100 dark:border-blue-800">
+              <h3 className="font-semibold text-blue-700 dark:text-blue-400 mb-2">Auction Analytics</h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                Track historical auction prices and identify market trends for collectible and enthusiast vehicles.
+              </p>
+            </div>
+            <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-lg border border-indigo-100 dark:border-indigo-800">
+              <h3 className="font-semibold text-indigo-700 dark:text-indigo-400 mb-2">Listing Search</h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                Find your next vehicle with our powerful search tools and comprehensive database of listings.
+              </p>
+            </div>
+          </div>
         </div>
       </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
+      
+      <footer className="mt-16 text-center text-gray-500 dark:text-gray-400">
+        <p>© 2025 Autostrada.AI - Intelligent Automotive Analytics</p>
       </footer>
     </div>
   );
