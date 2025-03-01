@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 // Define types for auction results
 type AuctionResult = {
@@ -33,17 +33,11 @@ type AuctionResult = {
 // Create a client component that uses useSearchParams
 function DashboardContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  
-  // Get make and model from URL query parameters if they exist
-  const makeParam = searchParams.get('make');
-  const modelParam = searchParams.get('model');
-  const showFormParam = searchParams.get('showForm');
   
   // Form state for generating new visualizations
   const [formData, setFormData] = useState({
-    make: makeParam || '',
-    model: modelParam || '',
+    make: '',
+    model: '',
     yearMin: 1950,
     yearMax: 2025,
     maxPages: 2,
@@ -53,7 +47,7 @@ function DashboardContent() {
   const [results, setResults] = useState<AuctionResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showForm, setShowForm] = useState(showFormParam === 'true');
+  const [showForm, setShowForm] = useState(false);
   
   // State for visualizations
   const [visualizations, setVisualizations] = useState<{
@@ -63,6 +57,12 @@ function DashboardContent() {
   
   // State for summary
   const [summary, setSummary] = useState<any | null>(null);
+  
+  // State for current search
+  const [currentSearch, setCurrentSearch] = useState<{
+    make: string;
+    model: string;
+  } | null>(null);
   
   // Handle form input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -119,13 +119,13 @@ function DashboardContent() {
       setResults(data.results || []);
       setVisualizations(data.visualizations || null);
       setSummary(data.summary || null);
+      setCurrentSearch({
+        make: formData.make,
+        model: formData.model
+      });
       
-      // Update URL with make and model parameters
-      const params = new URLSearchParams();
-      if (formData.make) params.set('make', formData.make);
-      if (formData.model) params.set('model', formData.model);
-      
-      router.push(`/dashboard?${params.toString()}`);
+      // Hide the form after successful search
+      setShowForm(false);
     } catch (err) {
       setError('Failed to generate visualizations. Please try again.');
       console.error('Error:', err);
@@ -133,56 +133,6 @@ function DashboardContent() {
       setLoading(false);
     }
   };
-  
-  // Fetch results when make and model parameters change
-  useEffect(() => {
-    const fetchResults = async () => {
-      if (makeParam && modelParam) {
-        setLoading(true);
-        setError(null);
-        
-        try {
-          // Use the visualizations/generate endpoint instead of auction-results
-          const response = await fetch('/api/visualizations/generate', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              make: makeParam,
-              model: modelParam,
-              yearMin: formData.yearMin,
-              yearMax: formData.yearMax,
-              maxPages: formData.maxPages
-            }),
-          });
-          
-          if (!response.ok) {
-            throw new Error(`Error: ${response.status}`);
-          }
-          
-          const data = await response.json();
-          setResults(data.results || []);
-          setVisualizations(data.visualizations || null);
-          setSummary(data.summary || null);
-        } catch (err) {
-          setError('Failed to fetch results. Please try again.');
-          console.error('Error:', err);
-        } finally {
-          setLoading(false);
-        }
-      }
-    };
-    
-    if (makeParam && modelParam) {
-      fetchResults();
-    }
-  }, [makeParam, modelParam, formData.yearMin, formData.yearMax, formData.maxPages]);
-  
-  // Show form if showForm parameter is true
-  useEffect(() => {
-    setShowForm(showFormParam === 'true');
-  }, [showFormParam]);
   
   return (
     <div className="container mx-auto px-4 py-8">
@@ -302,11 +252,11 @@ function DashboardContent() {
         </div>
       )}
       
-      {!loading && (makeParam || modelParam) && (
+      {!loading && currentSearch && (
         <div className="bg-white shadow-md rounded-lg overflow-hidden">
           <div className="p-6">
             <h2 className="text-2xl font-bold mb-4">
-              {makeParam} {modelParam} Auction Results
+              {currentSearch.make} {currentSearch.model} Auction Results
             </h2>
             
             {summary && (
@@ -420,16 +370,6 @@ function DashboardContent() {
                                       >
                                         View Original
                                       </a>
-                                      
-                                      {/* Link to view more results for this make/model */}
-                                      {!makeParam && !modelParam && make && model && (
-                                        <Link 
-                                          href={`/dashboard?make=${make}&model=${model}`}
-                                          className="text-xs text-blue-600 hover:underline inline-block"
-                                        >
-                                          View All {make} {model}
-                                        </Link>
-                                      )}
                                     </div>
                                   </div>
                                 </div>
@@ -446,6 +386,20 @@ function DashboardContent() {
           </div>
         </div>
       )}
+      
+      {!loading && !currentSearch && !showForm && (
+        <div className="text-center py-12 bg-white shadow-md rounded-lg">
+          <h2 className="text-2xl font-bold mb-4">Welcome to the Auction Results Dashboard</h2>
+          <p className="text-gray-600 mb-8">Click "Generate New Visualizations" to search for auction results</p>
+          <button
+            onClick={() => setShowForm(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-md transition duration-200"
+          >
+            Get Started
+          </button>
+        </div>
+      )}
+      
       <div className="mt-8">
       </div>
     </div>
