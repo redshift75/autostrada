@@ -41,29 +41,21 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // In production, read the SVG files and convert them to base64
+    // Convert SVG strings to base64 for embedding in HTML
     let timeSeriesBase64 = null;
     let priceHistogramBase64 = null;
     
-    if (process.env.NODE_ENV === 'production' && parsedResult.visualizations) {
+    if (parsedResult.visualizations) {
       try {
         if (parsedResult.visualizations.timeSeriesChart) {
-          const timeSeriesPath = parsedResult.visualizations.timeSeriesChart;
-          if (fs.existsSync(timeSeriesPath)) {
-            const svgContent = fs.readFileSync(timeSeriesPath, 'utf8');
-            timeSeriesBase64 = Buffer.from(svgContent).toString('base64');
-          }
+          timeSeriesBase64 = Buffer.from(parsedResult.visualizations.timeSeriesChart).toString('base64');
         }
         
         if (parsedResult.visualizations.priceHistogram) {
-          const histogramPath = parsedResult.visualizations.priceHistogram;
-          if (fs.existsSync(histogramPath)) {
-            const svgContent = fs.readFileSync(histogramPath, 'utf8');
-            priceHistogramBase64 = Buffer.from(svgContent).toString('base64');
-          }
+          priceHistogramBase64 = Buffer.from(parsedResult.visualizations.priceHistogram).toString('base64');
         }
       } catch (error) {
-        console.error('Error reading visualization files:', error);
+        console.error('Error converting SVG to base64:', error);
       }
     }
     
@@ -142,27 +134,17 @@ export async function POST(request: NextRequest) {
           <p>Sold Percentage: ${parsedResult.summary.soldPercentage}</p>
         </div>
         
-        ${process.env.NODE_ENV === 'production' && timeSeriesBase64 ? `
+        ${timeSeriesBase64 ? `
         <div class="visualization">
           <h2>Price Trends Over Time</h2>
           <img src="data:image/svg+xml;base64,${timeSeriesBase64}" alt="Price Trends">
         </div>
-        ` : parsedResult.visualizations.timeSeriesChart ? `
-        <div class="visualization">
-          <h2>Price Trends Over Time</h2>
-          <img src="/${parsedResult.visualizations.timeSeriesChart.replace('public/', '')}" alt="Price Trends">
-        </div>
         ` : ''}
         
-        ${process.env.NODE_ENV === 'production' && priceHistogramBase64 ? `
+        ${priceHistogramBase64 ? `
         <div class="visualization">
           <h2>Price Distribution</h2>
           <img src="data:image/svg+xml;base64,${priceHistogramBase64}" alt="Price Distribution">
-        </div>
-        ` : parsedResult.visualizations.priceHistogram ? `
-        <div class="visualization">
-          <h2>Price Distribution</h2>
-          <img src="/${parsedResult.visualizations.priceHistogram.replace('public/', '')}" alt="Price Distribution">
         </div>
         ` : ''}
 
@@ -189,31 +171,24 @@ export async function POST(request: NextRequest) {
     `;
     
     // Only write files in development environment
-    let htmlPath = '';
-    let resultsPath = '';
-    
     if (process.env.NODE_ENV !== 'production') {
-      htmlPath = path.join(process.cwd(), 'public', 'auction_visualizations.html');
+      const htmlPath = path.join(process.cwd(), 'public', 'auction_visualizations.html');
       fs.writeFileSync(htmlPath, htmlContent);
       
       // Save the auction results data to a JSON file
       const timestamp = Date.now();
-      resultsPath = path.join(process.cwd(), 'public', `auction_results_${timestamp}.json`);
+      const resultsPath = path.join(process.cwd(), 'public', `auction_results_${timestamp}.json`);
       fs.writeFileSync(resultsPath, JSON.stringify(parsedResult, null, 2));
     }
     
-    // Prepare the response data
+    // Prepare the response data with direct SVG strings or base64 encoded SVGs
     const visualizations = {
-      timeSeriesChart: process.env.NODE_ENV === 'production' && timeSeriesBase64 
+      timeSeriesChart: parsedResult.visualizations.timeSeriesChart 
         ? `data:image/svg+xml;base64,${timeSeriesBase64}` 
-        : parsedResult.visualizations.timeSeriesChart 
-          ? `/${parsedResult.visualizations.timeSeriesChart.replace('public/', '')}` 
-          : null,
-      priceHistogram: process.env.NODE_ENV === 'production' && priceHistogramBase64 
+        : null,
+      priceHistogram: parsedResult.visualizations.priceHistogram 
         ? `data:image/svg+xml;base64,${priceHistogramBase64}` 
-        : parsedResult.visualizations.priceHistogram 
-          ? `/${parsedResult.visualizations.priceHistogram.replace('public/', '')}` 
-          : null,
+        : null,
     };
     
     return NextResponse.json({

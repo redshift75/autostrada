@@ -1,7 +1,7 @@
 import { DynamicStructuredTool } from "@langchain/core/tools";
 import { z } from "zod";
 import { BringATrailerResultsScraper, BaTCompletedListing } from "../scrapers/BringATrailerResultsScraper";
-import { generatePriceTimeSeriesChart, generatePriceHistogram, generatePriceYearScatterPlot } from "../utils/visualization";
+import { generatePriceTimeSeriesChart, generatePriceHistogram } from "../utils/visualization";
 
 // Tool to search for vehicles by criteria
 export const createVehicleSearchTool = () => {
@@ -202,31 +202,15 @@ export const createAuctionResultsTool = () => {
         if (generateVisualizations && results.length > 0) {
           console.log('Generating visualizations...');
           try {
-            // Create the public/charts directory if it doesn't exist
-            let outputPath = 'public/charts';
+            // Generate time series chart SVG
+            const timeSeriesChartSvg = await generatePriceTimeSeriesChart(results);
             
-            // In production, use a path that's writable in Vercel
-            if (process.env.NODE_ENV === 'production') {
-              outputPath = '/tmp/charts';
-            }
-            
-            // Generate time series chart
-            const timeSeriesChartPath = await generatePriceTimeSeriesChart(results, outputPath);
-            
-            // Generate price histogram
-            const priceHistogramPath = await generatePriceHistogram(results, outputPath);
-            
-            // Generate price vs. year scatter plot if we have year data
-            const hasYearData = results.some(item => item.year !== undefined);
-            let priceYearScatterPath = null;
-            if (hasYearData) {
-              priceYearScatterPath = await generatePriceYearScatterPlot(results, outputPath);
-            }
+            // Generate price histogram SVG
+            const priceHistogramSvg = await generatePriceHistogram(results);
             
             visualizations = {
-              timeSeriesChart: timeSeriesChartPath,
-              priceHistogram: priceHistogramPath,
-              priceYearScatter: priceYearScatterPath
+              timeSeriesChart: timeSeriesChartSvg,
+              priceHistogram: priceHistogramSvg
             };
             
             console.log('Visualizations generated successfully');

@@ -291,22 +291,36 @@ function DashboardContent() {
                     {visualizations.timeSeriesChart && (
                       <div className="bg-gray-50 p-4 rounded-md">
                         <h3 className="text-lg font-semibold mb-2">Price Trends Over Time</h3>
-                        <img 
-                          src={visualizations.timeSeriesChart} 
-                          alt="Price trends over time" 
+                        <object 
+                          type="image/svg+xml"
+                          data={visualizations.timeSeriesChart} 
                           className="w-full h-auto"
-                        />
+                          aria-label="Price trends over time"
+                        >
+                          <img 
+                            src={visualizations.timeSeriesChart} 
+                            alt="Price trends over time" 
+                            className="w-full h-auto"
+                          />
+                        </object>
                       </div>
                     )}
                     
                     {visualizations.priceHistogram && (
                       <div className="bg-gray-50 p-4 rounded-md">
                         <h3 className="text-lg font-semibold mb-2">Price Distribution</h3>
-                        <img 
-                          src={visualizations.priceHistogram} 
-                          alt="Price distribution" 
+                        <object 
+                          type="image/svg+xml"
+                          data={visualizations.priceHistogram} 
                           className="w-full h-auto"
-                        />
+                          aria-label="Price distribution"
+                        >
+                          <img 
+                            src={visualizations.priceHistogram} 
+                            alt="Price distribution" 
+                            className="w-full h-auto"
+                          />
+                        </object>
                       </div>
                     )}
                   </div>
