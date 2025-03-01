@@ -85,7 +85,7 @@ const DEFAULT_CONFIG: ScraperConfig = {
   maxRetries: 3,
   retryDelay: 1000,
   retryMultiplier: 2,
-  cacheEnabled: true,
+  cacheEnabled: false,
   cacheTTL: 24 * 60 * 60 * 1000, // 24 hours
   cacheDir: '/tmp/cache',
   userAgents: [
