@@ -25,26 +25,27 @@ export async function generatePriceTimeSeriesChart(
       fs.mkdirSync(outputPath, { recursive: true });
     }
 
-    // Filter for sold listings with valid prices and dates
-    const soldListings = listings.filter(
-      listing => listing.status === 'sold' && 
-                listing.sold_price && 
+    // Filter for listings with valid prices and dates (both sold and not sold)
+    const validListings = listings.filter(
+      listing => (listing.status === 'sold' || listing.status === 'unsold') && 
+                (listing.sold_price || listing.bid_amount) && 
                 listing.sold_date
     );
 
     // Sort by date
-    soldListings.sort((a, b) => {
+    validListings.sort((a, b) => {
       const dateA = new Date(a.sold_date);
       const dateB = new Date(b.sold_date);
       return dateA.getTime() - dateB.getTime();
     });
 
     // Prepare data for visualization
-    const data = soldListings.map(listing => ({
+    const data = validListings.map(listing => ({
       date: listing.sold_date,
-      price: parseInt(listing.sold_price.replace(/[^0-9]/g, '')),
+      price: parseInt((listing.status === 'sold' ? listing.sold_price : listing.bid_amount).replace(/[^0-9]/g, '')),
       title: listing.title,
-      url: listing.url
+      url: listing.url,
+      status: listing.status
     }));
 
     // Create a Vega-Lite specification
@@ -56,7 +57,8 @@ export async function generatePriceTimeSeriesChart(
       data: { values: data },
       mark: {
         type: 'point',
-        point: true
+        size: 60,
+        filled: true
       },
       encoding: {
         x: {
@@ -70,10 +72,20 @@ export async function generatePriceTimeSeriesChart(
           title: 'Sale Price ($)',
           scale: { zero: false }
         },
+        color: {
+          field: 'status',
+          type: 'nominal',
+          scale: {
+            domain: ['sold', 'unsold'],
+            range: ['#2ca02c', '#d62728'] // Green for sold, red for not sold
+          },
+          legend: null // Hide the legend
+        },
         tooltip: [
           { field: 'date', type: 'temporal', title: 'Date' },
           { field: 'price', type: 'quantitative', title: 'Price' },
-          { field: 'title', type: 'nominal', title: 'Vehicle' }
+          { field: 'title', type: 'nominal', title: 'Vehicle' },
+          { field: 'status', type: 'nominal', title: 'Status' }
         ]
       }
     };

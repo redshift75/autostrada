@@ -347,7 +347,7 @@ function DashboardContent() {
                                     </h3>
                                     <div className="flex items-center mt-1">
                                       <span className={`text-sm font-semibold ${result.status === 'sold' ? 'text-green-600' : 'text-red-600'}`}>
-                                        {result.status === 'sold' ? formatPrice(result.sold_price) : 'N/A'}
+                                        {result.status === 'sold' ? formatPrice(result.sold_price) : formatPrice(result.bid_amount)}
                                       </span>
                                       <span className="mx-2 text-gray-400">•</span>
                                       <span className={`text-xs px-2 py-0.5 rounded-full ${
