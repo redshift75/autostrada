@@ -36,8 +36,8 @@ export async function GET(request: Request) {
     // Start building the query
     let supabaseQuery = supabase
       .from('allcars')
-      .select('Model')
-      .ilike('Model', `%${query}%`);
+      .select('baseModel')
+      .ilike('baseModel', `%${query}%`);
 
     // If make is provided, filter by make as well
     if (make) {
@@ -46,7 +46,7 @@ export async function GET(request: Request) {
 
     // Execute the query
     const { data, error } = await supabaseQuery
-      .order('Model')
+      .order('baseModel')
       .limit(20);
 
     if (error) {
