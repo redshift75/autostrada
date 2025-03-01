@@ -483,6 +483,57 @@ function DashboardContent() {
         data.visualizations.timeSeriesChart = validateSpec(data.visualizations.timeSeriesChart, 'time series chart');
         data.visualizations.priceHistogram = validateSpec(data.visualizations.priceHistogram, 'price histogram');
         
+        // Add 90-day moving average to time series chart
+        if (data.visualizations.timeSeriesChart) {
+          // Convert to a layered chart if it's not already
+          if (!data.visualizations.timeSeriesChart.layer) {
+            const originalSpec = { ...data.visualizations.timeSeriesChart };
+            
+            // Create a layered chart with the original chart as the first layer
+            data.visualizations.timeSeriesChart = {
+              ...originalSpec,
+              layer: [
+                // Original scatter plot or line chart
+                {
+                  mark: originalSpec.mark,
+                  encoding: originalSpec.encoding
+                },
+                // Moving average line
+                {
+                  mark: {
+                    type: "line",
+                    color: "red",
+                    strokeWidth: 2
+                  },
+                  transform: [
+                    {
+                      window: [
+                        {
+                          op: "mean",
+                          field: "price",
+                          as: "moving_avg"
+                        }
+                      ],
+                      frame: [-45, 45], // 90-day window (45 days before and after)
+                      sort: [{ field: "date", order: "ascending" }]
+                    }
+                  ],
+                  encoding: {
+                    x: { field: "date", type: "temporal" },
+                    y: { field: "moving_avg", type: "quantitative" }
+                  }
+                }
+              ]
+            };
+            
+            // Remove the mark and encoding from the top level since they're now in the layers
+            delete data.visualizations.timeSeriesChart.mark;
+            delete data.visualizations.timeSeriesChart.encoding;
+            
+            console.log('Added 90-day moving average to time series chart');
+          }
+        }
+        
         console.log('Final visualization data:', {
           timeSeriesChart: data.visualizations.timeSeriesChart ? 'valid' : 'null',
           priceHistogram: data.visualizations.priceHistogram ? 'valid' : 'null'
@@ -715,7 +766,7 @@ function DashboardContent() {
                 <div className="bg-white rounded-lg border border-gray-200 h-full">
                   <div className="p-4 border-b border-gray-200">
                     <h3 className="text-xl font-semibold">
-                      Recent Auction Results
+                      Recent Results
                       {activeFilter && (
                         <span className="ml-2 text-sm font-normal text-gray-500">
                           ({filteredResults.length} of {results.length})
@@ -793,7 +844,6 @@ function DashboardContent() {
       
       {!loading && !currentSearch && !showForm && (
         <div className="text-center py-12 bg-white shadow-md rounded-lg">
-          <h2 className="text-2xl font-bold mb-4">Welcome to the Auction Results Dashboard</h2>
           <p className="text-gray-600 mb-8">Click "Generate New Visualizations" to search for auction results</p>
           <button
             onClick={() => setShowForm(true)}
