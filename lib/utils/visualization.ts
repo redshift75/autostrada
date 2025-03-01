@@ -55,7 +55,7 @@ export async function generatePriceTimeSeriesChart(
       height: 400,
       data: { values: data },
       mark: {
-        type: 'line',
+        type: 'point',
         point: true
       },
       encoding: {
