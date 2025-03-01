@@ -202,10 +202,10 @@ export const createAuctionResultsTool = () => {
         if (generateVisualizations && results.length > 0) {
           console.log('Generating visualization specifications...');
           try {
-            // Generate time series chart specification
+            // Generate time series chart Vega-Lite specification (not SVG)
             const timeSeriesChartSpec = await generatePriceTimeSeriesChart(results);
             
-            // Generate price histogram specification
+            // Generate price histogram Vega-Lite specification (not SVG)
             const priceHistogramSpec = await generatePriceHistogram(results);
             
             visualizations = {
@@ -215,7 +215,7 @@ export const createAuctionResultsTool = () => {
             
             console.log('Visualization specifications generated successfully');
           } catch (error) {
-            console.error('Error generating visualization specifications:', error);
+            console.error('Error generating visualizations:', error);
             visualizations = {
               error: 'Failed to generate visualizations',
               details: error instanceof Error ? error.message : 'Unknown error'
