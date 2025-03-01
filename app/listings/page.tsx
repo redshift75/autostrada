@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import ListingCard, { Listing } from '@/components/listings/ListingCard';
@@ -22,7 +22,8 @@ type SearchResponse = {
   error?: string;
 };
 
-export default function ListingsPage() {
+// Create a separate component that uses useSearchParams
+function ListingsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -31,6 +32,7 @@ export default function ListingsPage() {
   const [model, setModel] = useState(searchParams.get('model') || '');
   const [yearMin, setYearMin] = useState(searchParams.get('yearMin') || '');
   const [yearMax, setYearMax] = useState(searchParams.get('yearMax') || '');
+
   
   // Results state
   const [results, setResults] = useState<Listing[]>([]);
@@ -49,6 +51,9 @@ export default function ListingsPage() {
   // Sort state
   const [sortBy, setSortBy] = useState('price');
   const [sortOrder, setSortOrder] = useState('asc');
+  
+  // Track if this is an initial load or a user-initiated search
+  const isInitialLoad = useRef(true);
 
   // Define handleSearch as a useCallback to prevent unnecessary re-creation
   const handleSearch = useCallback(async (e?: React.FormEvent) => {
@@ -111,10 +116,11 @@ export default function ListingsPage() {
     }
   }, [make, model, yearMin, yearMax, router]);
 
-  // Load results if URL has search params
+  // Load results if URL has search params on initial load
   useEffect(() => {
-    if (searchParams.has('make')) {
+    if (isInitialLoad.current && searchParams.has('make')) {
       handleSearch();
+      isInitialLoad.current = false;
     }
   }, [searchParams, handleSearch]);
 
@@ -436,4 +442,13 @@ export default function ListingsPage() {
       )}
     </div>
   );
-} 
+}
+
+// Main component with Suspense boundary
+export default function ListingsPage() {
+  return (
+    <Suspense fallback={<div className="container mx-auto px-4 py-8">Loading...</div>}>
+      <ListingsContent />
+    </Suspense>
+  );
+}

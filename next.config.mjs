@@ -7,7 +7,12 @@ const nextConfig = {
       'auto.dev',
       'production-assets2.auto.dev',
       'vehicle-photos-published.vauto.com',
-      'cdn.max.auto'
+      'cdn.max.auto',
+      'pictures.dealer.com',
+      'images.dealersync.com',
+      'content.homenetiol.com',
+      'placehold.co',
+      'via.placeholder.com'
     ],
   },
   eslint: {
