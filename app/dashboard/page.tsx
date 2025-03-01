@@ -358,7 +358,7 @@ function DashboardContent() {
                   <div className="p-4 border-b border-gray-200">
                     <h3 className="text-xl font-semibold">Recent Auction Results</h3>
                   </div>
-                  <div className="overflow-y-auto" style={{ maxHeight: "calc(100vh)" }}>
+                  <div className="overflow-y-auto" style={{ maxHeight: "calc(120vh)" }}>
                     {results.length === 0 ? (
                       <p className="text-gray-500 p-4">No results found.</p>
                     ) : (
