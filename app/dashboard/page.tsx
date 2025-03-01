@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, Suspense, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { TopLevelSpec } from 'vega-lite';
 
 // Define types for auction results
 type AuctionResult = {
@@ -30,6 +31,32 @@ type AuctionResult = {
   };
 };
 
+// VegaChart component for client-side rendering
+function VegaChart({ spec, className }: { spec: TopLevelSpec, className?: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!containerRef.current || !spec) return;
+
+    // Dynamically import vega-embed to avoid SSR issues
+    import('vega-embed').then(({ default: vegaEmbed }) => {
+      vegaEmbed(containerRef.current!, spec, {
+        actions: { export: true, source: false, compiled: false, editor: false },
+        renderer: 'svg'
+      }).catch(console.error);
+    });
+
+    // Cleanup function
+    return () => {
+      if (containerRef.current) {
+        containerRef.current.innerHTML = '';
+      }
+    };
+  }, [spec]);
+
+  return <div ref={containerRef} className={className} />;
+}
+
 // Create a client component that uses useSearchParams
 function DashboardContent() {
   const router = useRouter();
@@ -51,8 +78,8 @@ function DashboardContent() {
   
   // State for visualizations
   const [visualizations, setVisualizations] = useState<{
-    timeSeriesChart: string | null;
-    priceHistogram: string | null;
+    timeSeriesChart: TopLevelSpec | null;
+    priceHistogram: TopLevelSpec | null;
   } | null>(null);
   
   // State for summary
@@ -291,36 +318,20 @@ function DashboardContent() {
                     {visualizations.timeSeriesChart && (
                       <div className="bg-gray-50 p-4 rounded-md">
                         <h3 className="text-lg font-semibold mb-2">Price Trends Over Time</h3>
-                        <object 
-                          type="image/svg+xml"
-                          data={visualizations.timeSeriesChart} 
+                        <VegaChart 
+                          spec={visualizations.timeSeriesChart} 
                           className="w-full h-auto"
-                          aria-label="Price trends over time"
-                        >
-                          <img 
-                            src={visualizations.timeSeriesChart} 
-                            alt="Price trends over time" 
-                            className="w-full h-auto"
-                          />
-                        </object>
+                        />
                       </div>
                     )}
                     
                     {visualizations.priceHistogram && (
                       <div className="bg-gray-50 p-4 rounded-md">
                         <h3 className="text-lg font-semibold mb-2">Price Distribution</h3>
-                        <object 
-                          type="image/svg+xml"
-                          data={visualizations.priceHistogram} 
+                        <VegaChart 
+                          spec={visualizations.priceHistogram} 
                           className="w-full h-auto"
-                          aria-label="Price distribution"
-                        >
-                          <img 
-                            src={visualizations.priceHistogram} 
-                            alt="Price distribution" 
-                            className="w-full h-auto"
-                          />
-                        </object>
+                        />
                       </div>
                     )}
                   </div>

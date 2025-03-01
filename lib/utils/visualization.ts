@@ -3,13 +3,13 @@ import * as vegaLite from 'vega-lite';
 import { BaTCompletedListing } from '../scrapers/BringATrailerResultsScraper';
 
 /**
- * Generates a time series chart of auction prices
+ * Generates a time series chart specification for auction prices
  * @param listings The auction listings to visualize
- * @returns The SVG string of the generated visualization
+ * @returns The Vega-Lite specification for client-side rendering
  */
 export async function generatePriceTimeSeriesChart(
   listings: BaTCompletedListing[]
-): Promise<string> {
+): Promise<vegaLite.TopLevelSpec> {
   try {
     // Filter for listings with valid prices and dates (both sold and not sold)
     const validListings = listings.filter(
@@ -66,7 +66,10 @@ export async function generatePriceTimeSeriesChart(
             domain: ['sold', 'unsold'],
             range: ['#2ca02c', '#d62728'] // Green for sold, red for not sold
           },
-          legend: null
+          legend: {
+            title: 'Status',
+            orient: 'top'
+          }
         },
         tooltip: [
           { field: 'date', type: 'temporal', title: 'Date', format: '%b %d, %Y' },
@@ -77,20 +80,8 @@ export async function generatePriceTimeSeriesChart(
       }
     };
 
-    // Compile the Vega-Lite specification to Vega
-    const vegaSpec = vegaLite.compile(spec).spec;
-
-    // Create a Vega view
-    const view = new vega.View(vega.parse(vegaSpec), { renderer: 'none' });
-
-    // Generate SVG
-    const svg = await view.toSVG();
-
-    // Add custom tooltip attributes to the SVG
-    const enhancedSvg = svg.replace(/<circle/g, '<circle data-tooltip-enabled="true"');
-
-    // Return the SVG string directly
-    return enhancedSvg;
+    // Return the Vega-Lite specification directly
+    return spec;
   } catch (error) {
     console.error('Error generating price time series chart:', error);
     throw error;
@@ -98,13 +89,13 @@ export async function generatePriceTimeSeriesChart(
 }
 
 /**
- * Generates a histogram of auction prices
+ * Generates a histogram specification for auction prices
  * @param listings The auction listings to visualize
- * @returns The SVG string of the generated visualization
+ * @returns The Vega-Lite specification for client-side rendering
  */
 export async function generatePriceHistogram(
   listings: BaTCompletedListing[]
-): Promise<string> {
+): Promise<vegaLite.TopLevelSpec> {
   try {
     // Filter for sold listings with valid prices
     const soldListings = listings.filter(
@@ -139,23 +130,14 @@ export async function generatePriceHistogram(
           title: 'Number of Vehicles'
         },
         tooltip: [
-          { bin: { maxbins: 20 }, field: 'price', type: 'quantitative', title: 'Price Range' },
+          { bin: { maxbins: 20 }, field: 'price', type: 'quantitative', title: 'Price Range', format: '$,.0f' },
           { aggregate: 'count', type: 'quantitative', title: 'Count' }
         ]
       }
     };
 
-    // Compile the Vega-Lite specification to Vega
-    const vegaSpec = vegaLite.compile(spec).spec;
-
-    // Create a Vega view
-    const view = new vega.View(vega.parse(vegaSpec), { renderer: 'none' });
-
-    // Generate SVG
-    const svg = await view.toSVG();
-
-    // Return the SVG string directly
-    return svg;
+    // Return the Vega-Lite specification directly
+    return spec;
   } catch (error) {
     console.error('Error generating price histogram:', error);
     throw error;

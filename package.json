@@ -50,6 +50,7 @@
     "tailwindcss-animate": "^1.0.7",
     "ts-node": "^10.9.2",
     "vega": "^5.32.0",
+    "vega-embed": "^6.29.0",
     "vega-lite": "^5.23.0",
     "zod": "^3.24.2"
   },

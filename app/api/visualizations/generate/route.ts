@@ -39,38 +39,11 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Convert SVG strings to base64 for embedding in HTML
-    let timeSeriesBase64 = null;
-    let priceHistogramBase64 = null;
-    
-    if (parsedResult.visualizations) {
-      try {
-        if (parsedResult.visualizations.timeSeriesChart) {
-          timeSeriesBase64 = Buffer.from(parsedResult.visualizations.timeSeriesChart).toString('base64');
-        }
-        
-        if (parsedResult.visualizations.priceHistogram) {
-          priceHistogramBase64 = Buffer.from(parsedResult.visualizations.priceHistogram).toString('base64');
-        }
-      } catch (error) {
-        console.error('Error converting SVG to base64:', error);
-      }
-    }
-    
-    // Prepare the response data with direct SVG strings or base64 encoded SVGs
-    const visualizations = {
-      timeSeriesChart: parsedResult.visualizations.timeSeriesChart 
-        ? `data:image/svg+xml;base64,${timeSeriesBase64}` 
-        : null,
-      priceHistogram: parsedResult.visualizations.priceHistogram 
-        ? `data:image/svg+xml;base64,${priceHistogramBase64}` 
-        : null,
-    };
-    
+    // Return the visualization specifications directly
     return NextResponse.json({
       message: 'Visualizations generated successfully',
       summary: parsedResult.summary,
-      visualizations,
+      visualizations: parsedResult.visualizations,
       results: parsedResult.results
     });
   } catch (error) {
