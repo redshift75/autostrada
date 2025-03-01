@@ -40,7 +40,17 @@ function VegaChart({ spec, className }: { spec: TopLevelSpec, className?: string
 
     // Dynamically import vega-embed to avoid SSR issues
     import('vega-embed').then(({ default: vegaEmbed }) => {
-      vegaEmbed(containerRef.current!, spec, {
+      // Create a modified spec with responsive width
+      const responsiveSpec = {
+        ...spec,
+        width: "container", // Make width responsive to container
+        autosize: {
+          type: "fit",
+          contains: "padding"
+        }
+      };
+
+      vegaEmbed(containerRef.current!, responsiveSpec as any, {
         actions: { export: true, source: false, compiled: false, editor: false },
         renderer: 'svg'
       }).catch(console.error);
@@ -312,26 +322,30 @@ function DashboardContent() {
             {/* Restructured layout with side-by-side charts and results */}
             <div className="flex flex-col lg:flex-row gap-6">
               {/* Charts section */}
-              <div className="lg:w-2/3">
+              <div className="lg:w-2/3 flex-shrink-0 overflow-hidden">
                 {visualizations && (
                   <div className="grid grid-cols-1 gap-6 mb-4">
                     {visualizations.timeSeriesChart && (
                       <div className="bg-gray-50 p-4 rounded-md">
                         <h3 className="text-lg font-semibold mb-2">Price Trends Over Time</h3>
-                        <VegaChart 
-                          spec={visualizations.timeSeriesChart} 
-                          className="w-full h-auto"
-                        />
+                        <div className="w-full" style={{ maxWidth: '100%' }}>
+                          <VegaChart 
+                            spec={visualizations.timeSeriesChart} 
+                            className="w-full h-auto"
+                          />
+                        </div>
                       </div>
                     )}
                     
                     {visualizations.priceHistogram && (
                       <div className="bg-gray-50 p-4 rounded-md">
                         <h3 className="text-lg font-semibold mb-2">Price Distribution</h3>
-                        <VegaChart 
-                          spec={visualizations.priceHistogram} 
-                          className="w-full h-auto"
-                        />
+                        <div className="w-full" style={{ maxWidth: '100%' }}>
+                          <VegaChart 
+                            spec={visualizations.priceHistogram} 
+                            className="w-full h-auto"
+                          />
+                        </div>
                       </div>
                     )}
                   </div>
@@ -339,7 +353,7 @@ function DashboardContent() {
               </div>
               
               {/* Scrollable side panel for results */}
-              <div className="lg:w-1/3">
+              <div className="lg:w-1/3 flex-shrink-0">
                 <div className="bg-white rounded-lg border border-gray-200 h-full">
                   <div className="p-4 border-b border-gray-200">
                     <h3 className="text-xl font-semibold">Recent Auction Results</h3>
