@@ -2,12 +2,18 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState } from 'react';
 
 export default function Navbar() {
   const pathname = usePathname();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   const isActive = (path: string) => {
     return pathname === path;
+  };
+  
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
   };
   
   return (
@@ -54,8 +60,11 @@ export default function Navbar() {
           </div>
           
           <div className="md:hidden">
-            {/* Mobile menu button - simplified for this example */}
-            <button className="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded-md">
+            <button 
+              onClick={toggleMobileMenu}
+              className="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded-md"
+              aria-label="Toggle mobile menu"
+            >
               <svg 
                 className="h-6 w-6" 
                 xmlns="http://www.w3.org/2000/svg" 
@@ -75,9 +84,9 @@ export default function Navbar() {
         </div>
       </div>
       
-      {/* Mobile menu - simplified for this example */}
-      <div className="md:hidden hidden">
-        <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+      {/* Mobile menu */}
+      <div className={`md:hidden ${isMobileMenuOpen ? 'block' : 'hidden'} transition-all duration-300 ease-in-out`}>
+        <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white dark:bg-gray-900 shadow-lg">
           <Link 
             href="/" 
             className={`block px-3 py-2 rounded-md text-base font-medium ${
@@ -85,6 +94,7 @@ export default function Navbar() {
                 ? 'bg-gray-900 text-white dark:bg-gray-700' 
                 : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
             }`}
+            onClick={() => setIsMobileMenuOpen(false)}
           >
             Home
           </Link>
@@ -95,6 +105,7 @@ export default function Navbar() {
                 ? 'bg-gray-900 text-white dark:bg-gray-700' 
                 : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
             }`}
+            onClick={() => setIsMobileMenuOpen(false)}
           >
             Auctions
           </Link>
@@ -105,6 +116,7 @@ export default function Navbar() {
                 ? 'bg-gray-900 text-white dark:bg-gray-700' 
                 : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
             }`}
+            onClick={() => setIsMobileMenuOpen(false)}
           >
             Listings
           </Link>

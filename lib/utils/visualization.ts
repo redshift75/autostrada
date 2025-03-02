@@ -1,6 +1,7 @@
 import * as vega from 'vega';
 import * as vegaLite from 'vega-lite';
 import { BaTCompletedListing } from '../scrapers/BringATrailerResultsScraper';
+import { Listing } from '@/components/listings/ListingCard';
 
 /**
  * Generates a time series chart specification for auction prices
@@ -140,6 +141,124 @@ export async function generatePriceHistogram(
     return spec;
   } catch (error) {
     console.error('Error generating price histogram:', error);
+    throw error;
+  }
+}
+
+/**
+ * Generates a histogram specification for listing prices
+ * @param listings The car listings to visualize
+ * @returns The Vega-Lite specification for client-side rendering
+ */
+export function generateListingPriceHistogram(
+  listings: Listing[]
+): vegaLite.TopLevelSpec {
+  try {
+    // Filter for listings with valid prices
+    const validListings = listings.filter(
+      listing => listing.price > 0
+    );
+
+    // Prepare data for visualization
+    const data = validListings.map(listing => ({
+      price: listing.price,
+      title: listing.title,
+      url: listing.url,
+      year: listing.year,
+      make: listing.make,
+      model: listing.model
+    }));
+
+    // Create a Vega-Lite specification
+    const spec: vegaLite.TopLevelSpec = {
+      $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
+      description: 'Listing Price Distribution',
+      width: 800,
+      height: 400,
+      data: { values: data },
+      mark: 'bar',
+      encoding: {
+        x: {
+          bin: { maxbins: 20 },
+          field: 'price',
+          type: 'quantitative',
+          title: 'Price Range ($)'
+        },
+        y: {
+          aggregate: 'count',
+          type: 'quantitative',
+          title: 'Number of Vehicles'
+        },
+        tooltip: [
+          { bin: { maxbins: 20 }, field: 'price', type: 'quantitative', title: 'Price Range', format: '$,.0f' },
+          { aggregate: 'count', type: 'quantitative', title: 'Count' }
+        ]
+      }
+    };
+
+    // Return the Vega-Lite specification directly
+    return spec;
+  } catch (error) {
+    console.error('Error generating listing price histogram:', error);
+    throw error;
+  }
+}
+
+/**
+ * Generates a histogram specification for listing mileages
+ * @param listings The car listings to visualize
+ * @returns The Vega-Lite specification for client-side rendering
+ */
+export function generateListingMileageHistogram(
+  listings: Listing[]
+): vegaLite.TopLevelSpec {
+  try {
+    // Filter for listings with valid mileage
+    const validListings = listings.filter(
+      listing => listing.mileage > 0
+    );
+
+    // Prepare data for visualization
+    const data = validListings.map(listing => ({
+      mileage: listing.mileage,
+      title: listing.title,
+      url: listing.url,
+      year: listing.year,
+      make: listing.make,
+      model: listing.model
+    }));
+
+    // Create a Vega-Lite specification
+    const spec: vegaLite.TopLevelSpec = {
+      $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
+      description: 'Listing Mileage Distribution',
+      width: 800,
+      height: 400,
+      data: { values: data },
+      mark: 'bar',
+      encoding: {
+        x: {
+          bin: { maxbins: 20 },
+          field: 'mileage',
+          type: 'quantitative',
+          title: 'Mileage Range'
+        },
+        y: {
+          aggregate: 'count',
+          type: 'quantitative',
+          title: 'Number of Vehicles'
+        },
+        tooltip: [
+          { bin: { maxbins: 20 }, field: 'mileage', type: 'quantitative', title: 'Mileage Range', format: ',.0f' },
+          { aggregate: 'count', type: 'quantitative', title: 'Count' }
+        ]
+      }
+    };
+
+    // Return the Vega-Lite specification directly
+    return spec;
+  } catch (error) {
+    console.error('Error generating listing mileage histogram:', error);
     throw error;
   }
 } 

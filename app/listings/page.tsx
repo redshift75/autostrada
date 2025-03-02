@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import ListingCard, { Listing } from '@/components/listings/ListingCard';
+import { generateListingPriceHistogram, generateListingMileageHistogram } from '@/lib/utils/visualization';
+import type { TopLevelSpec } from 'vega-lite';
 
 type SearchResponse = {
   results: Listing[];
@@ -48,6 +50,190 @@ function useDebounce<T>(value: T, delay: number): T {
   }, [value, delay]);
   
   return debouncedValue;
+}
+
+// VegaChart component for client-side rendering
+function VegaChart({ 
+  spec, 
+  className, 
+  onSignalClick 
+}: { 
+  spec: TopLevelSpec, 
+  className?: string,
+  onSignalClick?: (name: string, value: any) => void 
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const viewRef = useRef<any>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!containerRef.current || !spec) {
+      console.log('VegaChart: Missing container or spec', { hasContainer: !!containerRef.current, hasSpec: !!spec });
+      return;
+    }
+
+    console.log('VegaChart: Rendering chart with spec type:', typeof spec);
+    console.log('VegaChart: Spec description:', (spec as any).description);
+
+    // Clear any previous errors
+    setError(null);
+
+    // Dynamically import vega-embed to avoid SSR issues
+    import('vega-embed').then(({ default: vegaEmbed }) => {
+      console.log('vega-embed loaded successfully');
+      
+      try {
+        // Ensure we're working with a proper Vega-Lite specification
+        if (typeof spec === 'string') {
+          try {
+            // Try to parse it as JSON
+            const parsedSpec = JSON.parse(spec);
+            renderChart(parsedSpec, vegaEmbed);
+          } catch (error) {
+            console.error('Failed to parse string spec:', error);
+            setError('Failed to parse chart specification');
+            return;
+          }
+        } else {
+          // Continue with the object spec
+          renderChart(spec, vegaEmbed);
+        }
+      } catch (error) {
+        console.error('Error in VegaChart component:', error);
+        setError('Error initializing chart');
+      }
+    }).catch(error => {
+      console.error('Failed to load vega-embed:', error);
+      setError('Failed to load visualization library');
+    });
+
+    function renderChart(chartSpec: any, vegaEmbed: any) {
+      try {
+        // Check if the spec has required Vega-Lite properties
+        const specAny = chartSpec as any;
+        if (!specAny.mark && !specAny.layer && !specAny.facet && !specAny.hconcat && 
+            !specAny.vconcat && !specAny.concat && !specAny.repeat) {
+          console.error('Invalid Vega-Lite specification: Missing required properties', chartSpec);
+          setError('Invalid chart specification');
+          return;
+        }
+
+        // Create a deep copy of the spec to avoid modifying the original
+        const specCopy = JSON.parse(JSON.stringify(chartSpec));
+
+        // Create a modified spec with responsive width
+        const responsiveSpec = {
+          ...specCopy,
+          width: "container", // Make width responsive to container
+          height: 400, // Set a fixed height
+          autosize: {
+            type: "fit",
+            contains: "padding",
+            resize: true
+          }
+        };
+
+        // Add signals for histogram selection if it's a histogram
+        if (specAny.description === 'Listing Price Distribution' || specAny.description === 'Listing Mileage Distribution') {
+          // For Vega-Lite, we need to use a different approach for signals
+          // We'll use selection instead of signals directly
+          const histogramSpec = {
+            ...responsiveSpec,
+            selection: {
+              barSelection: {
+                type: "single",
+                encodings: ["x"],
+                on: "click",
+                clear: "dblclick",
+                resolve: "global"
+              }
+            }
+          };
+
+          // Safely handle the mark property
+          if (typeof histogramSpec.mark === 'string') {
+            // If mark is a string (e.g., 'bar'), convert it to an object
+            histogramSpec.mark = {
+              type: histogramSpec.mark,
+              cursor: 'pointer'
+            };
+          } else if (typeof histogramSpec.mark === 'object') {
+            // If mark is already an object, just add the cursor property
+            histogramSpec.mark = {
+              ...histogramSpec.mark,
+              cursor: 'pointer'
+            };
+          } else {
+            // If mark is undefined or something else, set a default
+            histogramSpec.mark = {
+              type: 'bar',
+              cursor: 'pointer'
+            };
+          }
+
+          vegaEmbed(containerRef.current!, histogramSpec as any, {
+            actions: { export: true, source: false, compiled: false, editor: false },
+            renderer: 'svg',
+            mode: 'vega-lite'
+          }).then((result: any) => {
+            viewRef.current = result.view;
+            
+            // Add signal listener for histogram bar clicks
+            if (onSignalClick) {
+              result.view.addEventListener('click', (event: any, item: any) => {
+                if (item && item.datum) {
+                  onSignalClick('barClick', item.datum);
+                }
+              });
+            }
+          }).catch((error: Error) => {
+            console.error('Error rendering Vega chart:', error);
+            console.error('Problematic spec:', JSON.stringify(histogramSpec));
+            setError('Error rendering chart');
+          });
+        } else {
+          vegaEmbed(containerRef.current!, responsiveSpec as any, {
+            actions: { export: true, source: false, compiled: false, editor: false },
+            renderer: 'svg',
+            mode: 'vega-lite'
+          }).then((result: any) => {
+            viewRef.current = result.view;
+          }).catch((error: Error) => {
+            console.error('Error rendering Vega chart:', error);
+            console.error('Problematic spec:', JSON.stringify(responsiveSpec));
+            setError('Error rendering chart');
+          });
+        }
+      } catch (error) {
+        console.error('Error in renderChart function:', error);
+        setError('Error preparing chart');
+      }
+    }
+
+    // Cleanup function
+    return () => {
+      if (viewRef.current) {
+        viewRef.current.finalize();
+      }
+      if (containerRef.current) {
+        containerRef.current.innerHTML = '';
+      }
+    };
+  }, [spec, onSignalClick]);
+
+  return (
+    <div className="relative">
+      <div ref={containerRef} className={className} style={{ minHeight: "400px" }} />
+      {error && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-100 bg-opacity-80 dark:bg-gray-800 dark:bg-opacity-80">
+          <div className="text-red-600 dark:text-red-400 text-center p-4">
+            <p className="font-semibold">Error</p>
+            <p>{error}</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 // Create a separate component that uses useSearchParams
@@ -101,6 +287,10 @@ function ListingsContent() {
   // Track if this is an initial load or a user-initiated search
   const isInitialLoad = useRef(true);
 
+  // Add state for visualizations
+  const [priceHistogram, setPriceHistogram] = useState<TopLevelSpec | null>(null);
+  const [mileageHistogram, setMileageHistogram] = useState<TopLevelSpec | null>(null);
+  
   // Fetch make suggestions from Supabase with debounce
   const fetchMakeSuggestions = async (query: string) => {
     if (!query || query.length < 2) {
@@ -406,6 +596,69 @@ function ListingsContent() {
     setFilteredResults(filtered);
   }, [results, priceMin, priceMax, mileageMin, mileageMax, sortBy, sortOrder]);
 
+  // Generate histograms when filtered results change
+  useEffect(() => {
+    console.log('Filtered results length:', filteredResults.length);
+    if (filteredResults.length > 0) {
+      try {
+        console.log('Generating histograms for', filteredResults.length, 'listings');
+        
+        // Make sure we're working with valid data
+        const validPriceListings = filteredResults.filter(listing => 
+          listing && typeof listing.price === 'number' && listing.price > 0
+        );
+        
+        const validMileageListings = filteredResults.filter(listing => 
+          listing && typeof listing.mileage === 'number' && listing.mileage > 0
+        );
+        
+        console.log('Valid price listings:', validPriceListings.length);
+        console.log('Valid mileage listings:', validMileageListings.length);
+        
+        if (validPriceListings.length > 0) {
+          const priceHistogramSpec = generateListingPriceHistogram(validPriceListings);
+          console.log('Price histogram spec generated:', priceHistogramSpec);
+          setPriceHistogram(priceHistogramSpec);
+        } else {
+          console.log('No valid price data for histogram');
+          setPriceHistogram(null);
+        }
+        
+        if (validMileageListings.length > 0) {
+          const mileageHistogramSpec = generateListingMileageHistogram(validMileageListings);
+          console.log('Mileage histogram spec generated:', mileageHistogramSpec);
+          setMileageHistogram(mileageHistogramSpec);
+        } else {
+          console.log('No valid mileage data for histogram');
+          setMileageHistogram(null);
+        }
+      } catch (error) {
+        console.error('Error generating histograms:', error);
+        setPriceHistogram(null);
+        setMileageHistogram(null);
+      }
+    } else {
+      console.log('No filtered results, clearing histograms');
+      setPriceHistogram(null);
+      setMileageHistogram(null);
+    }
+  }, [filteredResults]);
+
+  // Handle histogram bar click
+  const handleHistogramBarClick = (name: string, datum: any) => {
+    if (name === 'barClick') {
+      if (datum.price_bin0 !== undefined && datum.price_bin1 !== undefined) {
+        // Price histogram was clicked
+        setPriceMin(Math.floor(datum.price_bin0).toString());
+        setPriceMax(Math.ceil(datum.price_bin1).toString());
+      } else if (datum.mileage_bin0 !== undefined && datum.mileage_bin1 !== undefined) {
+        // Mileage histogram was clicked
+        setMileageMin(Math.floor(datum.mileage_bin0).toString());
+        setMileageMax(Math.ceil(datum.mileage_bin1).toString());
+      }
+    }
+  };
+
   // Format currency
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -419,6 +672,15 @@ function ListingsContent() {
   const formatNumber = (value: number) => {
     return new Intl.NumberFormat('en-US').format(value);
   };
+
+  // Add console logging for state changes
+  useEffect(() => {
+    console.log('Price histogram state changed:', priceHistogram ? 'available' : 'null');
+  }, [priceHistogram]);
+
+  useEffect(() => {
+    console.log('Mileage histogram state changed:', mileageHistogram ? 'available' : 'null');
+  }, [mileageHistogram]);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -590,6 +852,62 @@ function ListingsContent() {
               </div>
             </div>
           )}
+          
+          {/* Visualizations Section */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
+            <h2 className="text-xl font-semibold mb-4">Data Visualizations</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              Click on a bar to filter by that range. Double-click to clear the selection.
+            </p>
+            
+            {!priceHistogram && !mileageHistogram && (
+              <div className="p-4 bg-yellow-50 text-yellow-800 rounded-md mb-4">
+                Histograms are not available. Check console for errors.
+              </div>
+            )}
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {priceHistogram ? (
+                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md">
+                  <h3 className="text-lg font-semibold mb-2">Price Distribution</h3>
+                  <div className="w-full" style={{ maxWidth: '100%', minHeight: '400px' }}>
+                    <VegaChart 
+                      spec={priceHistogram} 
+                      className="w-full h-auto"
+                      onSignalClick={handleHistogramBarClick}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md">
+                  <h3 className="text-lg font-semibold mb-2">Price Distribution</h3>
+                  <div className="w-full flex items-center justify-center" style={{ minHeight: '400px' }}>
+                    <p>Price histogram not available</p>
+                  </div>
+                </div>
+              )}
+              
+              {mileageHistogram ? (
+                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md">
+                  <h3 className="text-lg font-semibold mb-2">Mileage Distribution</h3>
+                  <div className="w-full" style={{ maxWidth: '100%', minHeight: '400px' }}>
+                    <VegaChart 
+                      spec={mileageHistogram} 
+                      className="w-full h-auto"
+                      onSignalClick={handleHistogramBarClick}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md">
+                  <h3 className="text-lg font-semibold mb-2">Mileage Distribution</h3>
+                  <div className="w-full flex items-center justify-center" style={{ minHeight: '400px' }}>
+                    <p>Mileage histogram not available</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
           
           {/* Filters and Sorting */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
