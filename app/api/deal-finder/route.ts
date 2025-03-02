@@ -165,7 +165,7 @@ export async function GET(request: NextRequest) {
       model,
       yearMin,
       yearMax,
-      maxPages: 5,
+      maxPages: 2,
       perPage: 50
     });
     console.log(`Fetched ${historicalResults.length} historical results`);

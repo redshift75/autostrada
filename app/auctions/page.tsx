@@ -235,7 +235,7 @@ function AuctionsContent() {
     const { name, value } = e.target;
     setFormData({
       ...formData,
-      [name]: name === 'yearMin' || name === 'yearMax' || name === 'maxPages' ? parseInt(value) : value,
+      [name]: name === 'yearMin' || name === 'yearMax' ? parseInt(value) : value,
     });
     
     // Fetch suggestions for make and model fields with debounce
@@ -707,21 +707,6 @@ function AuctionsContent() {
                     onChange={handleInputChange}
                     min="1900"
                     max="2025"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="maxPages" className="block text-sm font-medium text-gray-700 mb-1">
-                    Max Pages to Scrape
-                  </label>
-                  <input
-                    type="number"
-                    id="maxPages"
-                    name="maxPages"
-                    value={formData.maxPages}
-                    onChange={handleInputChange}
-                    min="1"
-                    max="20"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
