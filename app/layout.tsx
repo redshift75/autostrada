@@ -14,7 +14,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Autostrada.AI"
+  title: "Autostrada.AI",
+  icons: {
+    icon: "/autostrada logo small.jpg",
+    apple: "/autostrada logo small.jpg",
+  }
 };
 
 export default function RootLayout({

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 
@@ -21,8 +22,18 @@ export default function Navbar() {
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
-            <Link href="/" className="text-xl font-bold text-gray-900 dark:text-white">
-              Autostrada.AI
+            <Link href="/" className="flex items-center">
+              <div className="relative w-8 h-8 mr-2">
+                <Image 
+                  src="/autostrada logo small.jpg" 
+                  alt="Autostrada.AI Logo" 
+                  fill
+                  className="object-contain"
+                />
+              </div>
+              <span className="text-xl font-bold text-gray-900 dark:text-white">
+                Autostrada.AI
+              </span>
             </Link>
           </div>
           
