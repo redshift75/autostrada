@@ -573,360 +573,371 @@ function AuctionsContent() {
   };
   
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Auction Results</h1>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition duration-200"
-        >
-          {showForm ? 'Hide Form' : 'Generate New Visualizations'}
-        </button>
-      </div>
-      
-      {dbConnectionError && (
-        <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-6">
-          <p className="font-medium">Database connection unavailable</p>
-          <p className="text-sm">Autocomplete suggestions are not available. You can still enter make and model manually.</p>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white sm:text-4xl">
+              Auction Results
+            </h1>
+            <p className="mt-2 text-lg text-gray-500 dark:text-gray-300">
+              Analyze Historical Auction Results
+            </p>
+          </div>
+          <div>
+            <button
+              onClick={() => setShowForm(!showForm)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition duration-200"
+            >
+              {showForm ? 'Hide Form' : 'Generate New Visualizations'}
+            </button>
+          </div>
         </div>
-      )}
       
-      {showForm && (
-        <div className="bg-white shadow-md rounded-lg p-6 mb-8">
-          <h2 className="text-xl font-semibold mb-4">Generate Visualizations</h2>
-          <form onSubmit={handleSubmit}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="relative">
-                <label htmlFor="make" className="block text-sm font-medium text-gray-700 mb-1">
-                  Make
-                </label>
-                <input
-                  type="text"
-                  id="make"
-                  name="make"
-                  value={formData.make}
-                  onChange={handleInputChange}
-                  onFocus={() => formData.make.length >= 2 && debouncedFetchMakeSuggestions(formData.make)}
-                  onClick={(e) => e.stopPropagation()}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                  autoComplete="off"
-                  placeholder={dbConnectionError ? "Enter car make manually..." : "Start typing to see suggestions..."}
-                />
-                {showMakeSuggestions && makeSuggestions.length > 0 && (
-                  <div className="absolute z-10 w-full mt-1 bg-white shadow-lg rounded-md border border-gray-200 max-h-60 overflow-y-auto">
-                    <div className="py-1">
-                      {makeSuggestions.map((make, index) => (
-                        <div
-                          key={index}
-                          className="px-4 py-2 hover:bg-blue-50 cursor-pointer transition-colors duration-150"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSuggestionClick('make', make);
-                          }}
-                        >
-                          {make}
-                        </div>
-                      ))}
+        {dbConnectionError && (
+          <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-6">
+            <p className="font-medium">Database connection unavailable</p>
+            <p className="text-sm">Autocomplete suggestions are not available. You can still enter make and model manually.</p>
+          </div>
+        )}
+      
+        {showForm && (
+          <div className="bg-white shadow-md rounded-lg p-6 mb-8">
+            <h2 className="text-xl font-semibold mb-4">Generate Visualizations</h2>
+            <form onSubmit={handleSubmit}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="relative">
+                  <label htmlFor="make" className="block text-sm font-medium text-gray-700 mb-1">
+                    Make
+                  </label>
+                  <input
+                    type="text"
+                    id="make"
+                    name="make"
+                    value={formData.make}
+                    onChange={handleInputChange}
+                    onFocus={() => formData.make.length >= 2 && debouncedFetchMakeSuggestions(formData.make)}
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                    autoComplete="off"
+                    placeholder={dbConnectionError ? "Enter car make manually..." : "Start typing to see suggestions..."}
+                  />
+                  {showMakeSuggestions && makeSuggestions.length > 0 && (
+                    <div className="absolute z-10 w-full mt-1 bg-white shadow-lg rounded-md border border-gray-200 max-h-60 overflow-y-auto">
+                      <div className="py-1">
+                        {makeSuggestions.map((make, index) => (
+                          <div
+                            key={index}
+                            className="px-4 py-2 hover:bg-blue-50 cursor-pointer transition-colors duration-150"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSuggestionClick('make', make);
+                            }}
+                          >
+                            {make}
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
-              <div className="relative">
-                <label htmlFor="model" className="block text-sm font-medium text-gray-700 mb-1">
-                  Model
-                </label>
-                <input
-                  type="text"
-                  id="model"
-                  name="model"
-                  value={formData.model}
-                  onChange={handleInputChange}
-                  onFocus={() => formData.model.length >= 2 && debouncedFetchModelSuggestions(formData.model)}
-                  onClick={(e) => e.stopPropagation()}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                  autoComplete="off"
-                  placeholder={dbConnectionError 
-                    ? "Enter model manually..." 
-                    : (formData.make ? `Enter ${formData.make} model...` : "First select a make...")}
-                />
-                {showModelSuggestions && modelSuggestions.length > 0 && (
-                  <div className="absolute z-10 w-full mt-1 bg-white shadow-lg rounded-md border border-gray-200 max-h-60 overflow-y-auto">
-                    <div className="py-1">
-                      {modelSuggestions.map((model, index) => (
-                        <div
-                          key={index}
-                          className="px-4 py-2 hover:bg-blue-50 cursor-pointer transition-colors duration-150"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSuggestionClick('model', model);
-                          }}
-                        >
-                          {model}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-              <div>
-                <label htmlFor="yearMin" className="block text-sm font-medium text-gray-700 mb-1">
-                  Year Min
-                </label>
-                <input
-                  type="number"
-                  id="yearMin"
-                  name="yearMin"
-                  value={formData.yearMin}
-                  onChange={handleInputChange}
-                  min="1900"
-                  max="2025"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label htmlFor="yearMax" className="block text-sm font-medium text-gray-700 mb-1">
-                  Year Max
-                </label>
-                <input
-                  type="number"
-                  id="yearMax"
-                  name="yearMax"
-                  value={formData.yearMax}
-                  onChange={handleInputChange}
-                  min="1900"
-                  max="2025"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label htmlFor="maxPages" className="block text-sm font-medium text-gray-700 mb-1">
-                  Max Pages to Scrape
-                </label>
-                <input
-                  type="number"
-                  id="maxPages"
-                  name="maxPages"
-                  value={formData.maxPages}
-                  onChange={handleInputChange}
-                  min="1"
-                  max="20"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div className="flex items-end">
-                <button
-                  type="submit"
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md transition duration-200 disabled:bg-blue-400"
-                  disabled={loading}
-                >
-                  {loading ? 'Generating...' : 'Generate'}
-                </button>
-              </div>
-            </div>
-          </form>
-        </div>
-      )}
-      
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
-          {error}
-        </div>
-      )}
-      
-      {loading && (
-        <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600 mb-4"></div>
-          <p className="text-gray-600">Generating visualizations and fetching results...</p>
-          <p className="text-gray-500 text-sm mt-2">This may take a minute or two.</p>
-        </div>
-      )}
-      
-      {!loading && currentSearch && (
-        <div className="bg-white shadow-md rounded-lg overflow-hidden">
-          <div className="p-6">
-            <h2 className="text-2xl font-bold mb-4">
-              {currentSearch.make} {currentSearch.model} Auction Results
-              {activeFilter && (
-                <span className="ml-2 text-sm font-normal text-gray-500">
-                  (Filtered: {formatPrice(activeFilter.min.toString())} - {formatPrice(activeFilter.max.toString())})
-                </span>
-              )}
-            </h2>
-            
-            {summary && (
-              <div className="bg-blue-50 p-4 rounded-md mb-6">
-                <h3 className="text-lg font-semibold mb-2">Market Summary</h3>
-                <div className="text-gray-700 space-y-2">
-                  {summary.totalResults && (
-                    <p><strong>Total Results:</strong> {summary.totalResults}</p>
-                  )}
-                  {summary.averageSoldPrice && (
-                    <p><strong>Average Sold Price:</strong> {formatPrice(summary.averageSoldPrice)}</p>
-                  )}
-                  {summary.highestSoldPrice && (
-                    <p><strong>Highest Sold Price:</strong> {formatPrice(summary.highestSoldPrice)}</p>
-                  )}
-                  {summary.lowestSoldPrice && (
-                    <p><strong>Lowest Sold Price:</strong> {formatPrice(summary.lowestSoldPrice)}</p>
-                  )}
-                  {summary.soldPercentage && (
-                    <p><strong>Sold Percentage:</strong> {summary.soldPercentage}</p>
                   )}
                 </div>
+                <div className="relative">
+                  <label htmlFor="model" className="block text-sm font-medium text-gray-700 mb-1">
+                    Model
+                  </label>
+                  <input
+                    type="text"
+                    id="model"
+                    name="model"
+                    value={formData.model}
+                    onChange={handleInputChange}
+                    onFocus={() => formData.model.length >= 2 && debouncedFetchModelSuggestions(formData.model)}
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                    autoComplete="off"
+                    placeholder={dbConnectionError 
+                      ? "Enter model manually..." 
+                      : (formData.make ? `Enter ${formData.make} model...` : "First select a make...")}
+                  />
+                  {showModelSuggestions && modelSuggestions.length > 0 && (
+                    <div className="absolute z-10 w-full mt-1 bg-white shadow-lg rounded-md border border-gray-200 max-h-60 overflow-y-auto">
+                      <div className="py-1">
+                        {modelSuggestions.map((model, index) => (
+                          <div
+                            key={index}
+                            className="px-4 py-2 hover:bg-blue-50 cursor-pointer transition-colors duration-150"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSuggestionClick('model', model);
+                            }}
+                          >
+                            {model}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label htmlFor="yearMin" className="block text-sm font-medium text-gray-700 mb-1">
+                    Year Min
+                  </label>
+                  <input
+                    type="number"
+                    id="yearMin"
+                    name="yearMin"
+                    value={formData.yearMin}
+                    onChange={handleInputChange}
+                    min="1900"
+                    max="2025"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="yearMax" className="block text-sm font-medium text-gray-700 mb-1">
+                    Year Max
+                  </label>
+                  <input
+                    type="number"
+                    id="yearMax"
+                    name="yearMax"
+                    value={formData.yearMax}
+                    onChange={handleInputChange}
+                    min="1900"
+                    max="2025"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="maxPages" className="block text-sm font-medium text-gray-700 mb-1">
+                    Max Pages to Scrape
+                  </label>
+                  <input
+                    type="number"
+                    id="maxPages"
+                    name="maxPages"
+                    value={formData.maxPages}
+                    onChange={handleInputChange}
+                    min="1"
+                    max="20"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div className="flex items-end">
+                  <button
+                    type="submit"
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md transition duration-200 disabled:bg-blue-400"
+                    disabled={loading}
+                  >
+                    {loading ? 'Generating...' : 'Generate'}
+                  </button>
+                </div>
               </div>
-            )}
-            
-            {/* Restructured layout with side-by-side charts and results */}
-            <div className="flex flex-col lg:flex-row gap-6">
-              {/* Charts section */}
-              <div className="lg:w-2/3 flex-shrink-0 overflow-hidden">
-                {visualizations && (
-                  <div className="grid grid-cols-1 gap-6 mb-4">
-                    {(filteredVisualizations?.timeSeriesChart || visualizations.timeSeriesChart) && (
-                      <div className="bg-gray-50 p-4 rounded-md">
-                        <h3 className="text-lg font-semibold mb-2">Price Trends Over Time</h3>
-                        <div className="w-full" style={{ maxWidth: '100%', minHeight: '400px' }}>
-                          <VegaChart 
-                            spec={filteredVisualizations?.timeSeriesChart || visualizations.timeSeriesChart!} 
-                            className="w-full h-auto"
-                          />
-                        </div>
-                      </div>
-                    )}
-                    
-                    {visualizations.priceHistogram && (
-                      <div className="bg-gray-50 p-4 rounded-md">
-                        <div className="flex justify-between items-center mb-2">
-                          <h3 className="text-lg font-semibold">
-                            Price Distribution
-                            <span className="ml-2 text-sm font-normal text-gray-500">
-                              (Click on a bar to filter)
-                            </span>
-                          </h3>
-                          {activeFilter && (
-                            <button
-                              onClick={clearFilters}
-                              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md text-sm transition duration-200"
-                            >
-                              Clear Filter
-                            </button>
-                          )}
-                        </div>
-                        <div className="w-full" style={{ maxWidth: '100%', minHeight: '400px' }}>
-                          <VegaChart 
-                            spec={visualizations.priceHistogram} 
-                            className="w-full h-auto"
-                            onSignalClick={handleHistogramClick}
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
+            </form>
+          </div>
+        )}
+        
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+            {error}
+          </div>
+        )}
+        
+        {loading && (
+          <div className="text-center py-12">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600 mb-4"></div>
+            <p className="text-gray-600">Generating visualizations and fetching results...</p>
+            <p className="text-gray-500 text-sm mt-2">This may take a minute or two.</p>
+          </div>
+        )}
+        
+        {!loading && currentSearch && (
+          <div className="bg-white shadow-md rounded-lg overflow-hidden">
+            <div className="p-6">
+              <h2 className="text-2xl font-bold mb-4">
+                {currentSearch.make} {currentSearch.model} Auction Results
+                {activeFilter && (
+                  <span className="ml-2 text-sm font-normal text-gray-500">
+                    (Filtered: {formatPrice(activeFilter.min.toString())} - {formatPrice(activeFilter.max.toString())})
+                  </span>
                 )}
-              </div>
+              </h2>
               
-              {/* Scrollable side panel for results */}
-              <div className="lg:w-1/3 flex-shrink-0">
-                <div className="bg-white rounded-lg border border-gray-200 h-full">
-                  <div className="p-4 border-b border-gray-200">
-                    <h3 className="text-xl font-semibold">
-                      Recent Results
-                      {activeFilter && (
-                        <span className="ml-2 text-sm font-normal text-gray-500">
-                          ({filteredResults.length} of {results.length})
-                        </span>
-                      )}
-                    </h3>
+              {summary && (
+                <div className="bg-blue-50 p-4 rounded-md mb-6">
+                  <h3 className="text-lg font-semibold mb-2">Market Summary</h3>
+                  <div className="text-gray-700 space-y-2">
+                    {summary.totalResults && (
+                      <p><strong>Total Results:</strong> {summary.totalResults}</p>
+                    )}
+                    {summary.averageSoldPrice && (
+                      <p><strong>Average Sold Price:</strong> {formatPrice(summary.averageSoldPrice)}</p>
+                    )}
+                    {summary.highestSoldPrice && (
+                      <p><strong>Highest Sold Price:</strong> {formatPrice(summary.highestSoldPrice)}</p>
+                    )}
+                    {summary.lowestSoldPrice && (
+                      <p><strong>Lowest Sold Price:</strong> {formatPrice(summary.lowestSoldPrice)}</p>
+                    )}
+                    {summary.soldPercentage && (
+                      <p><strong>Sold Percentage:</strong> {summary.soldPercentage}</p>
+                    )}
                   </div>
-                  <div className="overflow-y-auto" style={{ maxHeight: "calc(120vh)" }}>
-                    {(activeFilter ? filteredResults : results).length === 0 ? (
-                      <p className="text-gray-500 p-4">No results found.</p>
-                    ) : (
-                      <div className="p-4 space-y-4">
-                        {(activeFilter ? filteredResults : results).map((result, index) => {
-                          // Extract make and model from the title if not provided
-                          const titleParts = result.title.split(' ');
-                          const make = result.make || titleParts[0];
-                          const model = result.model || titleParts[1];
-                          
-                          return (
-                            <div key={index} className="border rounded-lg overflow-hidden bg-gray-50 hover:shadow-md transition-shadow duration-200">
-                              <div className="p-4">
-                                <div className="flex items-start space-x-4">
-                                  <div className="flex-shrink-0 w-20 h-20 bg-gray-200 rounded-md overflow-hidden">
-                                    <img 
-                                      src={result.image_url || result.images?.small?.url || '/placeholder-car.jpg'} 
-                                      alt={result.title}
-                                      className="w-full h-full object-cover"
-                                    />
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <h3 className="font-medium text-sm truncate" title={result.title}>
-                                      {result.title}
-                                    </h3>
-                                    <div className="flex items-center mt-1">
-                                      <span className={`text-sm font-semibold ${result.status === 'sold' ? 'text-green-600' : 'text-red-600'}`}>
-                                        {result.status === 'sold' ? formatPrice(result.sold_price) : formatPrice(result.bid_amount)}
-                                      </span>
-                                      <span className="mx-2 text-gray-400">•</span>
-                                      <span className={`text-xs px-2 py-0.5 rounded-full ${
-                                        result.status === 'sold' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                                      }`}>
-                                        {result.status === 'sold' ? 'Sold' : 'Not Sold'}
-                                      </span>
+                </div>
+              )}
+              
+              {/* Restructured layout with side-by-side charts and results */}
+              <div className="flex flex-col lg:flex-row gap-6">
+                {/* Charts section */}
+                <div className="lg:w-2/3 flex-shrink-0 overflow-hidden">
+                  {visualizations && (
+                    <div className="grid grid-cols-1 gap-6 mb-4">
+                      {(filteredVisualizations?.timeSeriesChart || visualizations.timeSeriesChart) && (
+                        <div className="bg-gray-50 p-4 rounded-md">
+                          <h3 className="text-lg font-semibold mb-2">Price Trends Over Time</h3>
+                          <div className="w-full" style={{ maxWidth: '100%', minHeight: '400px' }}>
+                            <VegaChart 
+                              spec={filteredVisualizations?.timeSeriesChart || visualizations.timeSeriesChart!} 
+                              className="w-full h-auto"
+                            />
+                          </div>
+                        </div>
+                      )}
+                      
+                      {visualizations.priceHistogram && (
+                        <div className="bg-gray-50 p-4 rounded-md">
+                          <div className="flex justify-between items-center mb-2">
+                            <h3 className="text-lg font-semibold">
+                              Price Distribution
+                              <span className="ml-2 text-sm font-normal text-gray-500">
+                                (Click on a bar to filter)
+                              </span>
+                            </h3>
+                            {activeFilter && (
+                              <button
+                                onClick={clearFilters}
+                                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md text-sm transition duration-200"
+                              >
+                                Clear Filter
+                              </button>
+                            )}
+                          </div>
+                          <div className="w-full" style={{ maxWidth: '100%', minHeight: '400px' }}>
+                            <VegaChart 
+                              spec={visualizations.priceHistogram} 
+                              className="w-full h-auto"
+                              onSignalClick={handleHistogramClick}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                
+                {/* Scrollable side panel for results */}
+                <div className="lg:w-1/3 flex-shrink-0">
+                  <div className="bg-white rounded-lg border border-gray-200 h-full">
+                    <div className="p-4 border-b border-gray-200">
+                      <h3 className="text-xl font-semibold">
+                        Recent Results
+                        {activeFilter && (
+                          <span className="ml-2 text-sm font-normal text-gray-500">
+                            ({filteredResults.length} of {results.length})
+                          </span>
+                        )}
+                      </h3>
+                    </div>
+                    <div className="overflow-y-auto" style={{ maxHeight: "calc(120vh)" }}>
+                      {(activeFilter ? filteredResults : results).length === 0 ? (
+                        <p className="text-gray-500 p-4">No results found.</p>
+                      ) : (
+                        <div className="p-4 space-y-4">
+                          {(activeFilter ? filteredResults : results).map((result, index) => {
+                            // Extract make and model from the title if not provided
+                            const titleParts = result.title.split(' ');
+                            const make = result.make || titleParts[0];
+                            const model = result.model || titleParts[1];
+                            
+                            return (
+                              <div key={index} className="border rounded-lg overflow-hidden bg-gray-50 hover:shadow-md transition-shadow duration-200">
+                                <div className="p-4">
+                                  <div className="flex items-start space-x-4">
+                                    <div className="flex-shrink-0 w-20 h-20 bg-gray-200 rounded-md overflow-hidden">
+                                      <img 
+                                        src={result.image_url || result.images?.small?.url || '/placeholder-car.jpg'} 
+                                        alt={result.title}
+                                        className="w-full h-full object-cover"
+                                      />
                                     </div>
-                                    {result.sold_date && (
-                                      <p className="text-xs text-gray-500 mt-1">
-                                        {result.sold_date}
-                                      </p>
-                                    )}
-                                    <div className="flex items-center mt-1 space-x-2">
-                                      <a 
-                                        href={result.url} 
-                                        target="_blank" 
-                                        rel="noopener noreferrer"
-                                        className="text-xs text-blue-600 hover:underline inline-block"
-                                      >
-                                        View Original
-                                      </a>
+                                    <div className="flex-1 min-w-0">
+                                      <h3 className="font-medium text-sm truncate" title={result.title}>
+                                        {result.title}
+                                      </h3>
+                                      <div className="flex items-center mt-1">
+                                        <span className={`text-sm font-semibold ${result.status === 'sold' ? 'text-green-600' : 'text-red-600'}`}>
+                                          {result.status === 'sold' ? formatPrice(result.sold_price) : formatPrice(result.bid_amount)}
+                                        </span>
+                                        <span className="mx-2 text-gray-400">•</span>
+                                        <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                          result.status === 'sold' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                        }`}>
+                                          {result.status === 'sold' ? 'Sold' : 'Not Sold'}
+                                        </span>
+                                      </div>
+                                      {result.sold_date && (
+                                        <p className="text-xs text-gray-500 mt-1">
+                                          {result.sold_date}
+                                        </p>
+                                      )}
+                                      <div className="flex items-center mt-1 space-x-2">
+                                        <a 
+                                          href={result.url} 
+                                          target="_blank" 
+                                          rel="noopener noreferrer"
+                                          className="text-xs text-blue-600 hover:underline inline-block"
+                                        >
+                                          View Original
+                                        </a>
+                                      </div>
                                     </div>
                                   </div>
                                 </div>
                               </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
+        )}
+        
+        {!loading && !currentSearch && !showForm && (
+          <div className="text-center py-12 bg-white shadow-md rounded-lg">
+            <p className="text-gray-600 mb-8">Click "Generate New Visualizations" to search for auction results</p>
+            <button
+              onClick={() => setShowForm(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-md transition duration-200"
+            >
+              Get Started
+            </button>
+          </div>
+        )}
+        
+        <div className="mt-8">
         </div>
-      )}
-      
-      {!loading && !currentSearch && !showForm && (
-        <div className="text-center py-12 bg-white shadow-md rounded-lg">
-          <p className="text-gray-600 mb-8">Click "Generate New Visualizations" to search for auction results</p>
-          <button
-            onClick={() => setShowForm(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-md transition duration-200"
-          >
-            Get Started
-          </button>
-        </div>
-      )}
-      
-      <div className="mt-8">
+        
+        {/* Add AI Agent for auction results */}
+        {!loading && results.length > 0 && (
+          <AuctionAIAgent auctionResults={results} />
+        )}
       </div>
-      
-      {/* Add AI Agent for auction results */}
-      {!loading && results.length > 0 && (
-        <AuctionAIAgent auctionResults={results} />
-      )}
     </div>
   );
 }

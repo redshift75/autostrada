@@ -884,10 +884,17 @@ function ListingsContent() {
   }, [mileageHistogram]);
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex justify-between items-center mb-8">
+          <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white sm:text-4xl">
+              Car Listings
+            </h1>
+          </div>
+        </div>
       <style jsx global>{fadeInAnimation}</style>
-      
-      <h1 className="text-3xl font-bold mb-8">Car Listings</h1>
+ 
       
       {/* Notification */}
       {notification && (
@@ -897,7 +904,7 @@ function ListingsContent() {
       )}
       
       {/* Search Form */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
+      <div className="bg-white shadow-md rounded-lg p-6 mb-8">
         <h2 className="text-xl font-semibold mb-4">Search Listings</h2>
         
         {dbConnectionError && (
@@ -1027,6 +1034,7 @@ function ListingsContent() {
             </button>
           </div>
         </form>
+        </div>
         
         {error && (
           <div className="mt-4 p-3 bg-red-100 text-red-700 rounded-md">
