@@ -54,6 +54,9 @@ export interface BaTResultsScraperParams {
   yearMax?: number;
   maxPages?: number; // Maximum number of pages to fetch
   perPage?: number; // Number of items per page
+  delayBetweenRequests?: number; // Delay between requests in milliseconds
+  longPauseInterval?: number; // Number of pages after which to take a longer pause
+  longPauseDelay?: number; // Duration of the longer pause in milliseconds
 }
 
 export class BringATrailerResultsScraper extends BaseScraper {
@@ -101,21 +104,31 @@ export class BringATrailerResultsScraper extends BaseScraper {
       let maxPages = params.maxPages || 1;
       let allListings: BaTCompletedListing[] = [];
       const seenIds = new Set<string>();
+      const make = params.make || 'Porsche'; // Default to Porsche if not specified
       
-      // Prepare search term for McLaren (can be customized based on params)
-      let searchTerm = 'McLaren';
-      if (params.make) {
-        searchTerm = params.make;
-        if (params.model) {
-          searchTerm += ` ${params.model}`;
-        }
+      // Set rate limiting parameters with defaults
+      const delayBetweenRequests = params.delayBetweenRequests || 2000; // 2 seconds between requests
+      const longPauseInterval = params.longPauseInterval || 10; // Pause every 10 pages
+      const longPauseDelay = params.longPauseDelay || 30000; // 30 seconds for long pause
+      
+      // Prepare search term based on make and model
+      let searchTerm = make;
+      if (params.model) {
+        searchTerm += ` ${params.model}`;
       }
       
       console.log(`Searching for: ${searchTerm}`);
+      console.log(`Rate limiting: ${delayBetweenRequests}ms between requests, ${longPauseDelay}ms pause every ${longPauseInterval} pages`);
       
       // Fetch all requested pages
       for (let page = 1; page <= maxPages; page++) {
         console.log(`Fetching page ${page}/${maxPages}...`);
+        
+        // Check if we need to take a longer pause
+        if (page > 1 && (page - 1) % longPauseInterval === 0) {
+          console.log(`Taking a longer pause of ${longPauseDelay/1000} seconds after ${longPauseInterval} pages...`);
+          await new Promise(resolve => setTimeout(resolve, longPauseDelay));
+        }
         
         try {
           // Prepare request data
@@ -171,7 +184,7 @@ export class BringATrailerResultsScraper extends BaseScraper {
           }
           
           // Extract listings from the API response
-          const pageListings = this.extractCompletedListingsFromApiData(response.data);
+          const pageListings = this.extractCompletedListingsFromApiData(response.data, make);
           console.log(`Page ${page}: Found ${pageListings.length} listings`);
           
           // Only add listings that we haven't seen before
@@ -190,21 +203,35 @@ export class BringATrailerResultsScraper extends BaseScraper {
             break;
           }
         } catch (error) {
+          if (axios.isAxiosError(error) && error.response?.status === 429) {
+            console.error(`Rate limit exceeded (429 Too Many Requests) on page ${page}`);
+            console.log('Taking a longer pause before retrying...');
+            
+            // Take a longer pause when we hit rate limits
+            await new Promise(resolve => setTimeout(resolve, longPauseDelay * 2));
+            
+            // Retry the current page
+            page--;
+            continue;
+          }
+          
           console.error(`Error fetching page ${page}:`, error);
           console.warn(`Failed to fetch page ${page}, stopping pagination`);
           break;
         }
         
-        // Add a small delay to avoid rate limiting (except for the last page)
+        // Add a delay between requests (except for the last page)
         if (page < maxPages) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          console.log(`Waiting ${delayBetweenRequests/1000} seconds before next request...`);
+          await new Promise(resolve => setTimeout(resolve, delayBetweenRequests));
         }
       }
       
       // Filter by make, model, and year if provided
       const filteredListings = this.filterListings(allListings, params);
+      //const filteredListings = allListings;
+      console.log(`All listings ${allListings.length} and filtered ${filteredListings.length} completed auctions`);
       
-      console.log(`Found ${filteredListings.length} completed auctions after filtering`);
       if (filteredListings.length > 0) {
         console.log(`First result: ${filteredListings[0].title}`);
       }
@@ -216,7 +243,7 @@ export class BringATrailerResultsScraper extends BaseScraper {
     }
   }
 
-  private extractCompletedListingsFromApiData(data: any): BaTCompletedListing[] {
+  private extractCompletedListingsFromApiData(data: any, make: string = 'Porsche'): BaTCompletedListing[] {
     try {
       if (!data || !data.items || !Array.isArray(data.items)) {
         return [];
@@ -229,14 +256,9 @@ export class BringATrailerResultsScraper extends BaseScraper {
         let itemModel: string | undefined = undefined;
         
         if (item.title) {
-          // Try to extract year from title (e.g., "2016 Porsche 911 GT3 RS")
-          const yearMatch = item.title.match(/^(\d{4})/);
-          if (yearMatch) {
-            itemYear = parseInt(yearMatch[1], 10);
-          }
-          
-          // Extract make and model from title
-          const titleInfo = this.parseTitle(item.title);
+          // Use the improved parseTitle method to extract year, make, and model
+          const titleInfo = this.parseTitle(item.title, make);
+          itemYear = titleInfo.year;
           itemMake = titleInfo.make;
           itemModel = titleInfo.model;
         }
@@ -306,49 +328,130 @@ export class BringATrailerResultsScraper extends BaseScraper {
     }
   }
 
-  private parseTitle(title: string): { year?: number; make?: string; model?: string } {
-    // Extract year, make, and model from title
-    const yearMatch = title.match(/^(\d{4})/);
+  private parseTitle(title: string, make: string): { year?: number; make?: string; model?: string } {
+    // Look for a 4-digit year anywhere in the title
+    const yearMatch = title.match(/\b(19\d{2}|20\d{2})\b/);
     const year = yearMatch ? parseInt(yearMatch[1], 10) : undefined;
     
-    // Simple extraction of make and model
-    // This is a basic implementation and might need refinement
-    if (yearMatch) {
-      const remainingTitle = title.substring(yearMatch[0].length).trim();
-      const parts = remainingTitle.split(' ');
-      
-      if (parts.length > 0) {
-        const make = parts[0];
-        const model = parts.length > 1 ? parts[1] : undefined;
-        
-        return { year, make, model };
-      }
+    // If no year found, return early
+    if (!year) {
+      return { year: undefined, make: undefined, model: undefined };
     }
     
+    // Look for the make in the title
+    const makeIndex = title.indexOf(make);
+    if (makeIndex !== -1) {
+      // Extract the model by looking at words after the make
+      const afterMake = title.substring(makeIndex + make.length).trim();
+      const parts = afterMake.split(/\s+/);
+      
+      // The model is typically the next word or two after the make
+      let model: string | undefined;
+      
+      if (parts.length > 0) {
+        // For Porsche, handle common models with special logic
+        if (make === 'Porsche') {
+          // Check for common Porsche models
+          if (parts[0] === '911' || parts[0] === '356' || parts[0] === '944' || 
+              parts[0] === '928' || parts[0] === '968' || parts[0] === '914' || 
+              parts[0] === '718' || parts[0] === 'Cayenne' || parts[0] === 'Macan' || 
+              parts[0] === 'Panamera' || parts[0] === 'Cayman' || parts[0] === 'Boxster' || 
+              parts[0] === 'Taycan') {
+            
+            // For 911, often include the variant (Carrera, Turbo, etc.)
+            if (parts[0] === '911' && parts.length > 1) {
+              if (['Carrera', 'Turbo', 'GT3', 'GT2', 'Targa'].includes(parts[1])) {
+                // Include the variant in the model
+                model = parts[0] + ' ' + parts[1];
+                
+                // Sometimes there's more specificity (Carrera 4, Turbo S, etc.)
+                if (parts.length > 2 && ['4', 'S', 'RS', '4S'].includes(parts[2])) {
+                  model += ' ' + parts[2];
+                }
+              } else {
+                model = parts[0];
+              }
+            } else {
+              // For other models, just use the first word
+              model = parts[0];
+              
+              // Add S, Turbo, etc. if present
+              if (parts.length > 1 && ['S', 'Turbo', 'GTS', 'GT4'].includes(parts[1])) {
+                model += ' ' + parts[1];
+              }
+            }
+          } else {
+            // If not a recognized Porsche model, just use the first word
+            model = parts[0];
+          }
+        } else {
+          // For other makes, just use the first word as the model
+          model = parts[0];
+        }
+      }
+      
+      return { year, make, model };
+    }
+    
+    // If we couldn't find the make in the title, just return the year
     return { year, make: undefined, model: undefined };
   }
 
   private filterListings(listings: BaTCompletedListing[], params: BaTResultsScraperParams): BaTCompletedListing[] {
-    return listings.filter(listing => {
-      // Filter by year range
-      if (params.yearMin && listing.year && listing.year < params.yearMin) {
-        return false;
-      }
-      if (params.yearMax && listing.year && listing.year > params.yearMax) {
-        return false;
-      }
-      
-      // Filter by make (case-insensitive)
-      if (params.make && listing.make && !listing.make.toLowerCase().includes(params.make.toLowerCase())) {
-        return false;
-      }
-      
-      // Filter by model (case-insensitive)
-      if (params.model && listing.model && !listing.model.toLowerCase().includes(params.model.toLowerCase())) {
-        return false;
-      }
-      
-      return true;
-    });
+    // Handle undefined or empty params
+    const make = params.make || '';
+    const model = params.model || '';
+    const yearMin = params.yearMin;
+    const yearMax = params.yearMax;
+    
+    console.log('Filtering listings with params:', { make, model, yearMin, yearMax });
+    console.log('First listing before filtering:', listings.length > 0 ? {
+      title: listings[0].title,
+      make: listings[0].make,
+      model: listings[0].model,
+      year: listings[0].year
+    } : 'No listings');
+    
+    try {
+      return listings.filter(listing => {
+        // Filter by year range
+        if (yearMin && listing.year && listing.year < yearMin) {
+          return false;
+        }
+        if (yearMax && listing.year && listing.year > yearMax) {
+          return false;
+        }
+        
+        // Filter by make (case-insensitive)
+        if (make && listing.make) {
+          const listingMake = listing.make.toLowerCase();
+          const searchMake = make.toLowerCase();
+          if (!listingMake.includes(searchMake)) {
+            return false;
+          }
+        } else if (make) {
+          // If make is specified but the listing doesn't have a make, exclude it
+          return false;
+        }
+        
+        // Filter by model (case-insensitive)
+        if (model && listing.model) {
+          const listingModel = listing.model.toLowerCase();
+          const searchModel = model.toLowerCase();
+          if (!listingModel.includes(searchModel)) {
+            return false;
+          }
+        } else if (model) {
+          // If model is specified but the listing doesn't have a model, exclude it
+          return false;
+        }
+        
+        return true;
+      });
+    } catch (error) {
+      console.error('Error filtering listings:', error);
+      console.error('Error occurred with params:', { make, model, yearMin, yearMax });
+      return [];
+    }
   }
 } 

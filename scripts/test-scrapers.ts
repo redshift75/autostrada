@@ -15,8 +15,11 @@ import minimist from 'minimist';
 const argv = minimist(process.argv.slice(2));
 const mode = argv.mode || 'both'; // completed, active, both
 const make = argv.make || 'Porsche';
-const model = argv.model || '';
+const model = String(argv.model || ''); // Convert model to string
 const maxPages = argv.maxPages || 3;
+const delayBetweenRequests = argv.delay || 1000; // Default 1 seconds between requests
+const longPauseInterval = argv.pauseInterval || 10; // Default pause every 10 pages
+const longPauseDelay = argv.pauseDelay || 30000; // Default 30 seconds for long pause
 
 async function testResultsScraper() {
   console.log(`Testing BringATrailerResultsScraper for ${make} ${model}...`);
@@ -34,7 +37,10 @@ async function testResultsScraper() {
   const results = await scraper.scrape({
     make: make,
     model: model,
-    maxPages: maxPages
+    maxPages: maxPages,
+    delayBetweenRequests: delayBetweenRequests,
+    longPauseInterval: longPauseInterval,
+    longPauseDelay: longPauseDelay
   });
   
   console.log(`Found ${results.length} completed auctions for ${make} ${model}`);
@@ -48,7 +54,9 @@ async function testResultsScraper() {
   }
   
   // Save results to file with make and model in the filename
-  const resultsFile = path.join(resultsDir, `${make.toLowerCase()}_${model.toLowerCase()}_completed_results.json`);
+  const makeForFilename = make ? make.toLowerCase() : 'all';
+  const modelForFilename = model ? model.toLowerCase() : 'all';
+  const resultsFile = path.join(resultsDir, `${makeForFilename}_${modelForFilename}_completed_results.json`);
   fs.writeFileSync(resultsFile, JSON.stringify(results, null, 2));
   console.log(`Saved ${results.length} ${make} ${model} completed auctions to ${resultsFile}`);
   
@@ -90,15 +98,21 @@ async function testActiveScraper() {
   // If make and model are provided, filter the results
   if (make && model) {
     const filteredListings = allListings.filter(listing => {
-      return listing.make?.toLowerCase() === make.toLowerCase() && 
-             listing.model?.toLowerCase().includes(model.toLowerCase());
+      const listingMake = listing.make?.toLowerCase() || '';
+      const listingModel = listing.model?.toLowerCase() || '';
+      const searchMake = make.toLowerCase();
+      const searchModel = model.toLowerCase();
+      
+      return listingMake === searchMake && listingModel.includes(searchModel);
     });
     
     console.log(`\nFound ${filteredListings.length} active ${make} ${model} auctions`);
     
     if (filteredListings.length > 0) {
       // Save filtered results to file
-      const filteredFile = path.join(resultsDir, `${make.toLowerCase()}_${model.toLowerCase()}_active_results.json`);
+      const makeForFilename = make ? make.toLowerCase() : 'all';
+      const modelForFilename = model ? model.toLowerCase() : 'all';
+      const filteredFile = path.join(resultsDir, `${makeForFilename}_${modelForFilename}_active_results.json`);
       fs.writeFileSync(filteredFile, JSON.stringify(filteredListings, null, 2));
       console.log(`Saved ${filteredListings.length} active ${make} ${model} auctions to ${filteredFile}`);
     }
