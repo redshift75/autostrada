@@ -22,10 +22,10 @@ try {
 }
 
 // Initialize the LLM
-export const initLLM = (modelName: string = "gpt-4o") => {
+export const initLLM = (modelName: string = "gpt-4o-mini") => {
   return new ChatOpenAI({
     modelName,
-    temperature: 0.2,
+    temperature: 0.0,
     streaming: true,
   });
 };
