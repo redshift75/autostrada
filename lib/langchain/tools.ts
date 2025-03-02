@@ -843,4 +843,682 @@ function analyzeSummary(listings: any[]) {
     bestValue: bestValue,
     analysis: `There are ${listings.length} listings in total, with ${topMakes.length} different makes and ${Object.keys(modelCount).length} different models. The most common make is ${topMakes[0].make} with ${topMakes[0].count} listings. The prices range from $${priceMin.toLocaleString()} to $${priceMax.toLocaleString()}, with an average of $${Math.round(priceAvg).toLocaleString()}. The mileage ranges from ${mileageMin.toLocaleString()} to ${mileageMax.toLocaleString()} miles, with an average of ${Math.round(mileageAvg).toLocaleString()} miles. The best value appears to be a ${bestValue.year} ${bestValue.make} ${bestValue.model} priced at $${bestValue.price.toLocaleString()} with ${bestValue.mileage.toLocaleString()} miles${bestValue.location ? ` located in ${bestValue.location}` : ''}${bestValue.clickoffURL ? `. ${bestValue.clickoffURL}` : ''}.`
   };
+}
+
+// Tool to analyze current auction results
+export const createAuctionResultsAnalysisTool = () => {
+  return new DynamicStructuredTool({
+    name: "analyze_auction_results",
+    description: "Analyze the current auction results being viewed by the user",
+    schema: z.object({
+      analysisType: z.enum([
+        "price_comparison", 
+        "best_deal", 
+        "sold_percentage", 
+        "make_distribution",
+        "model_distribution",
+        "year_distribution",
+        "price_range",
+        "summary"
+      ]).describe("The type of analysis to perform on the auction results"),
+      make: z.string().optional().describe("Filter by make"),
+      model: z.string().optional().describe("Filter by model"),
+      yearMin: z.number().optional().describe("Filter by minimum year"),
+      yearMax: z.number().optional().describe("Filter by maximum year"),
+      priceMax: z.number().optional().describe("Maximum price to consider"),
+      soldOnly: z.boolean().optional().describe("Only consider sold items"),
+    }),
+    func: async ({ analysisType, make, model, yearMin, yearMax, priceMax, soldOnly }) => {
+      try {
+        // Access the auction results from the global context
+        // @ts-ignore - This will be set in the agent route
+        const auctionResults = global.currentAuctionResults || [];
+        
+        if (!auctionResults || auctionResults.length === 0) {
+          return JSON.stringify({
+            error: "No auction results available for analysis",
+            message: "There are no auction results available to analyze. Please make sure you're viewing auction results."
+          });
+        }
+        
+        // Filter auction results based on criteria if provided
+        let filteredResults = [...auctionResults];
+        
+        if (make) {
+          filteredResults = filteredResults.filter(result => 
+            result.make?.toLowerCase().includes(make.toLowerCase()) || 
+            result.title.toLowerCase().includes(make.toLowerCase())
+          );
+        }
+        
+        if (model) {
+          filteredResults = filteredResults.filter(result => 
+            result.model?.toLowerCase().includes(model.toLowerCase()) || 
+            result.title.toLowerCase().includes(model.toLowerCase())
+          );
+        }
+        
+        if (yearMin) {
+          filteredResults = filteredResults.filter(result => {
+            const year = result.title.match(/\b(19|20)\d{2}\b/)?.[0];
+            return year ? parseInt(year) >= yearMin : false;
+          });
+        }
+        
+        if (yearMax) {
+          filteredResults = filteredResults.filter(result => {
+            const year = result.title.match(/\b(19|20)\d{2}\b/)?.[0];
+            return year ? parseInt(year) <= yearMax : false;
+          });
+        }
+        
+        if (priceMax) {
+          filteredResults = filteredResults.filter(result => {
+            const price = result.status === 'sold' 
+              ? parseFloat(result.sold_price.replace(/[^0-9.]/g, '')) 
+              : parseFloat(result.bid_amount.replace(/[^0-9.]/g, ''));
+            return price <= priceMax;
+          });
+        }
+        
+        if (soldOnly) {
+          filteredResults = filteredResults.filter(result => result.status === 'sold');
+        }
+        
+        if (filteredResults.length === 0) {
+          return JSON.stringify({
+            error: "No matching auction results",
+            message: "No auction results match the specified criteria."
+          });
+        }
+        
+        // Perform the requested analysis
+        let result;
+        switch (analysisType) {
+          case "price_comparison":
+            result = analyzeAuctionPriceComparison(filteredResults);
+            break;
+          case "best_deal":
+            result = analyzeAuctionBestDeal(filteredResults);
+            break;
+          case "sold_percentage":
+            result = analyzeAuctionSoldPercentage(filteredResults);
+            break;
+          case "make_distribution":
+            result = analyzeAuctionMakeDistribution(filteredResults);
+            break;
+          case "model_distribution":
+            result = analyzeAuctionModelDistribution(filteredResults);
+            break;
+          case "year_distribution":
+            result = analyzeAuctionYearDistribution(filteredResults);
+            break;
+          case "price_range":
+            result = analyzeAuctionPriceRange(filteredResults);
+            break;
+          case "summary":
+            result = analyzeAuctionSummary(filteredResults);
+            break;
+          default:
+            result = {
+              error: "Invalid analysis type",
+              message: "The requested analysis type is not supported."
+            };
+        }
+        
+        return JSON.stringify({
+          analysisType,
+          filters: {
+            make: make || "Any",
+            model: model || "Any",
+            yearRange: `${yearMin || "Any"}-${yearMax || "Any"}`,
+            priceMax: priceMax || "Any",
+            soldOnly: soldOnly || false,
+          },
+          totalResults: filteredResults.length,
+          result
+        });
+      } catch (error) {
+        console.error("Error analyzing auction results:", error);
+        return JSON.stringify({
+          error: "Analysis failed",
+          message: "An error occurred while analyzing the auction results.",
+          details: error instanceof Error ? error.message : "Unknown error"
+        });
+      }
+    },
+  });
+};
+
+// Helper functions for auction results analysis
+
+function analyzeAuctionPriceComparison(results: any[]) {
+  const soldResults = results.filter(result => result.status === 'sold');
+  
+  if (soldResults.length === 0) {
+    return {
+      analysis: "No sold items found for price comparison."
+    };
+  }
+  
+  // Extract numeric prices, handling different formats
+  const prices = soldResults.map(result => {
+    if (typeof result.price === 'number') {
+      return result.price;
+    }
+    
+    if (result.sold_price) {
+      // Handle string price format (e.g., "$12,345")
+      const numericPrice = result.sold_price.toString().replace(/[^0-9.]/g, '');
+      return numericPrice ? parseFloat(numericPrice) : 0;
+    }
+    
+    return 0; // Default if no valid price found
+  }).filter(price => price > 0); // Filter out zero prices
+  
+  if (prices.length === 0) {
+    return {
+      analysis: "Could not extract valid price information from the sold items."
+    };
+  }
+  
+  const lowestPrice = Math.min(...prices);
+  const highestPrice = Math.max(...prices);
+  const averagePrice = prices.reduce((sum, price) => sum + price, 0) / prices.length;
+  
+  // Find the items with lowest and highest prices
+  const lowestPriceItem = soldResults.find(result => {
+    const price = typeof result.price === 'number' ? 
+      result.price : 
+      parseFloat(result.sold_price?.toString().replace(/[^0-9.]/g, '') || '0');
+    return price === lowestPrice;
+  }) || soldResults[0];
+  
+  const highestPriceItem = soldResults.find(result => {
+    const price = typeof result.price === 'number' ? 
+      result.price : 
+      parseFloat(result.sold_price?.toString().replace(/[^0-9.]/g, '') || '0');
+    return price === highestPrice;
+  }) || soldResults[0];
+  
+  return {
+    lowestPrice: {
+      title: lowestPriceItem.title,
+      price: `$${lowestPrice.toLocaleString()}`,
+      date: lowestPriceItem.sold_date || 'Unknown',
+      url: lowestPriceItem.url || null
+    },
+    highestPrice: {
+      title: highestPriceItem.title,
+      price: `$${highestPrice.toLocaleString()}`,
+      date: highestPriceItem.sold_date || 'Unknown',
+      url: highestPriceItem.url || null
+    },
+    averagePrice: `$${Math.round(averagePrice).toLocaleString()}`,
+    totalSold: soldResults.length,
+    analysis: `The sold prices range from $${lowestPrice.toLocaleString()} to $${highestPrice.toLocaleString()}, with an average of $${Math.round(averagePrice).toLocaleString()}. ${soldResults.length} out of ${results.length} items were sold.`
+  };
+}
+
+function analyzeAuctionBestDeal(results: any[]) {
+  const soldResults = results.filter(result => result.status === 'sold');
+  
+  if (soldResults.length === 0) {
+    return {
+      analysis: "No sold items found for best deal analysis.",
+      bestDeals: []
+    };
+  }
+  
+  // Extract year from title for each result and get numeric price
+  const resultsWithYear = soldResults.map(result => {
+    const yearMatch = result.title.match(/\b(19|20)\d{2}\b/);
+    const year = yearMatch ? parseInt(yearMatch[0]) : null;
+    
+    // Get numeric price, handling different formats
+    let numericPrice = 0;
+    if (typeof result.price === 'number') {
+      numericPrice = result.price;
+    } else if (result.sold_price) {
+      const priceStr = result.sold_price.toString().replace(/[^0-9.]/g, '');
+      numericPrice = priceStr ? parseFloat(priceStr) : 0;
+    }
+    
+    return { 
+      ...result, 
+      extractedYear: year, 
+      numericPrice: numericPrice 
+    };
+  }).filter(result => result.extractedYear !== null && result.numericPrice > 0);
+  
+  if (resultsWithYear.length === 0) {
+    return {
+      analysis: "Could not extract valid year and price information from any sold items.",
+      bestDeals: []
+    };
+  }
+  
+  // Group by year
+  const groupedByYear: Record<number, any[]> = {};
+  resultsWithYear.forEach(result => {
+    if (!groupedByYear[result.extractedYear]) {
+      groupedByYear[result.extractedYear] = [];
+    }
+    groupedByYear[result.extractedYear].push(result);
+  });
+  
+  // Find the best deal in each year group (lowest price)
+  const bestDeals = Object.entries(groupedByYear).map(([year, items]) => {
+    const sortedByPrice = [...items].sort((a, b) => a.numericPrice - b.numericPrice);
+    const bestDeal = sortedByPrice[0];
+    const averagePrice = items.reduce((sum, item) => sum + item.numericPrice, 0) / items.length;
+    const priceDifference = averagePrice - bestDeal.numericPrice;
+    const percentageBelow = (priceDifference / averagePrice) * 100;
+    
+    return {
+      year: parseInt(year),
+      bestDeal,
+      averagePrice,
+      priceDifference,
+      percentageBelow,
+      itemCount: items.length
+    };
+  });
+  
+  // Sort by percentage below average price
+  const sortedDeals = bestDeals.sort((a, b) => b.percentageBelow - a.percentageBelow);
+  const topDeals = sortedDeals.slice(0, 3);
+  
+  if (topDeals.length === 0) {
+    return {
+      analysis: "Could not determine the best deals from the available data.",
+      bestDeals: []
+    };
+  }
+  
+  return {
+    bestDeals: topDeals.map(deal => ({
+      title: deal.bestDeal.title,
+      price: `$${deal.bestDeal.numericPrice.toLocaleString()}`,
+      averagePrice: `$${Math.round(deal.averagePrice).toLocaleString()}`,
+      percentBelow: `${Math.round(deal.percentageBelow)}%`,
+      date: deal.bestDeal.sold_date || 'Unknown',
+      url: deal.bestDeal.url || null
+    })),
+    analysis: `The best deal appears to be a ${topDeals[0].bestDeal.title} that sold for $${topDeals[0].bestDeal.numericPrice.toLocaleString()}, which is ${Math.round(topDeals[0].percentageBelow)}% below the average price of $${Math.round(topDeals[0].averagePrice).toLocaleString()} for similar vehicles from that year.`
+  };
+}
+
+function analyzeAuctionSoldPercentage(results: any[]) {
+  const total = results.length;
+  
+  if (total === 0) {
+    return {
+      analysis: "No auction results available for analysis.",
+      overall: { total: 0, sold: 0, soldPercentage: 0 },
+      byMake: []
+    };
+  }
+  
+  const sold = results.filter(result => result.status === 'sold').length;
+  const soldPercentage = (sold / total) * 100;
+  
+  // Group by extracted make
+  const makeGroups: Record<string, { total: number, sold: number }> = {};
+  
+  results.forEach(result => {
+    let make = result.make;
+    if (!make) {
+      // Try to extract make from title
+      const titleParts = result.title.split(' ');
+      if (titleParts.length > 1) {
+        make = titleParts[1]; // Assuming format is "YEAR MAKE MODEL"
+      } else {
+        make = 'Unknown';
+      }
+    }
+    
+    // Ensure make is a string
+    make = String(make || 'Unknown');
+    
+    if (!makeGroups[make]) {
+      makeGroups[make] = { total: 0, sold: 0 };
+    }
+    
+    makeGroups[make].total++;
+    if (result.status === 'sold') {
+      makeGroups[make].sold++;
+    }
+  });
+  
+  const makeStats = Object.entries(makeGroups)
+    .map(([make, stats]) => ({
+      make,
+      total: stats.total,
+      sold: stats.sold,
+      soldPercentage: stats.total > 0 ? Math.round((stats.sold / stats.total) * 100) : 0
+    }))
+    .sort((a, b) => b.soldPercentage - a.soldPercentage);
+  
+  return {
+    overall: {
+      total,
+      sold,
+      soldPercentage: Math.round(soldPercentage)
+    },
+    byMake: makeStats,
+    analysis: `Overall, ${sold} out of ${total} auctions resulted in a sale (${Math.round(soldPercentage)}%). ${
+      makeStats.length > 0 
+        ? `The make with the highest sell-through rate is ${makeStats[0].make} at ${makeStats[0].soldPercentage}% (${makeStats[0].sold} out of ${makeStats[0].total}).`
+        : ''
+    }`
+  };
+}
+
+function analyzeAuctionMakeDistribution(results: any[]) {
+  if (results.length === 0) {
+    return {
+      makeDistribution: [],
+      analysis: "No auction results available for analysis."
+    };
+  }
+  
+  const makeCount: Record<string, number> = {};
+  
+  results.forEach(result => {
+    let make = result.make;
+    if (!make) {
+      // Try to extract make from title
+      const titleParts = result.title.split(' ');
+      if (titleParts.length > 1) {
+        make = titleParts[1]; // Assuming format is "YEAR MAKE MODEL"
+      } else {
+        make = 'Unknown';
+      }
+    }
+    
+    // Ensure make is a string
+    make = String(make || 'Unknown');
+    
+    if (makeCount[make]) {
+      makeCount[make]++;
+    } else {
+      makeCount[make] = 1;
+    }
+  });
+  
+  const sortedMakes = Object.entries(makeCount)
+    .sort((a, b) => b[1] - a[1])
+    .map(([make, count]) => ({ make, count }));
+  
+  if (sortedMakes.length === 0) {
+    return {
+      makeDistribution: [],
+      analysis: "Could not extract make information from the auction results."
+    };
+  }
+  
+  return {
+    makeDistribution: sortedMakes,
+    analysis: `The most common make is ${sortedMakes[0].make} with ${sortedMakes[0].count} auction results, followed by ${sortedMakes.length > 1 ? sortedMakes[1].make + ' with ' + sortedMakes[1].count + ' results' : 'no other makes'}.`
+  };
+}
+
+function analyzeAuctionModelDistribution(results: any[]) {
+  if (results.length === 0) {
+    return {
+      modelDistribution: [],
+      analysis: "No auction results available for analysis."
+    };
+  }
+  
+  const modelCount: Record<string, number> = {};
+  
+  results.forEach(result => {
+    let make = result.make;
+    let model = result.model;
+    
+    if (!make || !model) {
+      // Try to extract make and model from title
+      const titleParts = result.title.split(' ');
+      if (titleParts.length > 2) {
+        make = make || titleParts[1]; // Assuming format is "YEAR MAKE MODEL"
+        model = model || titleParts[2];
+      } else {
+        make = make || 'Unknown';
+        model = model || 'Unknown';
+      }
+    }
+    
+    // Ensure make and model are strings
+    make = String(make || 'Unknown');
+    model = String(model || 'Unknown');
+    
+    const fullModel = `${make} ${model}`;
+    
+    if (modelCount[fullModel]) {
+      modelCount[fullModel]++;
+    } else {
+      modelCount[fullModel] = 1;
+    }
+  });
+  
+  const sortedModels = Object.entries(modelCount)
+    .sort((a, b) => b[1] - a[1])
+    .map(([model, count]) => ({ model, count }));
+  
+  if (sortedModels.length === 0) {
+    return {
+      modelDistribution: [],
+      analysis: "Could not extract model information from the auction results."
+    };
+  }
+  
+  return {
+    modelDistribution: sortedModels,
+    analysis: `The most common model is the ${sortedModels[0].model} with ${sortedModels[0].count} auction results, followed by ${sortedModels.length > 1 ? 'the ' + sortedModels[1].model + ' with ' + sortedModels[1].count + ' results' : 'no other models'}.`
+  };
+}
+
+function analyzeAuctionYearDistribution(results: any[]) {
+  if (results.length === 0) {
+    return {
+      analysis: "No auction results available for analysis.",
+      yearDistribution: []
+    };
+  }
+  
+  const yearCount: Record<number, number> = {};
+  
+  results.forEach(result => {
+    // Try to extract year from title if not already available
+    let year: number | null = null;
+    
+    if (result.year && typeof result.year === 'number') {
+      year = result.year;
+    } else {
+      const yearMatch = result.title.match(/\b(19|20)\d{2}\b/);
+      if (yearMatch) {
+        year = parseInt(yearMatch[0]);
+      }
+    }
+    
+    if (year && !isNaN(year)) {
+      if (yearCount[year]) {
+        yearCount[year]++;
+      } else {
+        yearCount[year] = 1;
+      }
+    }
+  });
+  
+  const sortedYears = Object.entries(yearCount)
+    .sort((a, b) => parseInt(b[0]) - parseInt(a[0]))
+    .map(([year, count]) => ({ year: parseInt(year), count }));
+  
+  if (sortedYears.length === 0) {
+    return {
+      analysis: "Could not extract year information from the auction results.",
+      yearDistribution: []
+    };
+  }
+  
+  const years = sortedYears.map(y => y.year);
+  const minYear = Math.min(...years);
+  const maxYear = Math.max(...years);
+  
+  return {
+    yearDistribution: sortedYears,
+    yearRange: { min: minYear, max: maxYear },
+    analysis: `The most common year is ${sortedYears[0].year} with ${sortedYears[0].count} auction results. The results span from ${minYear} to ${maxYear}.`
+  };
+}
+
+function analyzeAuctionPriceRange(results: any[]) {
+  const soldResults = results.filter(result => result.status === 'sold');
+  
+  if (soldResults.length === 0) {
+    return {
+      analysis: "No sold items found for price range analysis."
+    };
+  }
+  
+  // Extract numeric prices, handling different formats
+  const prices = soldResults.map(result => {
+    if (typeof result.price === 'number') {
+      return result.price;
+    }
+    
+    if (result.sold_price) {
+      const numericPrice = result.sold_price.toString().replace(/[^0-9.]/g, '');
+      return numericPrice ? parseFloat(numericPrice) : 0;
+    }
+    
+    return 0;
+  }).filter(price => price > 0); // Filter out zero prices
+  
+  if (prices.length === 0) {
+    return {
+      analysis: "Could not extract valid price information from the sold items."
+    };
+  }
+  
+  const lowestPrice = Math.min(...prices);
+  const highestPrice = Math.max(...prices);
+  const averagePrice = prices.reduce((sum, price) => sum + price, 0) / prices.length;
+  
+  // Create price brackets
+  const range = highestPrice - lowestPrice;
+  const bracketSize = range / 5;
+  const brackets = Array.from({ length: 5 }, (_, i) => {
+    const min = lowestPrice + (i * bracketSize);
+    const max = lowestPrice + ((i + 1) * bracketSize);
+    return {
+      range: `$${Math.round(min).toLocaleString()} - $${Math.round(max).toLocaleString()}`,
+      count: prices.filter(price => price >= min && price < max).length
+    };
+  });
+  
+  return {
+    priceRange: {
+      lowest: `$${lowestPrice.toLocaleString()}`,
+      highest: `$${highestPrice.toLocaleString()}`,
+      average: `$${Math.round(averagePrice).toLocaleString()}`
+    },
+    priceBrackets: brackets,
+    analysis: `The sold prices range from $${lowestPrice.toLocaleString()} to $${highestPrice.toLocaleString()}, with an average price of $${Math.round(averagePrice).toLocaleString()}.`
+  };
+}
+
+function analyzeAuctionSummary(results: any[]) {
+  const total = results.length;
+  const sold = results.filter(result => result.status === 'sold').length;
+  const soldPercentage = total > 0 ? (sold / total) * 100 : 0;
+  
+  // Extract prices from sold items, handling different formats
+  const soldPrices = results
+    .filter(result => result.status === 'sold')
+    .map(result => {
+      if (typeof result.price === 'number') {
+        return result.price;
+      }
+      
+      if (result.sold_price) {
+        const numericPrice = result.sold_price.toString().replace(/[^0-9.]/g, '');
+        return numericPrice ? parseFloat(numericPrice) : 0;
+      }
+      
+      return 0;
+    })
+    .filter(price => price > 0); // Filter out zero prices
+  
+  let priceStats = { lowest: 'N/A', highest: 'N/A', average: 'N/A' };
+  
+  if (soldPrices.length > 0) {
+    const lowestPrice = Math.min(...soldPrices);
+    const highestPrice = Math.max(...soldPrices);
+    const averagePrice = soldPrices.reduce((sum, price) => sum + price, 0) / soldPrices.length;
+    
+    priceStats = {
+      lowest: `$${lowestPrice.toLocaleString()}`,
+      highest: `$${highestPrice.toLocaleString()}`,
+      average: `$${Math.round(averagePrice).toLocaleString()}`
+    };
+  }
+  
+  // Analyze make distribution
+  const makeAnalysis = analyzeAuctionMakeDistribution(results);
+  
+  // Analyze year distribution
+  const yearAnalysis = analyzeAuctionYearDistribution(results);
+  
+  // Find best deal if there are sold items
+  type BestDealType = {
+    bestDeals: {
+      title: string;
+      price: string;
+      averagePrice: string;
+      percentBelow: string;
+      date: string;
+      url: string;
+    }[];
+  };
+  
+  let bestDealAnalysis: BestDealType = { bestDeals: [] };
+  if (soldPrices.length > 0) {
+    const bestDealResult = analyzeAuctionBestDeal(results);
+    if (bestDealResult.bestDeals && bestDealResult.bestDeals.length > 0) {
+      bestDealAnalysis = bestDealResult as BestDealType;
+    }
+  }
+  
+  return {
+    totalResults: total,
+    soldStats: {
+      sold,
+      notSold: total - sold,
+      soldPercentage: Math.round(soldPercentage)
+    },
+    priceStats,
+    topMakes: makeAnalysis.makeDistribution.slice(0, 3),
+    yearRange: yearAnalysis.yearRange || { min: 'Unknown', max: 'Unknown' },
+    bestDeal: bestDealAnalysis.bestDeals[0] || null,
+    analysis: `There are ${total} auction results in total, with ${sold} resulting in a sale (${Math.round(soldPercentage)}%). ${
+      soldPrices.length > 0 
+        ? `The sold prices range from ${priceStats.lowest} to ${priceStats.highest}, with an average of ${priceStats.average}. `
+        : ''
+    }${
+      makeAnalysis.makeDistribution.length > 0
+        ? `The most common make is ${makeAnalysis.makeDistribution[0].make} with ${makeAnalysis.makeDistribution[0].count} results. `
+        : ''
+    }${
+      yearAnalysis.yearRange
+        ? `The results span from ${yearAnalysis.yearRange.min} to ${yearAnalysis.yearRange.max}. `
+        : ''
+    }${
+      bestDealAnalysis.bestDeals.length > 0
+        ? `The best deal appears to be a ${bestDealAnalysis.bestDeals[0].title} that sold for ${bestDealAnalysis.bestDeals[0].price}, which is ${bestDealAnalysis.bestDeals[0].percentBelow} below the average price for similar vehicles.`
+        : ''
+    }`
+  };
 } 

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { TopLevelSpec } from 'vega-lite';
+import AuctionAIAgent from '../../components/listings/AuctionAIAgent';
 
 // Define types for car data from Supabase
 type CarMake = {
@@ -1111,6 +1112,11 @@ function AuctionsContent() {
       
       <div className="mt-8">
       </div>
+      
+      {/* Add AI Agent for auction results */}
+      {!loading && results.length > 0 && (
+        <AuctionAIAgent auctionResults={results} />
+      )}
     </div>
   );
 }

@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { initializeAgent } from '@/lib/langchain';
 import '@/lib/server-only';
 
-// Declare global namespace to add currentListings property
+// Declare global namespace to add currentListings and currentAuctionResults properties
 declare global {
   var currentListings: any[];
+  var currentAuctionResults: any[];
 }
 
 export async function POST(request: NextRequest) {
@@ -21,9 +22,10 @@ export async function POST(request: NextRequest) {
     // Initialize the agent
     const agent = await initializeAgent();
     
-    // Create a prompt that includes the listings context if provided
+    // Create a prompt that includes the context if provided
     let enhancedQuery = query;
     
+    // Handle listings context
     if (context?.listings && Array.isArray(context.listings) && context.listings.length > 0) {
       // Store the listings in the global context for the analyze_current_listings tool
       global.currentListings = context.listings;
@@ -38,6 +40,38 @@ export async function POST(request: NextRequest) {
     } else {
       // Clear the global listings if none are provided
       global.currentListings = [];
+    }
+    
+    // Handle auction results context
+    if (context?.auctionResults && Array.isArray(context.auctionResults) && context.auctionResults.length > 0) {
+      // Store the auction results in the global context
+      global.currentAuctionResults = context.auctionResults;
+      
+      // Format the auction results data for the agent
+      const auctionData = context.auctionResults.map((result: any, index: number) => {
+        // Ensure price values are properly formatted
+        const soldPrice = result.status === 'sold' && result.sold_price ? 
+          `$${result.sold_price.replace(/[^0-9.]/g, '')}` : 
+          (result.price ? `$${result.price}` : 'Not available');
+        
+        const bidAmount = result.bid_amount ? 
+          `$${result.bid_amount.replace(/[^0-9.]/g, '')}` : 
+          'Not available';
+        
+        return `Auction Result #${index + 1}: ${result.title}, ${
+          result.status === 'sold' ? 
+            `Sold Price: ${soldPrice}` : 
+            `Bid Amount: ${bidAmount}`
+        }, Status: ${result.status}, Date: ${result.sold_date || 'Not available'}${
+          result.url ? `, URL: ${result.url}` : ''
+        }`;
+      }).join('\n');
+      
+      // Enhance the query with the auction results context
+      enhancedQuery = `The user is viewing the following car auction results:\n\n${auctionData}\n\nUser query: ${query}`;
+    } else {
+      // Clear the global auction results if none are provided
+      global.currentAuctionResults = [];
     }
     
     // Process the query
@@ -57,7 +91,8 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   } finally {
-    // Clear the global listings after processing
+    // Clear the global context after processing
     global.currentListings = [];
+    global.currentAuctionResults = [];
   }
 }

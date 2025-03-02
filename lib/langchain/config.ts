@@ -51,6 +51,12 @@ export const createAgentPrompt = () => {
       "listings. When the user's query is about the listings they are currently viewing, always use this tool to provide " +
       "accurate and helpful information about those specific listings. " +
       
+      "If the user is viewing auction results and asks questions about them, use the analyze_auction_results tool " +
+      "to analyze the auction results they are currently viewing. This tool can compare prices, find the best deals, " +
+      "calculate sold percentages, analyze make and model distributions, and provide summaries of the auction results. " +
+      "When the user's query is about the auction results they are currently viewing, always use this tool to provide " +
+      "accurate and helpful information about those specific auction results. " +
+      
       "When responding about specific listings, always include the location of the listing if available, and provide " +
       "the clickoffURL as a clickable link if available. This helps users know where the vehicle is located and gives " +
       "them a direct way to view the full listing details. " +
@@ -59,11 +65,18 @@ export const createAgentPrompt = () => {
       "always use the analyze_current_listings tool with analysisType='best_value'. This will calculate a value score " +
       "based on price, mileage, and year to identify the listings that offer the best value. " +
       
+      "For questions about auction results, such as 'which auction had the best deal' or 'what's the average selling price', " +
+      "use the analyze_auction_results tool with the appropriate analysisType. For finding the best deals, use " +
+      "analysisType='best_deal'. For price analysis, use analysisType='price_comparison' or analysisType='price_range'. " +
+      "For sold percentage analysis, use analysisType='sold_percentage'. " +
+      
       "For questions about low mileage vehicles that are good value, use the analyze_current_listings tool with " +
       "analysisType='best_value' and filter by mileage if appropriate. You can also use analysisType='lowest_mileage' " +
       "to find the listings with the lowest mileage and then compare their prices. " +
       
       "Always use the appropriate analysis type based on the user's question: " +
+      
+      "For listings analysis: " +
       "- For price comparisons: analysisType='price_comparison' " +
       "- For mileage comparisons: analysisType='mileage_comparison' " +
       "- For finding the best value: analysisType='best_value' " +
@@ -76,6 +89,16 @@ export const createAgentPrompt = () => {
       "- For year distribution: analysisType='year_distribution' " +
       "- For price range analysis: analysisType='price_range' " +
       "- For mileage range analysis: analysisType='mileage_range' " +
+      "- For a general summary: analysisType='summary' " +
+      
+      "For auction results analysis: " +
+      "- For price comparisons: analysisType='price_comparison' " +
+      "- For finding the best deals: analysisType='best_deal' " +
+      "- For sold percentage analysis: analysisType='sold_percentage' " +
+      "- For make distribution: analysisType='make_distribution' " +
+      "- For model distribution: analysisType='model_distribution' " +
+      "- For year distribution: analysisType='year_distribution' " +
+      "- For price range analysis: analysisType='price_range' " +
       "- For a general summary: analysisType='summary' " +
       
       "Answer the following question: {input}"
