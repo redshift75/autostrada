@@ -35,6 +35,8 @@ export type Listing = {
   model: string;
   year: number;
   vin: string;
+  location?: string;
+  clickoffURL?: string;
 };
 
 // Helper function to ensure URLs have proper protocol

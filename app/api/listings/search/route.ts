@@ -24,6 +24,7 @@ type AutoDevListingsResponse = {
     priceUnformatted: number;
     photoUrls: string[];
     description?: string;
+    clickoffUrl: string;
     createdAt: string;
     updatedAt: string;
   }>;
@@ -299,7 +300,7 @@ export async function POST(request: Request) {
             fuel_type: null,
             mpg_city: null,
             mpg_highway: null,
-            url: record.vdpUrl || record.hrefTarget || '',
+            url: record.clickoffUrl || '',
             image_url: primaryPhotoUrl,
             images: record.photoUrls && record.photoUrls.length > 0 ? { 
               small: { 
@@ -352,7 +353,7 @@ export async function POST(request: Request) {
             fuel_type: listing.fuelType,
             mpg_city: listing.mpgCity,
             mpg_highway: listing.mpgHighway,
-            url: listing.url,
+            url: listing.clickoffUrl,
             image_url: imageUrls.length > 0 ? imageUrls[0] : null,
             images: imageUrls.length > 0 ? { 
               small: { url: imageUrls[0], width: 300, height: 200 },

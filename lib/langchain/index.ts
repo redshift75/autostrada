@@ -21,7 +21,8 @@ import {
   createPriceHistoryTool,
   createVehicleDetailTool,
   createMarketAnalysisTool,
-  createAuctionResultsTool
+  createAuctionResultsTool,
+  createListingsAnalysisTool
 } from "./tools";
 import { initOpenAIClient, initSupabaseVectorStore } from "./clients";
 
@@ -35,6 +36,7 @@ export async function initializeAgent() {
   const vehicleDetailTool = createVehicleDetailTool();
   const marketAnalysisTool = createMarketAnalysisTool();
   const auctionResultsTool = createAuctionResultsTool();
+  const listingsAnalysisTool = createListingsAnalysisTool();
 
   // Create the prompt template
   const prompt = createAgentPrompt();
@@ -48,6 +50,7 @@ export async function initializeAgent() {
       vehicleDetailTool,
       marketAnalysisTool,
       auctionResultsTool,
+      listingsAnalysisTool,
     ],
     prompt,
   });
@@ -61,6 +64,7 @@ export async function initializeAgent() {
       vehicleDetailTool,
       marketAnalysisTool,
       auctionResultsTool,
+      listingsAnalysisTool,
     ],
     verbose: true,
   });

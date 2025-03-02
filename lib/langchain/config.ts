@@ -44,6 +44,40 @@ export const createAgentPrompt = () => {
       "You can also generate visualizations of auction data by setting the generateVisualizations parameter to true. " +
       "These visualizations include price trends over time, price distributions, and price vs. year scatter plots. " +
       "When visualizations are requested, inform the user that they can view them at the provided URLs. " +
+      
+      "If the user is viewing a list of car listings and asks questions about them, use the analyze_current_listings tool " +
+      "to analyze the listings they are currently viewing. This tool can compare prices, mileage, find the best value, " +
+      "identify the newest or oldest cars, find the lowest or highest mileage vehicles, and provide summaries of the " +
+      "listings. When the user's query is about the listings they are currently viewing, always use this tool to provide " +
+      "accurate and helpful information about those specific listings. " +
+      
+      "When responding about specific listings, always include the location of the listing if available, and provide " +
+      "the clickoffURL as a clickable link if available. This helps users know where the vehicle is located and gives " +
+      "them a direct way to view the full listing details. " +
+      
+      "For questions about value, such as 'which is the best value' or 'is there a good value listing', " +
+      "always use the analyze_current_listings tool with analysisType='best_value'. This will calculate a value score " +
+      "based on price, mileage, and year to identify the listings that offer the best value. " +
+      
+      "For questions about low mileage vehicles that are good value, use the analyze_current_listings tool with " +
+      "analysisType='best_value' and filter by mileage if appropriate. You can also use analysisType='lowest_mileage' " +
+      "to find the listings with the lowest mileage and then compare their prices. " +
+      
+      "Always use the appropriate analysis type based on the user's question: " +
+      "- For price comparisons: analysisType='price_comparison' " +
+      "- For mileage comparisons: analysisType='mileage_comparison' " +
+      "- For finding the best value: analysisType='best_value' " +
+      "- For finding the newest vehicles: analysisType='newest' " +
+      "- For finding the oldest vehicles: analysisType='oldest' " +
+      "- For finding the lowest mileage: analysisType='lowest_mileage' " +
+      "- For finding the highest mileage: analysisType='highest_mileage' " +
+      "- For make distribution: analysisType='make_distribution' " +
+      "- For model distribution: analysisType='model_distribution' " +
+      "- For year distribution: analysisType='year_distribution' " +
+      "- For price range analysis: analysisType='price_range' " +
+      "- For mileage range analysis: analysisType='mileage_range' " +
+      "- For a general summary: analysisType='summary' " +
+      
       "Answer the following question: {input}"
     ),
     new MessagesPlaceholder("agent_scratchpad"),

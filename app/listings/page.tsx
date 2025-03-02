@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import ListingCard, { Listing } from '@/components/listings/ListingCard';
+import ListingsAIAgent from '@/components/listings/ListingsAIAgent';
 import { generateListingPriceHistogram, generateListingMileageHistogram } from '@/lib/utils/visualization';
 import type { TopLevelSpec } from 'vega-lite';
 
@@ -501,7 +502,7 @@ function ListingsContent() {
           model: model || undefined,
           yearMin: yearMin ? parseInt(yearMin) : undefined,
           yearMax: yearMax ? parseInt(yearMax) : undefined,
-          maxResults: 50,
+          maxResults: 100,
         }),
       });
       
@@ -1025,6 +1026,11 @@ function ListingsContent() {
               No listings match your filter criteria. Try adjusting your filters.
             </div>
           )}
+          
+          {/* AI Agent */}
+          {filteredResults.length > 0 && (
+            <ListingsAIAgent listings={filteredResults} />
+          )}
         </>
       )}
       
@@ -1046,6 +1052,11 @@ function ListingsContent() {
             Searching for listings...
           </p>
         </div>
+      )}
+      
+      {/* AI Agent for all results */}
+      {results.length > 0 && filteredResults.length === 0 && (
+        <ListingsAIAgent listings={results} />
       )}
     </div>
   );
