@@ -101,14 +101,19 @@ export class BringATrailerActiveListingScraper extends BaseScraper {
       const html = await this.fetchHtml(this.searchUrl);
       
       // Save HTML for debugging only in development environment
-      if (process.env.NODE_ENV !== 'production') {
-        const debugDir = path.join(process.cwd(), 'debug');
-        if (!fs.existsSync(debugDir)) {
-          fs.mkdirSync(debugDir);
+      if (process.env.NODE_ENV === 'development') {
+        try {
+          const debugDir = path.join(process.cwd(), 'debug');
+          if (!fs.existsSync(debugDir)) {
+            fs.mkdirSync(debugDir, { recursive: true });
+          }
+          const debugFile = path.join(debugDir, `bat_debug_${Date.now()}.html`);
+          fs.writeFileSync(debugFile, html);
+          console.log(`Saved debug HTML to ${debugFile}`);
+        } catch (error) {
+          console.error('Error saving debug HTML:', error);
+          // Continue execution even if debug file saving fails
         }
-        const debugFile = path.join(debugDir, `bat_debug_${Date.now()}.html`);
-        fs.writeFileSync(debugFile, html);
-        console.log(`Saved debug HTML to ${debugFile}`);
       }
       
       console.log('Extracting auction data from HTML...');
@@ -138,10 +143,21 @@ export class BringATrailerActiveListingScraper extends BaseScraper {
         console.log('Sample converted listing:', JSON.stringify(listings[0], null, 2));
       }
       
-      // Save listings to file for debugging
-      const listingsFile = path.join(process.cwd(), 'debug', `bat_active_listings_${Date.now()}.json`);
-      fs.writeFileSync(listingsFile, JSON.stringify(listings, null, 2));
-      console.log(`Saved ${listings.length} listings to ${listingsFile}`);
+      // Save listings to file for debugging only in development environment
+      if (process.env.NODE_ENV === 'development') {
+        try {
+          const debugDir = path.join(process.cwd(), 'debug');
+          if (!fs.existsSync(debugDir)) {
+            fs.mkdirSync(debugDir, { recursive: true });
+          }
+          const listingsFile = path.join(debugDir, `bat_active_listings_${Date.now()}.json`);
+          fs.writeFileSync(listingsFile, JSON.stringify(listings, null, 2));
+          console.log(`Saved ${listings.length} listings to ${listingsFile}`);
+        } catch (error) {
+          console.error('Error saving debug file:', error);
+          // Continue execution even if debug file saving fails
+        }
+      }
       
       return listings;
     } catch (error) {
