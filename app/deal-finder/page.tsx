@@ -481,7 +481,7 @@ export default function DealFinder() {
         {/* Search Form */}
         <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 mb-8">
           <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Search for Deals</h2>
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label htmlFor="make" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Make
@@ -510,6 +510,8 @@ export default function DealFinder() {
                 placeholder="e.g. 911"
               />
             </div>
+            
+            {/* Year inputs side by side on second row */}
             <div>
               <label htmlFor="yearMin" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Year Min
@@ -538,25 +540,14 @@ export default function DealFinder() {
                 placeholder="e.g. 2023"
               />
             </div>
-            <div>
-              <label htmlFor="maxDeals" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Max Deals
-              </label>
-              <input
-                type="number"
-                id="maxDeals"
-                name="maxDeals"
-                value={formData.maxDeals}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                placeholder="e.g. 10"
-              />
-            </div>
-            <div className="flex items-end">
+            
+            {/* Max Deals input is hidden but still in formData state */}
+            
+            <div className="flex items-end md:col-span-2 justify-end">
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors duration-200"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors duration-200"
               >
                 {loading ? 'Searching...' : 'Find Deals'}
               </button>

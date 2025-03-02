@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
       model,
       yearMin: yearMin || 2015,
       yearMax: yearMax || 2023,
-      maxPages: maxPages || 10,
+      maxPages: maxPages || 2,
       generateVisualizations: true
     });
     
