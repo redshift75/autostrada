@@ -67,25 +67,6 @@ Vercel automatically deploys when you push changes to your repository. You can c
 
 1. Create a `.env.local` file in the root directory with the following variables:
 
-```
-# Supabase credentials
-SUPABASE_URL=https://your-project-id.supabase.co
-SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-
-# Database connection string (from Supabase)
-DATABASE_URL=postgresql://postgres:your-db-password@db.your-project-id.supabase.co:5432/postgres
-
-# API Keys
-OPENAI_API_KEY=your_openai_api_key_here
-```
-
-You can find these credentials in your Supabase project dashboard under Project Settings > API.
-
-### Database Initialization
-
-1. Install dependencies:
-
 ```bash
 npm install
 ```
@@ -191,10 +172,6 @@ This project provides tools for scraping auction data from Bring a Trailer (BaT)
 3. Copy the `.env.example` file to `.env` and update with your Supabase credentials:
    ```
    cp .env.example .env
-   ```
-4. Create the necessary tables in Supabase:
-   ```
-   npm run create-supabase-tables
    ```
 
 ## Usage

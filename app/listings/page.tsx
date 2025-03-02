@@ -532,7 +532,7 @@ function ListingsContent() {
     setError(null);
     
     try {
-      const response = await fetch('/api/listings/search', {
+      const response = await fetch('/api/listings', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
