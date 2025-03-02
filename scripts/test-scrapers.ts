@@ -15,7 +15,7 @@ import minimist from 'minimist';
 const argv = minimist(process.argv.slice(2));
 const mode = argv.mode || 'both'; // completed, active, both
 const make = argv.make || 'Porsche';
-const model = argv.model || '911';
+const model = argv.model || '';
 const maxPages = argv.maxPages || 3;
 
 async function testResultsScraper() {
