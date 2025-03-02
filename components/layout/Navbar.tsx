@@ -57,6 +57,16 @@ export default function Navbar() {
             >
               Listings
             </Link>
+            <Link 
+              href="/deal-finder" 
+              className={`px-3 py-2 rounded-md text-sm font-medium ${
+                isActive('/deal-finder') 
+                  ? 'bg-gray-900 text-white dark:bg-gray-700' 
+                  : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
+              }`}
+            >
+              Deal Finder
+            </Link>
           </div>
           
           <div className="md:hidden">
@@ -119,6 +129,17 @@ export default function Navbar() {
             onClick={() => setIsMobileMenuOpen(false)}
           >
             Listings
+          </Link>
+          <Link 
+            href="/deal-finder" 
+            className={`block px-3 py-2 rounded-md text-base font-medium ${
+              isActive('/deal-finder') 
+                ? 'bg-gray-900 text-white dark:bg-gray-700' 
+                : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
+            }`}
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            Deal Finder
           </Link>
         </div>
       </div>
