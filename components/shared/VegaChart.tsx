@@ -144,7 +144,8 @@ export default function VegaChart({ spec, className, onSignalClick }: VegaChartP
           });
         } else {
           // Check if this is a time series chart
-          const isTimeSeries = specAny.description?.includes('Price Trends');
+          const isTimeSeries = specAny.description?.includes('Price Trends') || 
+                             specAny.description?.includes('Historical Price');
           
           // Add cursor pointer to points for time series charts
           if (isTimeSeries) {
@@ -169,13 +170,18 @@ export default function VegaChart({ spec, className, onSignalClick }: VegaChartP
             viewRef.current = result.view;
             
             // Add click event listener for time series chart points
-            if (onSignalClick && isTimeSeries) {
-              // Add click event listener
-              result.view.addEventListener('click', (event: any, item: any) => {
-                if (item && item.datum) {
-                  onSignalClick('pointClick', item.datum);
-                }
-              });
+            if (onSignalClick) {
+              // Check if this is a time series chart
+              const isTimeSeries = specAny.description?.includes('Price Trends') || 
+                                   specAny.description?.includes('Historical Price');
+              
+              if (isTimeSeries) {
+                result.view.addEventListener('click', (event: any, item: any) => {
+                  if (item && item.datum) {
+                    onSignalClick('pointClick', item.datum);
+                  }
+                });
+              }
             }
           }).catch((error: Error) => {
             console.error('Error rendering Vega chart:', error);

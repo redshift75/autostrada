@@ -179,10 +179,25 @@ export default function DealFinder() {
 
   // Check if auction is ending soon (within 24 hours)
   const isEndingSoon = (endDate: number) => {
-    const now = new Date(currentTime);
-    const end = new Date(endDate);
-    const diffHours = (end.getTime() - now.getTime()) / (1000 * 60 * 60);
-    return diffHours <= 24;
+    const now = Date.now();
+    const hoursRemaining = (endDate - now) / (1000 * 60 * 60);
+    return hoursRemaining <= 24;
+  };
+
+  // Handle historical price chart point click
+  const handleHistoricalPriceClick = (name: string, value: any) => {
+    if (name === 'pointClick' && value) {
+      console.log('Historical price point clicked with data:', value);
+      
+      // Check if the point has a URL
+      if (value.url && value.url !== '#') {
+        console.log('Opening URL:', value.url);
+        // Open the URL in a new tab
+        window.open(value.url, '_blank');
+      } else {
+        console.log('No URL found for this point or URL is a placeholder');
+      }
+    }
   };
 
   // Parse price string to number
@@ -355,7 +370,8 @@ export default function DealFinder() {
         type: 'circle',
         filled: true,
         tooltip: true,
-        opacity: 0.8
+        opacity: 0.8,
+        cursor: 'pointer'  // Add cursor pointer to indicate clickability
       },
       encoding: {
         x: {
@@ -398,7 +414,8 @@ export default function DealFinder() {
         tooltip: [
           { field: 'date', type: 'temporal', title: 'Date', format: '%b %d, %Y' },
           { field: 'price', type: 'quantitative', title: 'Price', format: '$,.0f' },
-          { field: 'title', type: 'nominal', title: 'Vehicle' }
+          { field: 'title', type: 'nominal', title: 'Vehicle' },
+          { field: 'url', type: 'nominal', title: 'URL' }
         ]
       }
     };
@@ -415,7 +432,10 @@ export default function DealFinder() {
           // Main data points
           {
             data: baseSpec.data,
-            mark: baseSpec.mark,
+            mark: {
+              ...baseSpec.mark,
+              cursor: 'pointer'  // Ensure cursor pointer is applied in layered chart
+            },
             encoding: baseSpec.encoding
           },
           // Trend line
@@ -453,7 +473,10 @@ export default function DealFinder() {
         layer: [
           {
             data: baseSpec.data,
-            mark: baseSpec.mark,
+            mark: {
+              ...baseSpec.mark,
+              cursor: 'pointer'  // Ensure cursor pointer is applied in layered chart
+            },
             encoding: baseSpec.encoding
           }
           // Legend layer removed
@@ -723,11 +746,15 @@ export default function DealFinder() {
                           <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                             <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
                               Historical Price Trends
+                              <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
+                                (Click on a point to view listing)
+                              </span>
                             </h4>
                             <div className="w-full" style={{ minHeight: '300px' }}>
                               <VegaChart 
                                 spec={generateHistoricalPriceChart(deal)} 
                                 className="w-full h-auto"
+                                onSignalClick={handleHistoricalPriceClick}
                               />
                             </div>
                           </div>
