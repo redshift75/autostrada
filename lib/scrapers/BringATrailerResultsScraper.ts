@@ -57,6 +57,7 @@ export interface BaTResultsScraperParams {
   delayBetweenRequests?: number; // Delay between requests in milliseconds
   longPauseInterval?: number; // Number of pages after which to take a longer pause
   longPauseDelay?: number; // Duration of the longer pause in milliseconds
+  modelSuggestions?: string[]; // List of model suggestions for the specified make
 }
 
 export class BringATrailerResultsScraper extends BaseScraper {
@@ -105,6 +106,7 @@ export class BringATrailerResultsScraper extends BaseScraper {
       let allListings: BaTCompletedListing[] = [];
       const seenIds = new Set<string>();
       const make = params.make || 'Porsche'; // Default to Porsche if not specified
+      const modelSuggestions = params.modelSuggestions || []; // Get model suggestions from params
       
       // Set rate limiting parameters with defaults
       const delayBetweenRequests = params.delayBetweenRequests || 2000; // 2 seconds between requests
@@ -115,6 +117,11 @@ export class BringATrailerResultsScraper extends BaseScraper {
       let searchTerm = make;
       if (params.model) {
         searchTerm += ` ${params.model}`;
+      }
+      
+      // Log model suggestions if available
+      if (modelSuggestions.length > 0) {
+        console.log(`Using ${modelSuggestions.length} model suggestions for ${make}`);
       }
       
       console.log(`Searching for: ${searchTerm}`);
@@ -184,7 +191,7 @@ export class BringATrailerResultsScraper extends BaseScraper {
           }
           
           // Extract listings from the API response
-          const pageListings = this.extractCompletedListingsFromApiData(response.data, make);
+          const pageListings = this.extractCompletedListingsFromApiData(response.data, make, modelSuggestions);
           console.log(`Page ${page}: Found ${pageListings.length} listings`);
           
           // Only add listings that we haven't seen before
@@ -243,7 +250,7 @@ export class BringATrailerResultsScraper extends BaseScraper {
     }
   }
 
-  private extractCompletedListingsFromApiData(data: any, make: string = 'Porsche'): BaTCompletedListing[] {
+  private extractCompletedListingsFromApiData(data: any, make: string = 'Porsche', modelSuggestions: string[] = []): BaTCompletedListing[] {
     try {
       if (!data || !data.items || !Array.isArray(data.items)) {
         return [];
@@ -257,7 +264,7 @@ export class BringATrailerResultsScraper extends BaseScraper {
         
         if (item.title) {
           // Use the improved parseTitle method to extract year, make, and model
-          const titleInfo = this.parseTitle(item.title, make);
+          const titleInfo = this.parseTitle(item.title, make, modelSuggestions);
           itemYear = titleInfo.year;
           itemMake = titleInfo.make;
           itemModel = titleInfo.model;
@@ -328,7 +335,7 @@ export class BringATrailerResultsScraper extends BaseScraper {
     }
   }
 
-  private parseTitle(title: string, make: string): { year?: number; make?: string; model?: string } {
+  private parseTitle(title: string, make: string = 'Porsche', modelSuggestions: string[] = []): { year?: number; make?: string; model?: string } {
     // Look for a 4-digit year anywhere in the title
     const yearMatch = title.match(/\b(19\d{2}|20\d{2})\b/);
     const year = yearMatch ? parseInt(yearMatch[1], 10) : undefined;
@@ -341,8 +348,23 @@ export class BringATrailerResultsScraper extends BaseScraper {
     // Look for the make in the title
     const makeIndex = title.indexOf(make);
     if (makeIndex !== -1) {
-      // Extract the model by looking at words after the make
+      // Extract the text after the make
       const afterMake = title.substring(makeIndex + make.length).trim();
+      
+      // If we have model suggestions, try to find the best match
+      if (modelSuggestions.length > 0) {
+        // Sort model suggestions by length (descending) to prioritize longer matches
+        const sortedSuggestions = [...modelSuggestions].sort((a, b) => b.length - a.length);
+        
+        // Try to find a model suggestion in the text after the make
+        for (const modelSuggestion of sortedSuggestions) {
+          if (afterMake.includes(modelSuggestion)) {
+            return { year, make, model: modelSuggestion };
+          }
+        }
+      }
+      
+      // If no model suggestion matched or none were provided, fall back to the original logic
       const parts = afterMake.split(/\s+/);
       
       // The model is typically the next word or two after the make
