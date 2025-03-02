@@ -816,7 +816,7 @@ function AuctionsContent() {
                       {(filteredVisualizations?.timeSeriesChart || visualizations.timeSeriesChart) && (
                         <div className="bg-gray-50 p-4 rounded-md">
                           <h3 className="text-lg font-semibold mb-2">
-                            Price Trends Over Time
+                            Price Trends
                             <span className="ml-2 text-sm font-normal text-gray-500">
                               (Click on a point to view listing)
                             </span>

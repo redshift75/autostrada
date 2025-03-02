@@ -357,7 +357,7 @@ export default function DealFinder() {
     // Base chart configuration
     const baseSpec = {
       $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
-      description: 'Historical Price Trends',
+      description: 'Price Trends',
       width: "container",
       height: 300,
       autosize: {
@@ -745,7 +745,7 @@ export default function DealFinder() {
                           </div>
                           <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                             <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                              Historical Price Trends
+                               Price Trends
                               <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
                                 (Click on a point to view listing)
                               </span>

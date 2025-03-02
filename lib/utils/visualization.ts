@@ -38,7 +38,7 @@ export async function generatePriceTimeSeriesChart(
     // Create a Vega-Lite specification
     const spec: vegaLite.TopLevelSpec = {
       $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
-      description: 'Auction Price Trends',
+      description: 'Price Trends',
       width: 800,
       height: 400,
       data: { values: data },
