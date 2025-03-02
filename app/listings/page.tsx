@@ -1041,7 +1041,7 @@ function ListingsContent() {
             {error}
           </div>
         )}
-      </div>
+      
       
       {/* Results Section */}
       {results.length > 0 && (
@@ -1297,6 +1297,7 @@ function ListingsContent() {
         <ListingsAIAgent listings={results} />
       )}
     </div>
+  </div>
   );
 }
 
