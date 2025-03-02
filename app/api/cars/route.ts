@@ -34,7 +34,7 @@ export async function GET(request: Request) {
 
     // Determine if we're searching for makes or models
     const isSearchingMakes = type === 'makes';
-    const field = isSearchingMakes ? 'Make' : 'baseModel';
+    const field = isSearchingMakes ? 'Make' : 'Model';
 
     console.log(
       isSearchingMakes
@@ -56,7 +56,7 @@ export async function GET(request: Request) {
     // Execute the query
     const { data, error } = await supabaseQuery
       .order(field)
-      .limit(20);
+      .limit(10);
 
     if (error) {
       console.error(`Error fetching ${isSearchingMakes ? 'makes' : 'models'}:`, error);

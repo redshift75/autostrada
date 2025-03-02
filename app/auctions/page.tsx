@@ -17,7 +17,7 @@ type CarMake = {
 };
 
 type CarModel = {
-  baseModel: string;
+  Model: string;
 };
 
 // Define types for auction results
@@ -201,8 +201,8 @@ function AuctionsContent() {
         return;
       }
       
-      const uniqueModels = Array.from(new Set(data.map((item: CarModel) => item.baseModel)))
-        .filter((baseModel): baseModel is string => !!baseModel)
+      const uniqueModels = Array.from(new Set(data.map((item: CarModel) => item.Model)))
+        .filter((Model): Model is string => !!Model)
         .sort()
         .slice(0, 5); // Limit to 5 results
       

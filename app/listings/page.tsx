@@ -42,7 +42,7 @@ type CarMake = {
 };
 
 type CarModel = {
-  baseModel: string;
+  Model: string;
 };
 
 // Debounce function to delay search execution
@@ -510,8 +510,8 @@ function ListingsContent() {
         return;
       }
       
-      const uniqueModels = Array.from(new Set(data.map((item: CarModel) => item.baseModel)))
-        .filter((baseModel): baseModel is string => !!baseModel)
+      const uniqueModels = Array.from(new Set(data.map((item: CarModel) => item.Model)))
+        .filter((Model): Model is string => !!Model)
         .sort()
         .slice(0, 5); // Limit to 5 results
       
@@ -892,7 +892,7 @@ function ListingsContent() {
               Car Listings
             </h1>
             <p className="mt-3 max-w-2xl mx-auto text-lg text-gray-500 dark:text-gray-300">
-              Find underpriced auctions ending within the next 7 days on Bring a Trailer
+              Find good values across listed used cars
             </p>
           </div>
         </div>
