@@ -10,67 +10,73 @@ type Message = {
 
 // Helper function to convert URLs in text to clickable links
 const formatMessageWithLinks = (text: string): React.ReactNode[] => {
-  // Regular expression to match URLs
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
-  
-  // Find all URLs in the text
-  const matches = Array.from(text.matchAll(urlRegex));
-  
-  if (matches.length === 0) {
-    return [text];
-  }
-  
-  const result: React.ReactNode[] = [];
-  let lastIndex = 0;
-  
-  matches.forEach((match, i) => {
-    const url = match[0];
-    const index = match.index!;
-    
-    // Add text before the URL
-    if (index > lastIndex) {
-      result.push(text.substring(lastIndex, index));
-    }
-    
-    // Extract domain name for display or use a more descriptive text
-    let displayText = url;
-    try {
-      // Try to extract domain name for cleaner display
-      const urlObj = new URL(url);
-      if (urlObj.hostname.includes('listing') || 
-          text.substring(Math.max(0, index - 20), index).includes('listing')) {
-        displayText = "View listing";
-      } else {
-        // Just use the hostname as display text
-        displayText = urlObj.hostname;
+  // Function to ensure URL has proper format
+  const formatUrl = (url: string): string => {
+    // If URL doesn't have a protocol, add https://
+    if (!url.match(/^https?:\/\//i)) {
+      // If it starts with www., just add https://
+      if (url.startsWith('www.')) {
+        return `https://${url}`;
       }
-    } catch (e) {
-      // If URL parsing fails, just use the URL as is
-      displayText = url;
+      // Otherwise add https://www.
+      return `https://www.${url}`;
+    }
+    return url;
+  };
+
+  try {
+    // Simple approach: directly look for markdown links with regex
+    // This is more reliable for the specific format we're seeing
+    const result: React.ReactNode[] = [];
+    
+    // Pattern for markdown links: [text](url)
+    const linkPattern = /\[([^\]]+)\]\(([^)]+)\)/g;
+    
+    let lastIndex = 0;
+    let match;
+    
+    // Reset the regex
+    linkPattern.lastIndex = 0;
+    
+    // Find all markdown links
+    while ((match = linkPattern.exec(text)) !== null) {
+      const [fullMatch, linkText, url] = match;
+      const matchIndex = match.index;
+      
+      // Add text before the link
+      if (matchIndex > lastIndex) {
+        result.push(text.substring(lastIndex, matchIndex));
+      }
+      
+      // Format the URL properly
+      const formattedUrl = formatUrl(url);
+      
+      // Add the link as a React element
+      result.push(
+        <a 
+          key={`link-${Math.random().toString(36).substring(2, 9)}`}
+          href={formattedUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-500 hover:underline"
+        >
+          {linkText}
+        </a>
+      );
+      
+      lastIndex = matchIndex + fullMatch.length;
     }
     
-    // Add the URL as a link
-    result.push(
-      <a 
-        key={`link-${i}`} 
-        href={url} 
-        target="_blank" 
-        rel="noopener noreferrer" 
-        className="text-blue-500 hover:underline"
-      >
-        {displayText}
-      </a>
-    );
+    // Add any remaining text
+    if (lastIndex < text.length) {
+      result.push(text.substring(lastIndex));
+    }
     
-    lastIndex = index + url.length;
-  });
-  
-  // Add any remaining text after the last URL
-  if (lastIndex < text.length) {
-    result.push(text.substring(lastIndex));
+    return result.length > 0 ? result : [text];
+  } catch (error) {
+    console.error('Error processing links:', error);
+    return [text]; // Return original text if there's an error
   }
-  
-  return result;
 };
 
 type ListingsAIAgentProps = {
