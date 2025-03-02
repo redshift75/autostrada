@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import ListingCard, { Listing } from '@/components/listings/ListingCard';
-import ListingsAIAgent from '@/components/listings/ListingsAIAgent';
+import ListingsAIAgent from '@/components/agent/ListingsAIAgent';
 import { generateListingPriceHistogram, generateListingMileageHistogram } from '@/lib/utils/visualization';
 import type { TopLevelSpec } from 'vega-lite';
 
@@ -341,7 +341,7 @@ function ListingsContent() {
     
     try {
       console.log('Fetching make suggestions for query:', query);
-      const response = await fetch(`/api/cars/makes?query=${encodeURIComponent(query)}`);
+      const response = await fetch(`/api/cars?type=makes&query=${encodeURIComponent(query)}`);
       
       if (response.status === 503) {
         // Database connection error
@@ -409,7 +409,7 @@ function ListingsContent() {
     try {
       console.log('Fetching model suggestions for query:', query, 'make:', make);
       const makeParam = make ? `&make=${encodeURIComponent(make)}` : '';
-      const response = await fetch(`/api/cars/models?query=${encodeURIComponent(query)}${makeParam}`);
+      const response = await fetch(`/api/cars?type=models&query=${encodeURIComponent(query)}${makeParam}`);
       
       if (!response.ok) {
         console.error('Model suggestions API error:', response.status, response.statusText);

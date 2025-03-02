@@ -5,7 +5,11 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { TopLevelSpec } from 'vega-lite';
-import AuctionAIAgent from '../../components/listings/AuctionAIAgent';
+import AuctionAIAgent from '../../components/agent/AuctionAIAgent';
+// Import the shared VegaChart component
+import VegaChart from '@/components/shared/VegaChart';
+// Import utility functions
+import { formatPrice } from '@/lib/utils/index';
 
 // Define types for car data from Supabase
 type CarMake = {
@@ -41,182 +45,6 @@ type AuctionResult = {
   };
   price?: number; // Add price field for filtering
 };
-
-// VegaChart component for client-side rendering
-function VegaChart({ 
-  spec, 
-  className, 
-  onSignalClick 
-}: { 
-  spec: TopLevelSpec, 
-  className?: string,
-  onSignalClick?: (name: string, value: any) => void 
-}) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const viewRef = useRef<any>(null);
-
-  useEffect(() => {
-    if (!containerRef.current || !spec) return;
-
-    console.log('VegaChart received spec type:', typeof spec);
-    console.log('VegaChart spec keys:', Object.keys(spec as any));
-
-    // Dynamically import vega-embed to avoid SSR issues
-    import('vega-embed').then(({ default: vegaEmbed }) => {
-      // Ensure we're working with a proper Vega-Lite specification
-      // Check if the spec is a string (which might be a data URL)
-      if (typeof spec === 'string') {
-        console.error('Invalid specification format: Expected Vega-Lite spec object but received string');
-        try {
-          // Try to parse it as JSON
-          const parsedSpec = JSON.parse(spec);
-          console.log('Successfully parsed string spec into object');
-          
-          // Continue with the parsed spec
-          renderChart(parsedSpec, vegaEmbed);
-        } catch (error) {
-          console.error('Failed to parse string spec:', error);
-          return;
-        }
-      } else {
-        // Continue with the object spec
-        renderChart(spec, vegaEmbed);
-      }
-    });
-
-    function renderChart(chartSpec: any, vegaEmbed: any) {
-      // Check if the spec has required Vega-Lite properties using type assertion
-      const specAny = chartSpec as any;
-      if (!specAny.mark && !specAny.layer && !specAny.facet && !specAny.hconcat && 
-          !specAny.vconcat && !specAny.concat && !specAny.repeat) {
-        console.error('Invalid Vega-Lite specification: Missing required properties', chartSpec);
-        return;
-      }
-
-      // Create a deep copy of the spec to avoid modifying the original
-      const specCopy = JSON.parse(JSON.stringify(chartSpec));
-
-      // Create a modified spec with responsive width
-      const responsiveSpec = {
-        ...specCopy,
-        width: "container", // Make width responsive to container
-        height: 400, // Set a fixed height
-        autosize: {
-          type: "fit",
-          contains: "padding",
-          resize: true
-        }
-      };
-
-      // Add signals for histogram selection if it's a histogram
-      if (specAny.description === 'Auction Price Distribution') {
-        // For Vega-Lite, we need to use a different approach for signals
-        // We'll use selection instead of signals directly
-        const histogramSpec = {
-          ...responsiveSpec,
-          selection: {
-            barSelection: {
-              type: "single",
-              encodings: ["x"],
-              on: "click",
-              clear: "dblclick",
-              resolve: "global"
-            }
-          }
-        };
-
-        // Safely handle the mark property
-        if (typeof histogramSpec.mark === 'string') {
-          // If mark is a string (e.g., 'bar'), convert it to an object
-          histogramSpec.mark = {
-            type: histogramSpec.mark,
-            cursor: 'pointer'
-          };
-        } else if (typeof histogramSpec.mark === 'object') {
-          // If mark is already an object, just add the cursor property
-          histogramSpec.mark = {
-            ...histogramSpec.mark,
-            cursor: 'pointer'
-          };
-        } else {
-          // If mark is undefined or something else, set a default
-          histogramSpec.mark = {
-            type: 'bar',
-            cursor: 'pointer'
-          };
-        }
-
-        console.log('Histogram spec mark:', histogramSpec.mark);
-        console.log('Histogram spec data:', histogramSpec.data);
-
-        vegaEmbed(containerRef.current!, histogramSpec as any, {
-          actions: { export: true, source: false, compiled: false, editor: false },
-          renderer: 'svg',
-          mode: 'vega-lite'
-        }).then((result: any) => {
-          viewRef.current = result.view;
-          
-          // Add signal listener for histogram bar clicks
-          if (onSignalClick) {
-            // In Vega-Lite, the selection gets compiled to a Vega signal with a different name
-            // We need to listen for the compiled signal name
-            result.view.addEventListener('click', (event: any, item: any) => {
-              if (item && item.datum) {
-                console.log('Bar clicked:', item.datum);
-                
-                // Extract the bin information from the datum
-                // The structure depends on how the histogram was generated
-                const datum = item.datum;
-                
-                // Log all properties to help debug
-                console.log('Datum properties:', Object.keys(datum));
-                
-                // Try to identify the bin properties
-                const binProps = Object.keys(datum).filter(key => 
-                  key.includes('bin') || 
-                  key.includes('price') || 
-                  key.includes('x') || 
-                  key.includes('y')
-                );
-                
-                console.log('Potential bin properties:', binProps);
-                console.log('Bin values:', binProps.map(prop => `${prop}: ${datum[prop]}`));
-                
-                onSignalClick('barClick', datum);
-              }
-            });
-          }
-        }).catch((error: Error) => {
-          console.error('Error rendering Vega chart:', error);
-          console.error('Problematic spec:', JSON.stringify(histogramSpec));
-        });
-      } else {
-        vegaEmbed(containerRef.current!, responsiveSpec as any, {
-          actions: { export: true, source: false, compiled: false, editor: false },
-          renderer: 'svg',
-          mode: 'vega-lite'
-        }).then((result: any) => {
-          viewRef.current = result.view;
-        }).catch((error: Error) => {
-          console.error('Error rendering Vega chart:', error);
-          console.error('Problematic spec:', JSON.stringify(responsiveSpec));
-        });
-      }
-    }
-
-    // Cleanup function
-    return () => {
-      if (viewRef.current) {
-        viewRef.current.finalize();
-      }
-      if (containerRef.current) {
-        containerRef.current.innerHTML = '';
-      }
-    };
-  }, [spec, onSignalClick]);
-
-  return <div ref={containerRef} className={className} style={{ minHeight: "400px" }} />;
-}
 
 // Create a client component that uses useSearchParams
 function AuctionsContent() {
@@ -287,7 +115,7 @@ function AuctionsContent() {
     
     try {
       console.log('Fetching make suggestions for query:', query);
-      const response = await fetch(`/api/cars/makes?query=${encodeURIComponent(query)}`);
+      const response = await fetch(`/api/cars?type=makes&query=${encodeURIComponent(query)}`);
       
       if (response.status === 503) {
         // Database connection error
@@ -355,7 +183,7 @@ function AuctionsContent() {
     try {
       console.log('Fetching model suggestions for query:', query, 'make:', formData.make);
       const makeParam = formData.make ? `&make=${encodeURIComponent(formData.make)}` : '';
-      const response = await fetch(`/api/cars/models?query=${encodeURIComponent(query)}${makeParam}`);
+      const response = await fetch(`/api/cars?type=models&query=${encodeURIComponent(query)}${makeParam}`);
       
       if (!response.ok) {
         console.error('Model suggestions API error:', response.status, response.statusText);
@@ -466,24 +294,6 @@ function AuctionsContent() {
       document.removeEventListener('click', handleClickOutside);
     };
   }, []);
-  
-  // Format price for display
-  const formatPrice = (price: string) => {
-    if (!price) return 'N/A';
-    
-    // Remove any non-numeric characters except decimal point
-    const numericPrice = price.replace(/[^0-9.]/g, '');
-    
-    // Convert to number and format with commas
-    const formattedPrice = parseFloat(numericPrice).toLocaleString('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    });
-    
-    return formattedPrice;
-  };
   
   // Handle histogram bar click
   const handleHistogramClick = (name: string, value: any) => {

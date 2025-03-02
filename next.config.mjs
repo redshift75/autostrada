@@ -21,6 +21,15 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  // Turbopack configuration
+  experimental: {
+    turbo: {
+      resolveAlias: {
+        // Add any module aliases needed for Turbopack
+      },
+      // Add any Turbopack-specific rules
+    },
+  },
   webpack: (config) => {
     // SVG configuration
     config.module.rules.push({
