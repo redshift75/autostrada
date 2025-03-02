@@ -208,7 +208,7 @@ export default function DealFinder() {
         tooltip: true
       },
       encoding: {
-        x: { field: 'category', type: 'nominal', axis: { labelAngle: 0 } },
+        x: { field: 'category', type: 'nominal', axis: { labelAngle: 0, title: null } },
         y: { 
           field: 'price', 
           type: 'quantitative',
@@ -342,12 +342,13 @@ export default function DealFinder() {
         x: {
           field: 'date',
           type: 'temporal',
-          title: 'Sale Date',
+          title: null,
           axis: {
             format: '%b %d',
             labelAngle: -45,
             grid: true,
-            labelLimit: 100
+            labelLimit: 100,
+            title: null
           },
           scale: {
             padding: 10
