@@ -134,22 +134,186 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 - Auction and listing data aggregation
 - Rarity and value assessment
 - Natural language querying for market insights
+- AI-powered market analysis and recommendations
 
 ## Project Structure
 
 - `/app` - Next.js application routes and pages
 - `/components` - UI components
 - `/lib` - Core functionality
-  - `/db` - Database models and repositories
+  - `/api` - API endpoints and handlers
+  - `/langchain` - LLM agent infrastructure and tools
   - `/scrapers` - Data collection modules
   - `/standardization` - Data normalization utilities
-  - `/langchain` - Agent infrastructure
+  - `/supabase` - Database client and utilities
+  - `/types` - TypeScript type definitions
+  - `/utils` - Utility functions and visualization tools
 - `/public` - Static assets
-- `/scripts` - Utility scripts for database and development
+- `/scripts` - Utility scripts for data collection and analysis
+
+## Scripts
+
+### Data Collection
+
+#### Scraping Auction Data
+
+To test the scrapers with default settings (Porsche 911, 3 pages):
+
+```bash
+npm run test-scrapers
+```
+
+To scrape only completed auction results:
+
+```bash
+npm run test-scrapers:completed
+```
+
+To scrape only active auction listings:
+
+```bash
+npm run test-scrapers:active
+```
+
+You can customize the scraping by adding parameters:
+
+```bash
+npm run test-scrapers -- --make=Ferrari --model=Testarossa --maxPages=5
+```
+
+The results will be saved to the `results` directory as JSON files.
+
+### Data Analysis and Visualization
+
+#### Testing Auction Analysis Tools
+
+To test the basic auction analysis tool:
+
+```bash
+npm run test-auction-tools
+```
+
+To test auction analysis with visualizations:
+
+```bash
+npm run test-auction-tools:viz
+```
+
+To test the AI agent with auction data:
+
+```bash
+npm run test-auction-tools:agent
+```
+
+To test the AI agent with auction data and visualizations:
+
+```bash
+npm run test-auction-tools:agent-viz
+```
+
+You can customize the analysis by adding parameters:
+
+```bash
+npm run test-auction-tools -- --make=Ferrari --model=Testarossa --yearMin=1990 --yearMax=2000 --maxPages=3 --query="What's the price trend for Ferrari Testarossa models from the 1990s?"
+```
+
+#### Serving Visualizations
+
+To serve the generated visualizations locally:
+
+```bash
+npm run serve-visualizations
+```
+
+This will start a local server at http://localhost:3000 where you can view the generated visualizations.
+
+### Database Operations
+
+#### Uploading Data to Supabase
+
+To upload all data to Supabase:
+
+```bash
+npm run upload-to-supabase
+```
+
+To upload only completed auction results:
+
+```bash
+npm run upload-completed
+```
+
+To upload only active auction listings:
+
+```bash
+npm run upload-active
+```
+
+To test the Supabase connection:
+
+```bash
+npm run test-supabase
+```
+
+## Database Schema
+
+### Completed Auctions Table
+
+The `bat_completed_auctions` table stores data about completed auctions:
+
+- `id`: Auto-incrementing primary key
+- `listing_id`: Unique identifier for the listing
+- `url`: URL of the auction listing
+- `title`: Title of the auction listing
+- `image_url`: URL of the main image
+- `sold_price`: Final sale price (if sold)
+- `sold_date`: Date when the auction ended
+- `bid_amount`: Highest bid amount
+- `bid_date`: Date of the highest bid
+- `status`: Status of the auction (sold or unsold)
+- `year`: Year of the vehicle
+- `make`: Make of the vehicle
+- `model`: Model of the vehicle
+- `source_file`: Source file from which the data was loaded
+- `created_at`: Timestamp when the record was created
+- `updated_at`: Timestamp when the record was last updated
+
+### Active Auctions Table
+
+The `bat_active_auctions` table stores data about active auctions:
+
+- `id`: Auto-incrementing primary key
+- `listing_id`: Unique identifier for the listing
+- `url`: URL of the auction listing
+- `title`: Title of the auction listing
+- `image_url`: URL of the main image
+- `current_bid`: Current bid amount
+- `current_bid_formatted`: Formatted current bid (e.g., "USD $10,000")
+- `end_date`: Date when the auction ends
+- `status`: Status of the auction (active or ended)
+- `year`: Year of the vehicle
+- `make`: Make of the vehicle
+- `model`: Model of the vehicle
+- `location`: Location of the vehicle
+- `no_reserve`: Whether the auction has no reserve
+- `premium`: Whether the auction is a premium listing
+- `source_file`: Source file from which the data was loaded
+- `created_at`: Timestamp when the record was created
+- `updated_at`: Timestamp when the record was last updated
+
+## AI Agent Capabilities
+
+The project includes an AI agent powered by LangChain and OpenAI that can:
+
+- Answer natural language questions about auction data
+- Generate visualizations of price trends and distributions
+- Provide market insights and recommendations
+- Compare different vehicle models and their performance at auction
+- Identify investment opportunities based on historical data
 
 ## License
 
-MIT
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 # Bring a Trailer Scraper
 

@@ -3,16 +3,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    domains: [
-      'auto.dev',
-      'production-assets2.auto.dev',
-      'vehicle-photos-published.vauto.com',
-      'cdn.max.auto',
-      'pictures.dealer.com',
-      'images.dealersync.com',
-      'content.homenetiol.com',
-      'placehold.co',
-      'via.placeholder.com'
+    remotePatterns: [
+      { hostname: 'auto.dev' },
+      { hostname: 'production-assets2.auto.dev' },
+      { hostname: 'vehicle-photos-published.vauto.com' },
+      { hostname: 'cdn.max.auto' },
+      { hostname: 'pictures.dealer.com' },
+      { hostname: 'images.dealersync.com' },
+      { hostname: 'content.homenetiol.com' },
+      { hostname: 'placehold.co' },
+      { hostname: 'via.placeholder.com' },
+      { hostname: 'bringatrailer.com' }
     ],
   },
   eslint: {

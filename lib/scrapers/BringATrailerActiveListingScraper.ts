@@ -61,6 +61,7 @@ export interface BaTActiveScraperParams {
 export class BringATrailerActiveListingScraper extends BaseScraper {
   private baseUrl = 'https://bringatrailer.com';
   private searchUrl = 'https://bringatrailer.com/auctions/';
+  private static debuggedAuction = false;
 
   constructor() {
     super({
@@ -110,21 +111,35 @@ export class BringATrailerActiveListingScraper extends BaseScraper {
         console.log(`Saved debug HTML to ${debugFile}`);
       }
       
+      console.log('Extracting auction data from HTML...');
       const auctionsData = await this.extractAuctionsData(html);
       
       if (!auctionsData || !auctionsData.auctions || auctionsData.auctions.length === 0) {
-        console.log('No auction data found');
+        console.log('No auction data found in the HTML');
+        // Try to extract some sample HTML to understand the structure
+        const sampleHtml = html.substring(0, 1000) + '...\n...\n' + html.substring(html.length - 1000);
+        console.log('Sample HTML:', sampleHtml);
         return [];
       }
       
-      console.log(`Found ${auctionsData.auctions.length} auctions`);
+      console.log(`Found ${auctionsData.auctions.length} auctions in the HTML`);
+      
+      // Log a sample auction for debugging
+      if (auctionsData.auctions.length > 0) {
+        console.log('Sample auction data:', JSON.stringify(auctionsData.auctions[0], null, 2));
+      }
       
       const listings: BaTActiveListing[] = auctionsData.auctions.map(auction => 
         this.convertAuctionToBaTListing(auction)
       );
       
+      // Log a sample listing for debugging
+      if (listings.length > 0) {
+        console.log('Sample converted listing:', JSON.stringify(listings[0], null, 2));
+      }
+      
       // Save listings to file for debugging
-      const listingsFile = path.join(process.cwd(), 'recent_listings.json');
+      const listingsFile = path.join(process.cwd(), 'debug', `bat_active_listings_${Date.now()}.json`);
       fs.writeFileSync(listingsFile, JSON.stringify(listings, null, 2));
       console.log(`Saved ${listings.length} listings to ${listingsFile}`);
       
@@ -264,16 +279,52 @@ export class BringATrailerActiveListingScraper extends BaseScraper {
   
   private extractJsonArrayFromHtml(html: string): BaTAuction[] | null {
     try {
-      // Look for JSON objects that match the auction structure
-      const regex = /"active":true,"categories":\[.*?\],"comments":.*?"id":\d+/g;
-      const matches = html.match(regex);
+      console.log('Attempting to extract JSON auction data from HTML...');
       
-      if (!matches || matches.length === 0) {
-        console.log('No auction data matches found in HTML');
-        return null;
+      // First, check if we can find the auctions data in a script tag
+      const scriptRegex = /<script[^>]*>window\.__INITIAL_STATE__\s*=\s*({.*?})<\/script>/;
+      const scriptMatch = html.match(scriptRegex);
+      
+      if (scriptMatch && scriptMatch[1]) {
+        console.log('Found potential initial state data in script tag');
+        try {
+          const initialState = JSON.parse(scriptMatch[1]);
+          if (initialState && initialState.auctions && Array.isArray(initialState.auctions.auctions)) {
+            console.log(`Found ${initialState.auctions.auctions.length} auctions in initial state`);
+            return initialState.auctions.auctions;
+          }
+        } catch (e) {
+          console.error('Error parsing initial state JSON:', e);
+        }
       }
       
-      console.log(`Found ${matches.length} potential auction objects`);
+      // Look for JSON objects that match the auction structure
+      console.log('Trying regex pattern to find auction data...');
+      const regex = /"active":true,"categories":\[.*?\],"comments":.*?"id":\d+/g;
+      let matches = html.match(regex);
+      
+      if (!matches || matches.length === 0) {
+        console.log('No auction data matches found with primary regex pattern');
+        
+        // Try an alternative pattern
+        const altRegex = /"id":\d+,"title":"[^"]+","year":"[^"]+"/g;
+        const altMatches = html.match(altRegex);
+        
+        if (!altMatches || altMatches.length === 0) {
+          console.log('No auction data matches found with alternative regex pattern');
+          
+          // Check if the HTML contains any auction-like data
+          const hasAuctionData = html.includes('"auctions"') || html.includes('"listings"');
+          console.log(`HTML contains auction-like data: ${hasAuctionData}`);
+          
+          return null;
+        }
+        
+        console.log(`Found ${altMatches.length} potential auction objects with alternative pattern`);
+        matches = altMatches;
+      } else {
+        console.log(`Found ${matches.length} potential auction objects with primary pattern`);
+      }
       
       // For each match, try to extract the complete JSON object
       const auctions: BaTAuction[] = [];
@@ -297,32 +348,26 @@ export class BringATrailerActiveListingScraper extends BaseScraper {
           if (bracketCount !== 0) continue;
           
           const jsonStr = html.substring(startIndex, endIndex);
+          
+          // Log a sample of the extracted JSON
+          if (auctions.length === 0) {
+            console.log(`Sample JSON string (first 200 chars): ${jsonStr.substring(0, 200)}...`);
+          }
+          
           const auction = JSON.parse(jsonStr) as BaTAuction;
           
+          // Verify this is an auction object
           if (auction && auction.id && auction.url && auction.title) {
-            // Ensure current_bid is properly formatted
-            if (typeof auction.current_bid === 'string') {
-              auction.current_bid = this.parseBidAmount(auction.current_bid);
-            }
-            
-            // If current_bid_formatted is missing, generate it
-            if (!auction.current_bid_formatted && auction.current_bid) {
-              auction.current_bid_formatted = `USD $${auction.current_bid.toLocaleString()}`;
-            }
-            
             auctions.push(auction);
           }
-        } catch (e) {
-          console.error('Error parsing auction object:', e);
+        } catch (error) {
+          // Continue to the next match if there's an error
+          console.error('Error parsing potential auction object:', error);
         }
       }
       
-      if (auctions.length > 0) {
-        console.log(`Successfully extracted ${auctions.length} auction objects`);
-        return auctions;
-      }
-      
-      return null;
+      console.log(`Successfully extracted ${auctions.length} auction objects`);
+      return auctions.length > 0 ? auctions : null;
     } catch (error) {
       console.error('Error extracting JSON array from HTML:', error);
       return null;
@@ -428,6 +473,16 @@ export class BringATrailerActiveListingScraper extends BaseScraper {
     // Convert timestamp to Date
     const endDate = auction.timestamp_end * 1000; // Convert to milliseconds
     
+    // Debug logging for timestamp conversion (only for the first auction)
+    if (auction.id && !BringATrailerActiveListingScraper.debuggedAuction) {
+      console.log(`Debug timestamp for auction ${auction.id}:`);
+      console.log(`- Title: ${auction.title}`);
+      console.log(`- Raw timestamp_end: ${auction.timestamp_end}`);
+      console.log(`- Converted to milliseconds: ${endDate}`);
+      console.log(`- As Date object: ${new Date(endDate).toISOString()}`);
+      BringATrailerActiveListingScraper.debuggedAuction = true;
+    }
+    
     // Check if the auction has ended
     const now = Date.now();
     const isEnded = endDate < now;
@@ -468,10 +523,13 @@ export class BringATrailerActiveListingScraper extends BaseScraper {
       'Lamborghini', 'Maserati', 'Alfa Romeo', 'Fiat', 'Lancia', 'Bugatti'
     ];
     
-    // Check if any of the common makes are in the title
+    // Convert title to lowercase for case-insensitive matching
+    const titleLower = title.toLowerCase();
+    
+    // Check if any of the common makes are in the title (case-insensitive)
     for (const make of commonMakes) {
-      if (title.includes(make)) {
-        return make;
+      if (titleLower.includes(make.toLowerCase())) {
+        return make; // Return the properly capitalized make
       }
     }
     
@@ -481,7 +539,13 @@ export class BringATrailerActiveListingScraper extends BaseScraper {
     const match = title.match(yearMakePattern);
     
     if (match && match[1]) {
-      return match[1];
+      // Check if the extracted make is one of our common makes
+      const extractedMake = match[1];
+      const matchedCommonMake = commonMakes.find(make => 
+        make.toLowerCase() === extractedMake.toLowerCase()
+      );
+      
+      return matchedCommonMake || extractedMake;
     }
     
     return '';
@@ -491,11 +555,21 @@ export class BringATrailerActiveListingScraper extends BaseScraper {
     if (!make) return '';
     
     // Try to extract the model after the make
-    const modelPattern = new RegExp(`${make}\\s+([A-Za-z0-9-]+)`);
+    const modelPattern = new RegExp(`${make}\\s+([A-Za-z0-9-]+)`, 'i'); // Case-insensitive
     const match = title.match(modelPattern);
     
     if (match && match[1]) {
       return match[1];
+    }
+    
+    // If no model found after make, try to find common model patterns
+    // For BMW, look for M followed by a number
+    if (make.toLowerCase() === 'bmw') {
+      const bmwModelPattern = /\bM[1-8](?:\s|$|\b)/i;
+      const bmwMatch = title.match(bmwModelPattern);
+      if (bmwMatch) {
+        return bmwMatch[0].trim();
+      }
     }
     
     return '';
