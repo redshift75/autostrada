@@ -710,7 +710,7 @@ function AuctionsContent() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
-                <div className="flex items-end">
+                <div className="flex items-end justify-end md:col-span-2">
                   <button
                     type="submit"
                     className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md transition duration-200 disabled:bg-blue-400"
