@@ -597,7 +597,7 @@ function analyzeBestValue(listings: any[]) {
       clickoffURL: listing.clickoffURL || null,
       valueScore: Math.round(listing.valueScore * 100) / 100
     })),
-    analysis: `The best value listing is a ${bestValues[0].year} ${bestValues[0].make} ${bestValues[0].model} priced at $${bestValues[0].price.toLocaleString()} with ${bestValues[0].mileage.toLocaleString()} miles${bestValues[0].location ? ` located in ${bestValues[0].location}` : ''}${bestValues[0].clickoffURL ? `. View listing: ${bestValues[0].clickoffURL}` : ''}. This listing offers an excellent balance of price, mileage, and age compared to other listings.`
+    analysis: `The best value listing is a ${bestValues[0].year} ${bestValues[0].make} ${bestValues[0].model} priced at $${bestValues[0].price.toLocaleString()} with ${bestValues[0].mileage.toLocaleString()} miles${bestValues[0].location ? ` located in ${bestValues[0].location}` : ''}${bestValues[0].clickoffURL ? `. ${bestValues[0].clickoffURL}` : ''}.`
   };
 }
 
@@ -615,7 +615,7 @@ function analyzeNewest(listings: any[]) {
       location: listing.location || 'Unknown',
       clickoffURL: listing.clickoffURL || null
     })),
-    analysis: `The newest listing is a ${newest[0].year} ${newest[0].make} ${newest[0].model} priced at $${newest[0].price.toLocaleString()} with ${newest[0].mileage.toLocaleString()} miles${newest[0].location ? ` located in ${newest[0].location}` : ''}${newest[0].clickoffURL ? `. View listing: ${newest[0].clickoffURL}` : ''}.`
+    analysis: `The newest listing is a ${newest[0].year} ${newest[0].make} ${newest[0].model} priced at $${newest[0].price.toLocaleString()} with ${newest[0].mileage.toLocaleString()} miles${newest[0].location ? ` located in ${newest[0].location}` : ''}${newest[0].clickoffURL ? `. ${newest[0].clickoffURL}` : ''}.`
   };
 }
 
@@ -633,7 +633,7 @@ function analyzeOldest(listings: any[]) {
       location: listing.location || 'Unknown',
       clickoffURL: listing.clickoffURL || null
     })),
-    analysis: `The oldest listing is a ${oldest[0].year} ${oldest[0].make} ${oldest[0].model} priced at $${oldest[0].price.toLocaleString()} with ${oldest[0].mileage.toLocaleString()} miles${oldest[0].location ? ` located in ${oldest[0].location}` : ''}${oldest[0].clickoffURL ? `. View listing: ${oldest[0].clickoffURL}` : ''}.`
+    analysis: `The oldest listing is a ${oldest[0].year} ${oldest[0].make} ${oldest[0].model} priced at $${oldest[0].price.toLocaleString()} with ${oldest[0].mileage.toLocaleString()} miles${oldest[0].location ? ` located in ${oldest[0].location}` : ''}${oldest[0].clickoffURL ? `. ${oldest[0].clickoffURL}` : ''}.`
   };
 }
 
@@ -651,7 +651,7 @@ function analyzeLowestMileage(listings: any[]) {
       location: listing.location || 'Unknown',
       clickoffURL: listing.clickoffURL || null
     })),
-    analysis: `The lowest mileage listing is a ${lowestMileage[0].year} ${lowestMileage[0].make} ${lowestMileage[0].model} with ${lowestMileage[0].mileage.toLocaleString()} miles, priced at $${lowestMileage[0].price.toLocaleString()}${lowestMileage[0].location ? ` located in ${lowestMileage[0].location}` : ''}${lowestMileage[0].clickoffURL ? `. View listing: ${lowestMileage[0].clickoffURL}` : ''}.`
+    analysis: `The lowest mileage listing is a ${lowestMileage[0].year} ${lowestMileage[0].make} ${lowestMileage[0].model} with ${lowestMileage[0].mileage.toLocaleString()} miles, priced at $${lowestMileage[0].price.toLocaleString()}${lowestMileage[0].location ? ` located in ${lowestMileage[0].location}` : ''}${lowestMileage[0].clickoffURL ? `. ${lowestMileage[0].clickoffURL}` : ''}.`
   };
 }
 
@@ -669,7 +669,7 @@ function analyzeHighestMileage(listings: any[]) {
       location: listing.location || 'Unknown',
       clickoffURL: listing.clickoffURL || null
     })),
-    analysis: `The highest mileage listing is a ${highestMileage[0].year} ${highestMileage[0].make} ${highestMileage[0].model} with ${highestMileage[0].mileage.toLocaleString()} miles, priced at $${highestMileage[0].price.toLocaleString()}${highestMileage[0].location ? ` located in ${highestMileage[0].location}` : ''}${highestMileage[0].clickoffURL ? `. View listing: ${highestMileage[0].clickoffURL}` : ''}.`
+    analysis: `The highest mileage listing is a ${highestMileage[0].year} ${highestMileage[0].make} ${highestMileage[0].model} with ${highestMileage[0].mileage.toLocaleString()} miles, priced at $${highestMileage[0].price.toLocaleString()}${highestMileage[0].location ? ` located in ${highestMileage[0].location}` : ''}${highestMileage[0].clickoffURL ? `. ${highestMileage[0].clickoffURL}` : ''}.`
   };
 }
 
@@ -841,6 +841,6 @@ function analyzeSummary(listings: any[]) {
     priceRange: { min: priceMin, max: priceMax, avg: Math.round(priceAvg) },
     mileageRange: { min: mileageMin, max: mileageMax, avg: Math.round(mileageAvg) },
     bestValue: bestValue,
-    analysis: `There are ${listings.length} listings in total, with ${topMakes.length} different makes and ${Object.keys(modelCount).length} different models. The most common make is ${topMakes[0].make} with ${topMakes[0].count} listings. The prices range from $${priceMin.toLocaleString()} to $${priceMax.toLocaleString()}, with an average of $${Math.round(priceAvg).toLocaleString()}. The mileage ranges from ${mileageMin.toLocaleString()} to ${mileageMax.toLocaleString()} miles, with an average of ${Math.round(mileageAvg).toLocaleString()} miles. The best value appears to be a ${bestValue.year} ${bestValue.make} ${bestValue.model} priced at $${bestValue.price.toLocaleString()} with ${bestValue.mileage.toLocaleString()} miles${bestValue.location ? ` located in ${bestValue.location}` : ''}${bestValue.clickoffURL ? `. View listing: ${bestValue.clickoffURL}` : ''}.`
+    analysis: `There are ${listings.length} listings in total, with ${topMakes.length} different makes and ${Object.keys(modelCount).length} different models. The most common make is ${topMakes[0].make} with ${topMakes[0].count} listings. The prices range from $${priceMin.toLocaleString()} to $${priceMax.toLocaleString()}, with an average of $${Math.round(priceAvg).toLocaleString()}. The mileage ranges from ${mileageMin.toLocaleString()} to ${mileageMax.toLocaleString()} miles, with an average of ${Math.round(mileageAvg).toLocaleString()} miles. The best value appears to be a ${bestValue.year} ${bestValue.make} ${bestValue.model} priced at $${bestValue.price.toLocaleString()} with ${bestValue.mileage.toLocaleString()} miles${bestValue.location ? ` located in ${bestValue.location}` : ''}${bestValue.clickoffURL ? `. ${bestValue.clickoffURL}` : ''}.`
   };
 } 

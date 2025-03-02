@@ -32,6 +32,23 @@ const formatMessageWithLinks = (text: string): React.ReactNode[] => {
       result.push(text.substring(lastIndex, index));
     }
     
+    // Extract domain name for display or use a more descriptive text
+    let displayText = url;
+    try {
+      // Try to extract domain name for cleaner display
+      const urlObj = new URL(url);
+      if (urlObj.hostname.includes('listing') || 
+          text.substring(Math.max(0, index - 20), index).includes('listing')) {
+        displayText = "View listing";
+      } else {
+        // Just use the hostname as display text
+        displayText = urlObj.hostname;
+      }
+    } catch (e) {
+      // If URL parsing fails, just use the URL as is
+      displayText = url;
+    }
+    
     // Add the URL as a link
     result.push(
       <a 
@@ -41,7 +58,7 @@ const formatMessageWithLinks = (text: string): React.ReactNode[] => {
         rel="noopener noreferrer" 
         className="text-blue-500 hover:underline"
       >
-        View listing
+        {displayText}
       </a>
     );
     

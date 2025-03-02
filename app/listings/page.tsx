@@ -8,6 +8,17 @@ import ListingsAIAgent from '@/components/listings/ListingsAIAgent';
 import { generateListingPriceHistogram, generateListingMileageHistogram } from '@/lib/utils/visualization';
 import type { TopLevelSpec } from 'vega-lite';
 
+// CSS for animations
+const fadeInAnimation = `
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out forwards;
+  }
+`;
+
 type SearchResponse = {
   results: Listing[];
   pagination: {
@@ -254,9 +265,13 @@ function ListingsContent() {
   const [showMakeSuggestions, setShowMakeSuggestions] = useState(false);
   const [showModelSuggestions, setShowModelSuggestions] = useState(false);
   
+  // Notification state
+  const [notification, setNotification] = useState<string | null>(null);
+  
   // Debounce timers
   const makeDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const modelDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const notificationTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   // State for database connection status
   const [dbConnectionError, setDbConnectionError] = useState(false);
@@ -292,6 +307,31 @@ function ListingsContent() {
   const [priceHistogram, setPriceHistogram] = useState<TopLevelSpec | null>(null);
   const [mileageHistogram, setMileageHistogram] = useState<TopLevelSpec | null>(null);
   
+  // Show notification for a short time
+  const showNotification = (message: string) => {
+    // Clear any existing notification timer
+    if (notificationTimerRef.current) {
+      clearTimeout(notificationTimerRef.current);
+    }
+    
+    // Set the notification message
+    setNotification(message);
+    
+    // Clear the notification after 3 seconds
+    notificationTimerRef.current = setTimeout(() => {
+      setNotification(null);
+    }, 3000);
+  };
+  
+  // Clean up notification timer on unmount
+  useEffect(() => {
+    return () => {
+      if (notificationTimerRef.current) {
+        clearTimeout(notificationTimerRef.current);
+      }
+    };
+  }, []);
+
   // Fetch make suggestions from Supabase with debounce
   const fetchMakeSuggestions = async (query: string) => {
     if (!query || query.length < 2) {
@@ -550,6 +590,16 @@ function ListingsContent() {
 
   // Apply filters and sorting to results
   useEffect(() => {
+    console.log('Filtering effect triggered with:', { 
+      resultsLength: results.length, 
+      priceMin, 
+      priceMax, 
+      mileageMin, 
+      mileageMax, 
+      sortBy, 
+      sortOrder 
+    });
+    
     if (results.length === 0) {
       setFilteredResults([]);
       return;
@@ -594,6 +644,7 @@ function ListingsContent() {
       return sortOrder === 'asc' ? comparison : -comparison;
     });
 
+    console.log(`Filtered results: ${filtered.length} of ${results.length}`);
     setFilteredResults(filtered);
   }, [results, priceMin, priceMax, mileageMin, mileageMax, sortBy, sortOrder]);
 
@@ -650,12 +701,30 @@ function ListingsContent() {
     if (name === 'barClick') {
       if (datum.price_bin0 !== undefined && datum.price_bin1 !== undefined) {
         // Price histogram was clicked
-        setPriceMin(Math.floor(datum.price_bin0).toString());
-        setPriceMax(Math.ceil(datum.price_bin1).toString());
+        const minPrice = Math.floor(datum.price_bin0).toString();
+        const maxPrice = Math.ceil(datum.price_bin1).toString();
+        
+        console.log(`Setting price filter: ${minPrice} - ${maxPrice}`);
+        
+        // Update the state values
+        setPriceMin(minPrice);
+        setPriceMax(maxPrice);
+        
+        // Show notification
+        showNotification(`Price filter set: ${formatCurrency(parseInt(minPrice))} - ${formatCurrency(parseInt(maxPrice))}`);
       } else if (datum.mileage_bin0 !== undefined && datum.mileage_bin1 !== undefined) {
         // Mileage histogram was clicked
-        setMileageMin(Math.floor(datum.mileage_bin0).toString());
-        setMileageMax(Math.ceil(datum.mileage_bin1).toString());
+        const minMileage = Math.floor(datum.mileage_bin0).toString();
+        const maxMileage = Math.ceil(datum.mileage_bin1).toString();
+        
+        console.log(`Setting mileage filter: ${minMileage} - ${maxMileage}`);
+        
+        // Update the state values
+        setMileageMin(minMileage);
+        setMileageMax(maxMileage);
+        
+        // Show notification
+        showNotification(`Mileage filter set: ${formatNumber(parseInt(minMileage))} - ${formatNumber(parseInt(maxMileage))} miles`);
       }
     }
   };
@@ -685,7 +754,16 @@ function ListingsContent() {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      <style jsx global>{fadeInAnimation}</style>
+      
       <h1 className="text-3xl font-bold mb-8">Car Listings</h1>
+      
+      {/* Notification */}
+      {notification && (
+        <div className="fixed top-4 right-4 z-50 bg-blue-600 text-white px-4 py-2 rounded-md shadow-lg animate-fade-in">
+          {notification}
+        </div>
+      )}
       
       {/* Search Form */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
@@ -913,7 +991,9 @@ function ListingsContent() {
           {/* Filters and Sorting */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-              <h2 className="text-xl font-semibold">Filter & Sort</h2>
+              <h2 className={`text-xl font-semibold ${priceMin || priceMax || mileageMin || mileageMax ? 'text-blue-600 dark:text-blue-400' : ''}`}>
+                Filter & Sort {(priceMin || priceMax || mileageMin || mileageMax) && <span className="text-sm font-normal">(Active)</span>}
+              </h2>
               <div className="flex flex-wrap gap-4">
                 <div className="flex items-center">
                   <label htmlFor="sortBy" className="mr-2 whitespace-nowrap">
@@ -949,7 +1029,7 @@ function ListingsContent() {
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="flex flex-col">
-                <label htmlFor="priceMin" className="mb-1 font-medium">
+                <label htmlFor="priceMin" className={`mb-1 font-medium ${priceMin ? 'text-blue-600 dark:text-blue-400' : ''}`}>
                   Price (Min)
                 </label>
                 <input
@@ -957,14 +1037,14 @@ function ListingsContent() {
                   type="number"
                   value={priceMin}
                   onChange={(e) => setPriceMin(e.target.value)}
-                  className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
+                  className={`border rounded-md p-2 dark:bg-gray-700 ${priceMin ? 'border-blue-500 dark:border-blue-400' : 'border-gray-300 dark:border-gray-600'}`}
                   placeholder="Min Price"
                   min="0"
                 />
               </div>
               
               <div className="flex flex-col">
-                <label htmlFor="priceMax" className="mb-1 font-medium">
+                <label htmlFor="priceMax" className={`mb-1 font-medium ${priceMax ? 'text-blue-600 dark:text-blue-400' : ''}`}>
                   Price (Max)
                 </label>
                 <input
@@ -972,14 +1052,14 @@ function ListingsContent() {
                   type="number"
                   value={priceMax}
                   onChange={(e) => setPriceMax(e.target.value)}
-                  className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
+                  className={`border rounded-md p-2 dark:bg-gray-700 ${priceMax ? 'border-blue-500 dark:border-blue-400' : 'border-gray-300 dark:border-gray-600'}`}
                   placeholder="Max Price"
                   min="0"
                 />
               </div>
               
               <div className="flex flex-col">
-                <label htmlFor="mileageMin" className="mb-1 font-medium">
+                <label htmlFor="mileageMin" className={`mb-1 font-medium ${mileageMin ? 'text-blue-600 dark:text-blue-400' : ''}`}>
                   Mileage (Min)
                 </label>
                 <input
@@ -987,14 +1067,14 @@ function ListingsContent() {
                   type="number"
                   value={mileageMin}
                   onChange={(e) => setMileageMin(e.target.value)}
-                  className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
+                  className={`border rounded-md p-2 dark:bg-gray-700 ${mileageMin ? 'border-blue-500 dark:border-blue-400' : 'border-gray-300 dark:border-gray-600'}`}
                   placeholder="Min Mileage"
                   min="0"
                 />
               </div>
               
               <div className="flex flex-col">
-                <label htmlFor="mileageMax" className="mb-1 font-medium">
+                <label htmlFor="mileageMax" className={`mb-1 font-medium ${mileageMax ? 'text-blue-600 dark:text-blue-400' : ''}`}>
                   Mileage (Max)
                 </label>
                 <input
@@ -1002,15 +1082,34 @@ function ListingsContent() {
                   type="number"
                   value={mileageMax}
                   onChange={(e) => setMileageMax(e.target.value)}
-                  className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
+                  className={`border rounded-md p-2 dark:bg-gray-700 ${mileageMax ? 'border-blue-500 dark:border-blue-400' : 'border-gray-300 dark:border-gray-600'}`}
                   placeholder="Max Mileage"
                   min="0"
                 />
               </div>
             </div>
             
-            <div className="mt-4 text-sm text-gray-500">
-              Showing {filteredResults.length} of {results.length} listings
+            <div className="mt-4 flex justify-between items-center">
+              <div className="text-sm text-gray-500">
+                Showing {filteredResults.length} of {results.length} listings
+              </div>
+              
+              <button
+                onClick={() => {
+                  setPriceMin('');
+                  setPriceMax('');
+                  setMileageMin('');
+                  setMileageMax('');
+                  
+                  // Show notification if filters were active
+                  if (priceMin || priceMax || mileageMin || mileageMax) {
+                    showNotification('Filters cleared');
+                  }
+                }}
+                className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium"
+              >
+                Clear Filters
+              </button>
             </div>
           </div>
           
