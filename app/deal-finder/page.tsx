@@ -49,24 +49,16 @@ type Deal = {
   endingSoon: boolean;
 };
 
-// Debug response type
-type DebugResponse = {
-  activeListings: any[];
-  totalActiveListings: number;
-};
-
 export default function DealFinder() {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [debugData, setDebugData] = useState<any | null>(null);
   const [formData, setFormData] = useState({
     make: '',
     model: '',
     yearMin: '',
     yearMax: '',
-    maxDeals: '10',
-    debug: false
+    maxDeals: '10'
   });
 
   // Handle form input changes
@@ -75,19 +67,12 @@ export default function DealFinder() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // Handle checkbox changes
-  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, checked } = e.target;
-    setFormData(prev => ({ ...prev, [name]: checked }));
-  };
-
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
     setDeals([]);
-    setDebugData(null);
 
     try {
       // Build query parameters
@@ -97,7 +82,6 @@ export default function DealFinder() {
       if (formData.yearMin) params.append('yearMin', formData.yearMin);
       if (formData.yearMax) params.append('yearMax', formData.yearMax);
       if (formData.maxDeals) params.append('maxDeals', formData.maxDeals);
-      if (formData.debug) params.append('debug', 'true');
 
       // Fetch deals from the API
       const response = await fetch(`/api/deal-finder?${params.toString()}`);
@@ -108,16 +92,9 @@ export default function DealFinder() {
       
       const data = await response.json();
       
-      // Handle debug mode response
-      if (formData.debug && data.activeListings) {
-        setDebugData(data);
-        return;
-      }
-      
       // Handle error message from API
       if (data.message) {
         setError(data.message);
-        setDebugData(data);
         return;
       }
       
@@ -270,8 +247,6 @@ export default function DealFinder() {
       };
     }).filter(item => item !== null) as ChartDataPoint[];
 
-    console.log(`Processed ${data.length} historical sales for chart`);
-
     // Sort by date
     data.sort((a, b) => {
       const dateA = new Date(a.date);
@@ -287,18 +262,9 @@ export default function DealFinder() {
       url: deal.activeListing.url,
       isCurrent: true
     });
-
-    console.log(`Final chart data points: ${data.length} (including current listing)`);
-    console.log('Chart data sample:', data.slice(0, 3));
-    // Add detailed logging of all data points
-    console.log('All chart data points:');
-    data.forEach((point, index) => {
-      console.log(`Point ${index}: date=${point.date}, price=${point.price}, isCurrent=${point.isCurrent || false}`);
-    });
     
     // Ensure we have enough data points for a meaningful chart
     if (data.length < 2) {
-      console.warn('Not enough data points for a meaningful chart');
       // Add a dummy point in the past to ensure the chart renders
       const sixMonthsAgo = new Date();
       sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
@@ -310,8 +276,6 @@ export default function DealFinder() {
         url: "#",
         isCurrent: false
       });
-      
-      console.log('Added a reference point to ensure chart renders');
     }
 
     // Determine if we should show the trend line
@@ -447,7 +411,7 @@ export default function DealFinder() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+      <div className="container mx-auto px-4 py-8">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white sm:text-4xl">
             Deal Finder
@@ -459,9 +423,10 @@ export default function DealFinder() {
 
         {/* Search Form */}
         <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 mb-8">
-          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-0 sm:grid sm:grid-cols-6 sm:gap-4">
-            <div className="sm:col-span-2">
-              <label htmlFor="make" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Search for Deals</h2>
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <label htmlFor="make" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Make
               </label>
               <input
@@ -470,12 +435,12 @@ export default function DealFinder() {
                 name="make"
                 value={formData.make}
                 onChange={handleInputChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                 placeholder="e.g. Porsche"
               />
             </div>
-            <div className="sm:col-span-2">
-              <label htmlFor="model" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <div>
+              <label htmlFor="model" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Model
               </label>
               <input
@@ -484,12 +449,12 @@ export default function DealFinder() {
                 name="model"
                 value={formData.model}
                 onChange={handleInputChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                 placeholder="e.g. 911"
               />
             </div>
             <div>
-              <label htmlFor="yearMin" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label htmlFor="yearMin" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Year Min
               </label>
               <input
@@ -498,12 +463,12 @@ export default function DealFinder() {
                 name="yearMin"
                 value={formData.yearMin}
                 onChange={handleInputChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                 placeholder="e.g. 2015"
               />
             </div>
             <div>
-              <label htmlFor="yearMax" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label htmlFor="yearMax" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Year Max
               </label>
               <input
@@ -512,28 +477,29 @@ export default function DealFinder() {
                 name="yearMax"
                 value={formData.yearMax}
                 onChange={handleInputChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                 placeholder="e.g. 2023"
               />
             </div>
-            <div className="sm:col-span-6 flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  id="debug"
-                  name="debug"
-                  type="checkbox"
-                  checked={formData.debug}
-                  onChange={handleCheckboxChange}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label htmlFor="debug" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-                  Debug Mode
-                </label>
-              </div>
+            <div>
+              <label htmlFor="maxDeals" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Max Deals
+              </label>
+              <input
+                type="number"
+                id="maxDeals"
+                name="maxDeals"
+                value={formData.maxDeals}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                placeholder="e.g. 10"
+              />
+            </div>
+            <div className="flex items-end">
               <button
                 type="submit"
                 disabled={loading}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors duration-200"
               >
                 {loading ? 'Searching...' : 'Find Deals'}
               </button>
@@ -560,35 +526,6 @@ export default function DealFinder() {
           </div>
         )}
 
-        {/* Debug Data */}
-        {debugData && (
-          <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 mb-8 overflow-auto">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Debug Information</h2>
-            {debugData.activeListings ? (
-              <>
-                <p className="mb-2">Total Active Listings: {debugData.totalActiveListings}</p>
-                <h3 className="text-lg font-semibold mb-2">Sample Active Listings:</h3>
-                <pre className="bg-gray-100 dark:bg-gray-900 p-4 rounded-md overflow-auto text-sm">
-                  {JSON.stringify(debugData.activeListings, null, 2)}
-                </pre>
-              </>
-            ) : debugData.sampleListings ? (
-              <>
-                <p className="mb-2">Total Active Listings: {debugData.totalActive}</p>
-                <p className="mb-2">After Filtering: {debugData.afterFiltering}</p>
-                <h3 className="text-lg font-semibold mb-2">Sample Listings After Filtering:</h3>
-                <pre className="bg-gray-100 dark:bg-gray-900 p-4 rounded-md overflow-auto text-sm">
-                  {JSON.stringify(debugData.sampleListings, null, 2)}
-                </pre>
-              </>
-            ) : (
-              <pre className="bg-gray-100 dark:bg-gray-900 p-4 rounded-md overflow-auto text-sm">
-                {JSON.stringify(debugData, null, 2)}
-              </pre>
-            )}
-          </div>
-        )}
-
         {/* Loading Indicator */}
         {loading && (
           <div className="flex justify-center items-center py-12">
@@ -598,153 +535,161 @@ export default function DealFinder() {
 
         {/* Results */}
         {!loading && deals.length > 0 && (
-          <div className="space-y-8">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden p-6">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
               {deals.length} Deal{deals.length !== 1 ? 's' : ''} Found
             </h2>
             
-            {deals.map((deal, index) => (
-              <div key={index} className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
-                <div className="p-6">
-                  <div className="flex flex-col md:flex-row">
-                    {/* Image */}
-                    <div className="md:w-1/3 mb-4 md:mb-0 md:pr-6">
-                      <div className="relative h-64 w-full rounded-lg overflow-hidden">
-                        <Image
-                          src={deal.activeListing.image_url || '/placeholder-car.jpg'}
-                          alt={deal.activeListing.title}
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
-                      <div className="mt-4 flex justify-between items-center">
-                        <div className="flex items-center">
-                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                            deal.dealScore >= 8 ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' :
-                            deal.dealScore >= 6 ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300' :
-                            deal.dealScore >= 4 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300' :
-                            'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'
-                          }`}>
-                            Deal Score: {deal.dealScore}/10
-                          </span>
+            <div className="space-y-8">
+              {deals.map((deal, index) => (
+                <div key={index} className="bg-gray-50 dark:bg-gray-700 shadow rounded-lg overflow-hidden">
+                  <div className="p-6">
+                    <div className="flex flex-col md:flex-row">
+                      {/* Image */}
+                      <div className="md:w-1/3 mb-4 md:mb-0 md:pr-6">
+                        <div className="relative h-64 w-full rounded-lg overflow-hidden">
+                          <Image
+                            src={deal.activeListing.image_url || '/placeholder-car.jpg'}
+                            alt={deal.activeListing.title}
+                            fill
+                            className="object-cover"
+                          />
                         </div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
-                          {deal.endingSoon && (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300">
-                              Ending Soon!
+                        <div className="mt-4 flex justify-between items-center">
+                          <div className="flex items-center">
+                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                              deal.dealScore >= 8 ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' :
+                              deal.dealScore >= 6 ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300' :
+                              deal.dealScore >= 4 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300' :
+                              'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'
+                            }`}>
+                              Deal Score: {deal.dealScore}/10
                             </span>
-                          )}
+                          </div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {deal.endingSoon && (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300">
+                                Ending Soon!
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Details */}
+                      <div className="md:w-2/3">
+                        <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                          <a href={deal.activeListing.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                            {deal.activeListing.title}
+                          </a>
+                        </h3>
+                        
+                        <div className="mt-2 grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Current Bid</p>
+                            <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                              {deal.activeListing.current_bid_formatted}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Time Remaining</p>
+                            <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                              {formatTimeRemaining(deal.activeListing.endDate)}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Average Historical Price</p>
+                            <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                              {formatPrice(deal.historicalData.averagePrice)}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Price Difference</p>
+                            <p className={`text-lg font-semibold ${
+                              deal.priceDifference > 0 
+                                ? 'text-green-600 dark:text-green-400' 
+                                : 'text-red-600 dark:text-red-400'
+                            }`}>
+                              {deal.priceDifference > 0 ? '+' : ''}{formatPrice(deal.priceDifference)} 
+                              ({deal.percentageDifference > 0 ? '+' : ''}{deal.percentageDifference.toFixed(1)}%)
+                            </p>
+                          </div>
+                        </div>
+                        
+                        {/* Price Comparison Chart */}
+                        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                            <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                              Price Comparison
+                            </h4>
+                            <div className="w-full" style={{ minHeight: '300px' }}>
+                              <VegaChart 
+                                spec={generatePriceComparisonChart(deal)} 
+                                className="w-full h-auto"
+                              />
+                            </div>
+                          </div>
+                          <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                            <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                              Historical Price Trends
+                            </h4>
+                            <div className="w-full" style={{ minHeight: '300px' }}>
+                              <VegaChart 
+                                spec={generateHistoricalPriceChart(deal)} 
+                                className="w-full h-auto"
+                              />
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
                     
-                    {/* Details */}
-                    <div className="md:w-2/3">
-                      <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-                        <a href={deal.activeListing.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
-                          {deal.activeListing.title}
-                        </a>
-                      </h3>
-                      
-                      <div className="mt-2 grid grid-cols-2 gap-4">
-                        <div>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">Current Bid</p>
-                          <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                            {deal.activeListing.current_bid_formatted}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">Time Remaining</p>
-                          <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                            {formatTimeRemaining(deal.activeListing.endDate)}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">Average Historical Price</p>
-                          <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                            {formatPrice(deal.historicalData.averagePrice)}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">Price Difference</p>
-                          <p className={`text-lg font-semibold ${
-                            deal.priceDifference > 0 
-                              ? 'text-green-600 dark:text-green-400' 
-                              : 'text-red-600 dark:text-red-400'
-                          }`}>
-                            {deal.priceDifference > 0 ? '+' : ''}{formatPrice(deal.priceDifference)} 
-                            ({deal.percentageDifference > 0 ? '+' : ''}{deal.percentageDifference.toFixed(1)}%)
-                          </p>
-                        </div>
-                      </div>
-                      
-                      {/* Price Comparison Chart */}
-                      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                            Price Comparison
-                          </h4>
-                          <VegaChart 
-                            spec={generatePriceComparisonChart(deal)} 
-                            className="w-full h-auto"
-                          />
-                        </div>
-                        <div>
-                          <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                            Historical Price Trends
-                          </h4>
-                          <VegaChart 
-                            spec={generateHistoricalPriceChart(deal)} 
-                            className="w-full h-auto"
-                          />
+                    {/* Recent Sales */}
+                    <div className="mt-6">
+                      <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-3">
+                        Recent Similar Sales
+                      </h4>
+                      <div className="bg-gray-50 dark:bg-gray-700 rounded-lg overflow-hidden">
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <thead className="bg-gray-100 dark:bg-gray-600">
+                              <tr>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                  Vehicle
+                                </th>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                  Sold Price
+                                </th>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                  Date
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                              {deal.historicalData.recentSales.map((sale, idx) => (
+                                <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150">
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                                    <a href={sale.url} target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 hover:underline">
+                                      {sale.title}
+                                    </a>
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                                    {sale.sold_price}
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                                    {sale.sold_date}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
                         </div>
                       </div>
-                    </div>
-                  </div>
-                  
-                  {/* Recent Sales */}
-                  <div className="mt-6">
-                    <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-3">
-                      Recent Similar Sales
-                    </h4>
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                        <thead className="bg-gray-50 dark:bg-gray-700">
-                          <tr>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                              Vehicle
-                            </th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                              Sold Price
-                            </th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                              Date
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                          {deal.historicalData.recentSales.map((sale, idx) => (
-                            <tr key={idx}>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                                <a href={sale.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
-                                  {sale.title}
-                                </a>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                                {sale.sold_price}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                                {sale.sold_date}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
       </div>
