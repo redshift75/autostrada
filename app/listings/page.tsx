@@ -194,8 +194,91 @@ function VegaChart({
             if (onSignalClick) {
               result.view.addEventListener('click', (event: any, item: any) => {
                 if (item && item.datum) {
-                  onSignalClick('barClick', item.datum);
+                  console.log('Chart click event:', item.datum);
+                  
+                  // Extract bin data based on the histogram type
+                  let clickData = item.datum;
+                  
+                  // For price histogram
+                  if (specAny.description === 'Listing Price Distribution') {
+                    // Check if we have bin_maxbins_20_price format (actual format from Vega-Lite)
+                    if (clickData.bin_maxbins_20_price !== undefined && clickData.bin_maxbins_20_price_end !== undefined) {
+                      clickData = {
+                        price_bin0: clickData.bin_maxbins_20_price,
+                        price_bin1: clickData.bin_maxbins_20_price_end
+                      };
+                    }
+                    // Check if we have bin_start and bin_end properties
+                    else if (clickData.bin_start !== undefined && clickData.bin_end !== undefined) {
+                      clickData = {
+                        price_bin0: clickData.bin_start,
+                        price_bin1: clickData.bin_end
+                      };
+                    } 
+                    // Check if we have price bin properties
+                    else if (clickData.price !== undefined && clickData.price_end !== undefined) {
+                      clickData = {
+                        price_bin0: clickData.price,
+                        price_bin1: clickData.price_end
+                      };
+                    }
+                    // Check for bin0 and bin1 format
+                    else if (clickData.bin0 !== undefined && clickData.bin1 !== undefined) {
+                      clickData = {
+                        price_bin0: clickData.bin0,
+                        price_bin1: clickData.bin1
+                      };
+                    }
+                    // Check for price_bin0 and price_bin1 format (from our transform)
+                    else if (clickData.price_bin0 !== undefined && clickData.price_bin1 !== undefined) {
+                      // Already in the right format, no need to transform
+                    }
+                  } 
+                  // For mileage histogram
+                  else if (specAny.description === 'Listing Mileage Distribution') {
+                    // Check if we have bin_maxbins_20_mileage format (actual format from Vega-Lite)
+                    if (clickData.bin_maxbins_20_mileage !== undefined && clickData.bin_maxbins_20_mileage_end !== undefined) {
+                      clickData = {
+                        mileage_bin0: clickData.bin_maxbins_20_mileage,
+                        mileage_bin1: clickData.bin_maxbins_20_mileage_end
+                      };
+                    }
+                    // Check if we have bin_start and bin_end properties
+                    else if (clickData.bin_start !== undefined && clickData.bin_end !== undefined) {
+                      clickData = {
+                        mileage_bin0: clickData.bin_start,
+                        mileage_bin1: clickData.bin_end
+                      };
+                    } 
+                    // Check if we have mileage bin properties
+                    else if (clickData.mileage !== undefined && clickData.mileage_end !== undefined) {
+                      clickData = {
+                        mileage_bin0: clickData.mileage,
+                        mileage_bin1: clickData.mileage_end
+                      };
+                    }
+                    // Check for bin0 and bin1 format
+                    else if (clickData.bin0 !== undefined && clickData.bin1 !== undefined) {
+                      clickData = {
+                        mileage_bin0: clickData.bin0,
+                        mileage_bin1: clickData.bin1
+                      };
+                    }
+                    // Check for mileage_bin0 and mileage_bin1 format (from our transform)
+                    else if (clickData.mileage_bin0 !== undefined && clickData.mileage_bin1 !== undefined) {
+                      // Already in the right format, no need to transform
+                    }
+                  }
+                  
+                  console.log('Processed click data:', clickData);
+                  onSignalClick('barClick', clickData);
                 }
+              });
+              
+              // Add double-click event listener to clear filters
+              result.view.addEventListener('dblclick', () => {
+                console.log('Chart double-click event detected');
+                onSignalClick('clearFilters', null);
               });
             }
           }).catch((error: Error) => {
@@ -698,7 +781,10 @@ function ListingsContent() {
 
   // Handle histogram bar click
   const handleHistogramBarClick = (name: string, datum: any) => {
+    console.log('Histogram bar click:', name, datum);
+    
     if (name === 'barClick') {
+      // For price histogram - check for our normalized format first
       if (datum.price_bin0 !== undefined && datum.price_bin1 !== undefined) {
         // Price histogram was clicked
         const minPrice = Math.floor(datum.price_bin0).toString();
@@ -712,7 +798,23 @@ function ListingsContent() {
         
         // Show notification
         showNotification(`Price filter set: ${formatCurrency(parseInt(minPrice))} - ${formatCurrency(parseInt(maxPrice))}`);
-      } else if (datum.mileage_bin0 !== undefined && datum.mileage_bin1 !== undefined) {
+      } 
+      // Check for Vega-Lite's actual bin format for price
+      else if (datum.bin_maxbins_20_price !== undefined && datum.bin_maxbins_20_price_end !== undefined) {
+        const minPrice = Math.floor(datum.bin_maxbins_20_price).toString();
+        const maxPrice = Math.ceil(datum.bin_maxbins_20_price_end).toString();
+        
+        console.log(`Setting price filter from bin_maxbins format: ${minPrice} - ${maxPrice}`);
+        
+        // Update the state values
+        setPriceMin(minPrice);
+        setPriceMax(maxPrice);
+        
+        // Show notification
+        showNotification(`Price filter set: ${formatCurrency(parseInt(minPrice))} - ${formatCurrency(parseInt(maxPrice))}`);
+      }
+      // For mileage histogram - check for our normalized format first
+      else if (datum.mileage_bin0 !== undefined && datum.mileage_bin1 !== undefined) {
         // Mileage histogram was clicked
         const minMileage = Math.floor(datum.mileage_bin0).toString();
         const maxMileage = Math.ceil(datum.mileage_bin1).toString();
@@ -726,6 +828,35 @@ function ListingsContent() {
         // Show notification
         showNotification(`Mileage filter set: ${formatNumber(parseInt(minMileage))} - ${formatNumber(parseInt(maxMileage))} miles`);
       }
+      // Check for Vega-Lite's actual bin format for mileage
+      else if (datum.bin_maxbins_20_mileage !== undefined && datum.bin_maxbins_20_mileage_end !== undefined) {
+        const minMileage = Math.floor(datum.bin_maxbins_20_mileage).toString();
+        const maxMileage = Math.ceil(datum.bin_maxbins_20_mileage_end).toString();
+        
+        console.log(`Setting mileage filter from bin_maxbins format: ${minMileage} - ${maxMileage}`);
+        
+        // Update the state values
+        setMileageMin(minMileage);
+        setMileageMax(maxMileage);
+        
+        // Show notification
+        showNotification(`Mileage filter set: ${formatNumber(parseInt(minMileage))} - ${formatNumber(parseInt(maxMileage))} miles`);
+      }
+      // Log if we couldn't identify the histogram type
+      else {
+        console.warn('Unrecognized histogram data format:', datum);
+      }
+    }
+    // Handle double-click to clear filters
+    else if (name === 'clearFilters') {
+      console.log('Clearing filters from double-click');
+      
+      // Clear all filters
+      setPriceMin('');
+      setPriceMax('');
+      setMileageMin('');
+      setMileageMax('');
+      showNotification('Filters cleared');
     }
   };
 

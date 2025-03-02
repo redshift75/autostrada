@@ -169,14 +169,17 @@ export function generateListingPriceHistogram(
       model: listing.model
     }));
 
-    // Create a Vega-Lite specification
-    const spec: vegaLite.TopLevelSpec = {
+    // Create a Vega-Lite specification with selection support
+    const spec = {
       $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
       description: 'Listing Price Distribution',
       width: 800,
       height: 400,
       data: { values: data },
-      mark: 'bar',
+      mark: {
+        type: 'bar',
+        cursor: 'pointer'
+      },
       encoding: {
         x: {
           bin: { maxbins: 20 },
@@ -190,14 +193,24 @@ export function generateListingPriceHistogram(
           title: 'Number of Vehicles'
         },
         tooltip: [
-          { bin: { maxbins: 20 }, field: 'price', type: 'quantitative', title: 'Price Range', format: '$,.0f' },
-          { aggregate: 'count', type: 'quantitative', title: 'Count' }
+          { aggregate: 'count', type: 'quantitative', title: 'Count' },
+          { field: 'price', bin: { maxbins: 20 }, type: 'quantitative', title: 'Price Range', format: '$,.0f' }
         ]
+      },
+      // Add selection configuration to support double-click to clear
+      selection: {
+        barSelection: {
+          type: "single",
+          encodings: ["x"],
+          on: "click",
+          clear: "dblclick",
+          resolve: "global"
+        }
       }
     };
 
-    // Return the Vega-Lite specification directly
-    return spec;
+    // Return the Vega-Lite specification with type assertion
+    return spec as vegaLite.TopLevelSpec;
   } catch (error) {
     console.error('Error generating listing price histogram:', error);
     throw error;
@@ -228,14 +241,17 @@ export function generateListingMileageHistogram(
       model: listing.model
     }));
 
-    // Create a Vega-Lite specification
-    const spec: vegaLite.TopLevelSpec = {
+    // Create a Vega-Lite specification with selection support
+    const spec = {
       $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
       description: 'Listing Mileage Distribution',
       width: 800,
       height: 400,
       data: { values: data },
-      mark: 'bar',
+      mark: {
+        type: 'bar',
+        cursor: 'pointer'
+      },
       encoding: {
         x: {
           bin: { maxbins: 20 },
@@ -249,14 +265,24 @@ export function generateListingMileageHistogram(
           title: 'Number of Vehicles'
         },
         tooltip: [
-          { bin: { maxbins: 20 }, field: 'mileage', type: 'quantitative', title: 'Mileage Range', format: ',.0f' },
-          { aggregate: 'count', type: 'quantitative', title: 'Count' }
+          { aggregate: 'count', type: 'quantitative', title: 'Count' },
+          { field: 'mileage', bin: { maxbins: 20 }, type: 'quantitative', title: 'Mileage Range', format: ',.0f' }
         ]
+      },
+      // Add selection configuration to support double-click to clear
+      selection: {
+        barSelection: {
+          type: "single",
+          encodings: ["x"],
+          on: "click",
+          clear: "dblclick",
+          resolve: "global"
+        }
       }
     };
 
-    // Return the Vega-Lite specification directly
-    return spec;
+    // Return the Vega-Lite specification with type assertion
+    return spec as vegaLite.TopLevelSpec;
   } catch (error) {
     console.error('Error generating listing mileage histogram:', error);
     throw error;
