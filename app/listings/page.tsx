@@ -891,6 +891,9 @@ function ListingsContent() {
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white sm:text-4xl">
               Car Listings
             </h1>
+            <p className="mt-3 max-w-2xl mx-auto text-lg text-gray-500 dark:text-gray-300">
+              Find underpriced auctions ending within the next 7 days on Bring a Trailer
+            </p>
           </div>
         </div>
       <style jsx global>{fadeInAnimation}</style>
