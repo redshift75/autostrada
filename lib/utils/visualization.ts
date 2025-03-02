@@ -46,7 +46,8 @@ export async function generatePriceTimeSeriesChart(
         type: 'point',
         size: 60,
         filled: true,
-        tooltip: true
+        tooltip: true,
+        cursor: 'pointer'
       },
       encoding: {
         x: {
@@ -76,7 +77,8 @@ export async function generatePriceTimeSeriesChart(
           { field: 'date', type: 'temporal', title: 'Date', format: '%b %d, %Y' },
           { field: 'price', type: 'quantitative', title: 'Price', format: '$,.0f' },
           { field: 'title', type: 'nominal', title: 'Vehicle' },
-          { field: 'status', type: 'nominal', title: 'Status' }
+          { field: 'status', type: 'nominal', title: 'Status' },
+          { field: 'url', type: 'nominal', title: 'URL' }
         ]
       }
     };

@@ -351,6 +351,22 @@ function AuctionsContent() {
     }
   };
   
+  // Handle time series chart point click
+  const handleTimeSeriesClick = (name: string, value: any) => {
+    if (name === 'pointClick' && value) {
+      console.log('Time series point clicked with data:', value);
+      
+      // Check if the point has a URL
+      if (value.url) {
+        console.log('Opening URL:', value.url);
+        // Open the URL in a new tab
+        window.open(value.url, '_blank');
+      } else {
+        console.log('No URL found for this point');
+      }
+    }
+  };
+  
   // Filter results by price range
   const filterResultsByPriceRange = (minPrice: number, maxPrice: number) => {
     if (!results.length) {
@@ -788,11 +804,17 @@ function AuctionsContent() {
                     <div className="grid grid-cols-1 gap-6 mb-4">
                       {(filteredVisualizations?.timeSeriesChart || visualizations.timeSeriesChart) && (
                         <div className="bg-gray-50 p-4 rounded-md">
-                          <h3 className="text-lg font-semibold mb-2">Price Trends Over Time</h3>
+                          <h3 className="text-lg font-semibold mb-2">
+                            Price Trends Over Time
+                            <span className="ml-2 text-sm font-normal text-gray-500">
+                              (Click on a point to view listing)
+                            </span>
+                          </h3>
                           <div className="w-full" style={{ maxWidth: '100%', minHeight: '400px' }}>
                             <VegaChart 
                               spec={filteredVisualizations?.timeSeriesChart || visualizations.timeSeriesChart!} 
                               className="w-full h-auto"
+                              onSignalClick={handleTimeSeriesClick}
                             />
                           </div>
                         </div>

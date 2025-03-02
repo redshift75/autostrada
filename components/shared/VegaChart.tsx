@@ -143,12 +143,40 @@ export default function VegaChart({ spec, className, onSignalClick }: VegaChartP
             setError('Error rendering chart');
           });
         } else {
+          // Check if this is a time series chart
+          const isTimeSeries = specAny.description?.includes('Price Trends');
+          
+          // Add cursor pointer to points for time series charts
+          if (isTimeSeries) {
+            if (typeof responsiveSpec.mark === 'string' && responsiveSpec.mark === 'point') {
+              responsiveSpec.mark = {
+                type: 'point',
+                cursor: 'pointer'
+              };
+            } else if (typeof responsiveSpec.mark === 'object') {
+              responsiveSpec.mark = {
+                ...responsiveSpec.mark,
+                cursor: 'pointer'
+              };
+            }
+          }
+          
           vegaEmbed(containerRef.current!, responsiveSpec as any, {
             actions: { export: true, source: false, compiled: false, editor: false },
             renderer: 'svg',
             mode: 'vega-lite'
           }).then((result: any) => {
             viewRef.current = result.view;
+            
+            // Add click event listener for time series chart points
+            if (onSignalClick && isTimeSeries) {
+              // Add click event listener
+              result.view.addEventListener('click', (event: any, item: any) => {
+                if (item && item.datum) {
+                  onSignalClick('pointClick', item.datum);
+                }
+              });
+            }
           }).catch((error: Error) => {
             console.error('Error rendering Vega chart:', error);
             console.error('Problematic spec:', JSON.stringify(responsiveSpec));
