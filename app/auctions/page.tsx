@@ -543,12 +543,23 @@ function AuctionsContent() {
                           as: "moving_avg"
                         }
                       ],
-                      frame: [-45, 45], // 90-day window (45 days before and after)
+                      frame: [-90, 0], // 90-day window (45 days before and after)
                       sort: [{ field: "date", order: "ascending" }]
                     }
                   ],
                   encoding: {
-                    x: { field: "date", type: "temporal" },
+                    x: { field: "date", type: "temporal",
+                      title: null,
+                      axis: {
+                        format: '%b %d',
+                        labelAngle: -45,
+                        grid: true,
+                        labelLimit: 100,
+                        title: null
+                      },
+                      scale: {
+                        padding: 10
+                      }},
                     y: { field: "moving_avg", type: "quantitative" }
                   }
                 }
@@ -864,7 +875,7 @@ function AuctionsContent() {
                         )}
                       </h3>
                     </div>
-                    <div className="overflow-y-auto" style={{ maxHeight: "calc(120vh)" }}>
+                    <div className="overflow-y-auto" style={{ maxHeight: "calc(105vh)" }}>
                       {(activeFilter ? filteredResults : results).length === 0 ? (
                         <p className="text-gray-500 p-4">No results found.</p>
                       ) : (

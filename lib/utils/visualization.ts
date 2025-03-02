@@ -53,7 +53,13 @@ export async function generatePriceTimeSeriesChart(
         x: {
           field: 'date',
           type: 'temporal',
-          title: 'Sale Date'
+          title: null,
+          axis: {
+            format: '%b %d',
+            labelAngle: -45,
+            grid: true,
+            labelLimit: 100,
+          }
         },
         y: {
           field: 'price',
