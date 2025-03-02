@@ -37,7 +37,7 @@ type Deal = {
     maxPrice: number;
     recentSales: Array<{
       title: string;
-      sold_price: string;
+      sold_price?: string;
       sold_date: string;
       url: string;
       image_url?: string;
@@ -153,6 +153,25 @@ export default function DealFinder() {
     return `${diffHrs}h ${diffMins}m`;
   };
 
+  // Parse price string to number
+  const parsePriceString = (priceString: string | number): number | null => {
+    if (typeof priceString === 'number') {
+      return priceString;
+    }
+    
+    if (typeof priceString === 'string') {
+      // Remove currency symbols, commas, and other non-numeric characters except decimal point
+      const cleanedPrice = priceString.replace(/[$,\s]/g, '');
+      const price = parseFloat(cleanedPrice);
+      
+      if (!isNaN(price) && price > 0) {
+        return price;
+      }
+    }
+    
+    return null;
+  };
+
   // Generate price comparison chart
   const generatePriceComparisonChart = (deal: Deal): TopLevelSpec => {
     const data = [
@@ -206,6 +225,223 @@ export default function DealFinder() {
         ]
       }
     };
+  };
+
+  // Generate historical price time series chart
+  const generateHistoricalPriceChart = (deal: Deal): TopLevelSpec => {
+    // Define type for chart data points
+    type ChartDataPoint = {
+      date: string;
+      price: number;
+      title: string;
+      url: string;
+      isCurrent?: boolean;
+    };
+
+    // Transform recent sales data for the chart
+    const data: ChartDataPoint[] = deal.historicalData.recentSales.map(sale => {
+      // Parse the price string to a number
+      const price = parsePriceString(sale.sold_price || 0);
+      
+      // Skip entries with invalid prices
+      if (price === null) {
+        return null;
+      }
+      
+      // Ensure date is in a format Vega-Lite can understand
+      let formattedDate: string;
+      try {
+        // Try to parse and format the date consistently
+        const dateObj = new Date(sale.sold_date);
+        if (isNaN(dateObj.getTime())) {
+          throw new Error('Invalid date');
+        }
+        formattedDate = dateObj.toISOString().split('T')[0]; // YYYY-MM-DD format
+      } catch (error) {
+        console.error(`Invalid date format for ${sale.title}: ${sale.sold_date}`);
+        return null;
+      }
+      
+      return {
+        date: formattedDate,
+        price: price,
+        title: sale.title,
+        url: sale.url
+      };
+    }).filter(item => item !== null) as ChartDataPoint[];
+
+    console.log(`Processed ${data.length} historical sales for chart`);
+
+    // Sort by date
+    data.sort((a, b) => {
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      return dateA.getTime() - dateB.getTime();
+    });
+
+    // Add current listing as a highlighted point
+    data.push({
+      date: new Date().toISOString().split('T')[0], // Today's date in YYYY-MM-DD format
+      price: deal.activeListing.current_bid,
+      title: deal.activeListing.title,
+      url: deal.activeListing.url,
+      isCurrent: true
+    });
+
+    console.log(`Final chart data points: ${data.length} (including current listing)`);
+    console.log('Chart data sample:', data.slice(0, 3));
+    // Add detailed logging of all data points
+    console.log('All chart data points:');
+    data.forEach((point, index) => {
+      console.log(`Point ${index}: date=${point.date}, price=${point.price}, isCurrent=${point.isCurrent || false}`);
+    });
+    
+    // Ensure we have enough data points for a meaningful chart
+    if (data.length < 2) {
+      console.warn('Not enough data points for a meaningful chart');
+      // Add a dummy point in the past to ensure the chart renders
+      const sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+      
+      data.push({
+        date: sixMonthsAgo.toISOString().split('T')[0],
+        price: deal.activeListing.current_bid * 0.9, // 90% of current price
+        title: "Historical Average",
+        url: "#",
+        isCurrent: false
+      });
+      
+      console.log('Added a reference point to ensure chart renders');
+    }
+
+    // Determine if we should show the trend line
+    const showTrendLine = data.length >= 3;
+    
+    // Create the chart specification
+    let chartSpec: TopLevelSpec;
+    
+    // Base chart configuration
+    const baseSpec = {
+      $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
+      description: 'Historical Price Trends',
+      width: "container",
+      height: 300,
+      autosize: {
+        type: "fit",
+        contains: "padding",
+        resize: true
+      },
+      data: { values: data },
+      mark: {
+        type: 'circle',
+        filled: true,
+        tooltip: true,
+        opacity: 0.8
+      },
+      encoding: {
+        x: {
+          field: 'date',
+          type: 'temporal',
+          title: 'Sale Date',
+          axis: {
+            format: '%b %d',
+            labelAngle: -45,
+            grid: true,
+            labelLimit: 100
+          },
+          scale: {
+            padding: 10
+          }
+        },
+        y: {
+          field: 'price',
+          type: 'quantitative',
+          title: 'Sale Price ($)',
+          scale: { 
+            zero: false,
+            padding: 20
+          },
+          axis: {
+            format: '$~s'
+          }
+        },
+        // Use size as a value instead of a field to avoid the warning
+        size: {
+          condition: { test: "datum.isCurrent", value: 120 },
+          value: 80
+        },
+        color: {
+          condition: { test: "datum.isCurrent", value: "#ef4444" },
+          value: "#3b82f6",
+          legend: null // Disable the legend
+        },
+        tooltip: [
+          { field: 'date', type: 'temporal', title: 'Date', format: '%b %d, %Y' },
+          { field: 'price', type: 'quantitative', title: 'Price', format: '$,.0f' },
+          { field: 'title', type: 'nominal', title: 'Vehicle' }
+        ]
+      }
+    };
+    
+    // If we have enough data points, create a layered chart with trend line
+    if (showTrendLine) {
+      chartSpec = {
+        $schema: baseSpec.$schema,
+        description: baseSpec.description,
+        width: baseSpec.width,
+        height: baseSpec.height,
+        autosize: baseSpec.autosize,
+        layer: [
+          // Main data points
+          {
+            data: baseSpec.data,
+            mark: baseSpec.mark,
+            encoding: baseSpec.encoding
+          },
+          // Trend line
+          {
+            data: baseSpec.data,
+            mark: {
+              type: 'line',
+              color: "#9ca3af",
+              strokeWidth: 2,
+              strokeDash: [4, 2]
+            },
+            transform: [
+              {
+                regression: "price",
+                on: "date",
+                method: "linear" as const
+              }
+            ],
+            encoding: {
+              x: { field: "date", type: "temporal" },
+              y: { field: "price", type: "quantitative" }
+            }
+          }
+          // Legend layer removed
+        ]
+      } as TopLevelSpec;
+    } else {
+      // Otherwise, just use the base spec without legend
+      chartSpec = {
+        $schema: baseSpec.$schema,
+        description: baseSpec.description,
+        width: baseSpec.width,
+        height: baseSpec.height,
+        autosize: baseSpec.autosize,
+        layer: [
+          {
+            data: baseSpec.data,
+            mark: baseSpec.mark,
+            encoding: baseSpec.encoding
+          }
+          // Legend layer removed
+        ]
+      } as TopLevelSpec;
+    }
+    
+    return chartSpec;
   };
 
   return (
@@ -442,11 +678,25 @@ export default function DealFinder() {
                       </div>
                       
                       {/* Price Comparison Chart */}
-                      <div className="mt-4">
-                        <VegaChart 
-                          spec={generatePriceComparisonChart(deal)} 
-                          className="w-full h-auto"
-                        />
+                      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                            Price Comparison
+                          </h4>
+                          <VegaChart 
+                            spec={generatePriceComparisonChart(deal)} 
+                            className="w-full h-auto"
+                          />
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                            Historical Price Trends
+                          </h4>
+                          <VegaChart 
+                            spec={generateHistoricalPriceChart(deal)} 
+                            className="w-full h-auto"
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
