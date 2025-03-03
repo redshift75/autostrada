@@ -50,7 +50,7 @@ type AuctionResult = {
 function AuctionsContent() {
   const router = useRouter();
   
-  // Form state for generating new visualizations
+  // Form state
   const [formData, setFormData] = useState({
     make: '',
     model: '',
@@ -61,9 +61,7 @@ function AuctionsContent() {
   
   // State for suggestions
   const [makeSuggestions, setMakeSuggestions] = useState<string[]>([]);
-  const [modelSuggestions, setModelSuggestions] = useState<string[]>([]);
   const [showMakeSuggestions, setShowMakeSuggestions] = useState(false);
-  const [showModelSuggestions, setShowModelSuggestions] = useState(false);
   
   // Debounce timers
   const makeDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -172,63 +170,6 @@ function AuctionsContent() {
     }, 300); // 300ms delay
   };
   
-  // Fetch model suggestions from Supabase based on selected make
-  const fetchModelSuggestions = async (query: string) => {
-    if (!query || query.length < 2) {
-      setModelSuggestions([]);
-      return;
-    }
-    
-    try {
-      console.log('Fetching model suggestions for query:', query, 'make:', formData.make);
-      const makeParam = formData.make ? `&make=${encodeURIComponent(formData.make)}` : '';
-      const response = await fetch(`/api/cars?type=models&query=${encodeURIComponent(query)}${makeParam}`);
-      
-      if (!response.ok) {
-        console.error('Model suggestions API error:', response.status, response.statusText);
-        // Don't throw error, just log it and return empty array
-        setModelSuggestions([]);
-        return;
-      }
-      
-      const data = await response.json();
-      console.log('Received model suggestions data:', data);
-      
-      if (!data || !Array.isArray(data)) {
-        console.error('Invalid model suggestions data format:', data);
-        setModelSuggestions([]);
-        return;
-      }
-      
-      const uniqueModels = Array.from(new Set(data.map((item: CarModel) => item.Model)))
-        .filter((Model): Model is string => !!Model)
-        .sort()
-        .slice(0, 5); // Limit to 5 results
-      
-      console.log('Processed unique models:', uniqueModels);
-      setModelSuggestions(uniqueModels);
-      setShowModelSuggestions(uniqueModels.length > 0);
-    } catch (error) {
-      console.error('Error fetching model suggestions:', error);
-      // Don't show error to user, just silently fail
-      setModelSuggestions([]);
-      setShowModelSuggestions(false);
-    }
-  };
-  
-  // Debounced version of fetchModelSuggestions
-  const debouncedFetchModelSuggestions = (query: string) => {
-    // Clear any existing timer
-    if (modelDebounceTimerRef.current) {
-      clearTimeout(modelDebounceTimerRef.current);
-    }
-    
-    // Set a new timer
-    modelDebounceTimerRef.current = setTimeout(() => {
-      fetchModelSuggestions(query);
-    }, 300); // 300ms delay
-  };
-  
   // Handle input changes with debounce for suggestions
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -237,16 +178,13 @@ function AuctionsContent() {
       [name]: name === 'yearMin' || name === 'yearMax' ? parseInt(value) : value,
     });
     
-    // Fetch suggestions for make and model fields with debounce
+    // Fetch suggestions for make field with debounce
     if (name === 'make') {
       debouncedFetchMakeSuggestions(value);
       // Clear model when make changes
       if (formData.model) {
         setFormData(prev => ({ ...prev, model: '' }));
-        setModelSuggestions([]);
       }
-    } else if (name === 'model') {
-      debouncedFetchModelSuggestions(value);
     }
   };
   
@@ -271,13 +209,6 @@ function AuctionsContent() {
     
     if (name === 'make') {
       setShowMakeSuggestions(false);
-      // Focus the model input after selecting a make
-      const modelInput = document.getElementById('model');
-      if (modelInput) {
-        modelInput.focus();
-      }
-    } else if (name === 'model') {
-      setShowModelSuggestions(false);
     }
   };
   
@@ -285,7 +216,6 @@ function AuctionsContent() {
   useEffect(() => {
     const handleClickOutside = () => {
       setShowMakeSuggestions(false);
-      setShowModelSuggestions(false);
     };
     
     document.addEventListener('click', handleClickOutside);
@@ -667,7 +597,6 @@ function AuctionsContent() {
                   name="model"
                   value={formData.model}
                   onChange={handleInputChange}
-                  onFocus={() => formData.model.length >= 2 && debouncedFetchModelSuggestions(formData.model)}
                   onClick={(e) => e.stopPropagation()}
                   className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
                   required
@@ -676,24 +605,6 @@ function AuctionsContent() {
                     ? "Enter model manually..." 
                     : (formData.make ? `Enter ${formData.make} model...` : "First select a make...")}
                 />
-                {showModelSuggestions && modelSuggestions.length > 0 && (
-                  <div className="absolute z-10 w-full mt-1 top-full bg-white dark:bg-gray-700 shadow-lg rounded-md border border-gray-200 dark:border-gray-600 max-h-60 overflow-y-auto">
-                    <div className="py-1">
-                      {modelSuggestions.map((model, index) => (
-                        <div
-                          key={index}
-                          className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer transition-colors duration-150"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSuggestionClick('model', model);
-                          }}
-                        >
-                          {model}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
               
               <div className="flex flex-col">
