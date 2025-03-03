@@ -875,7 +875,7 @@ function AuctionsContent() {
                         )}
                       </h3>
                     </div>
-                    <div className="overflow-y-auto" style={{ maxHeight: "calc(105vh)" }}>
+                    <div className="overflow-y-auto" style={{ maxHeight: "calc(115vh)" }}>
                       {(activeFilter ? filteredResults : results).length === 0 ? (
                         <p className="text-gray-500 p-4">No results found.</p>
                       ) : (

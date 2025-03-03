@@ -102,7 +102,7 @@ export class BringATrailerResultsScraper extends BaseScraper {
     try {
       // Set default values
       const perPage = params.perPage || 50;
-      let maxPages = params.maxPages || 1;
+      let maxPages = params.maxPages || 3;
       let allListings: BaTCompletedListing[] = [];
       const seenIds = new Set<string>();
       const make = params.make || 'Porsche'; // Default to Porsche if not specified
@@ -236,7 +236,6 @@ export class BringATrailerResultsScraper extends BaseScraper {
       
       // Filter by make, model, and year if provided
       const filteredListings = this.filterListings(allListings, params);
-      //const filteredListings = allListings;
       console.log(`All listings ${allListings.length} and filtered ${filteredListings.length} completed auctions`);
       
       if (filteredListings.length > 0) {
@@ -342,6 +341,7 @@ export class BringATrailerResultsScraper extends BaseScraper {
     
     // If no year found, return early
     if (!year) {
+      console.log(`Listing ${title} does not have a year`);
       return { year: undefined, make: undefined, model: undefined };
     }
     
@@ -358,13 +358,16 @@ export class BringATrailerResultsScraper extends BaseScraper {
         
         // Try to find a model suggestion in the text after the make
         for (const modelSuggestion of sortedSuggestions) {
-          if (afterMake.includes(modelSuggestion)) {
+          if (afterMake.includes(modelSuggestion) || modelSuggestion.includes(afterMake)) {
             return { year, make, model: modelSuggestion };
-          }
+          } 
         }
       }
       
       // If no model suggestion matched or none were provided, fall back to the original logic
+
+      console.log(`Listing ${title} cant find model : ${afterMake}`);
+
       const parts = afterMake.split(/\s+/);
       
       // The model is typically the next word or two after the make
@@ -438,9 +441,11 @@ export class BringATrailerResultsScraper extends BaseScraper {
       return listings.filter(listing => {
         // Filter by year range
         if (yearMin && listing.year && listing.year < yearMin) {
+          console.log(`Listing ${listing.title} does not have a year`);
           return false;
         }
         if (yearMax && listing.year && listing.year > yearMax) {
+          console.log(`Listing ${listing.title} does not have a year`);
           return false;
         }
         
@@ -449,9 +454,11 @@ export class BringATrailerResultsScraper extends BaseScraper {
           const listingMake = listing.make.toLowerCase();
           const searchMake = make.toLowerCase();
           if (!listingMake.includes(searchMake)) {
+            console.log(`Listing ${listing.title} does not match make ${make}`);
             return false;
           }
         } else if (make) {
+          console.log(`Listing ${listing.title} does not have a make`);
           // If make is specified but the listing doesn't have a make, exclude it
           return false;
         }
@@ -461,6 +468,7 @@ export class BringATrailerResultsScraper extends BaseScraper {
           const listingModel = listing.model.toLowerCase();
           const searchModel = model.toLowerCase();
           if (!listingModel.includes(searchModel)) {
+            console.log(`Listing ${listing.title} does not match model ${model}`);
             return false;
           }
         } else if (model) {
