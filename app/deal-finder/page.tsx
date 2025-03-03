@@ -504,10 +504,10 @@ export default function DealFinder() {
         {/* Search Form */}
         <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 mb-8">
           <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Search for Deals</h2>
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="flex flex-col relative">
               <label htmlFor="make" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Make
+                Make <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -519,9 +519,9 @@ export default function DealFinder() {
                 placeholder="e.g. Porsche"
               />
             </div>
-            <div>
+            <div className="flex flex-col relative">
               <label htmlFor="model" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Model
+                Model <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -533,9 +533,7 @@ export default function DealFinder() {
                 placeholder="e.g. 911"
               />
             </div>
-            
-            {/* Year inputs side by side on second row */}
-            <div>
+            <div className="flex flex-col">
               <label htmlFor="yearMin" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Year Min
               </label>
@@ -546,10 +544,10 @@ export default function DealFinder() {
                 value={formData.yearMin}
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                placeholder="e.g. 2015"
+                placeholder="e.g. 1950"
               />
             </div>
-            <div>
+            <div className="flex flex-col">
               <label htmlFor="yearMax" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Year Max
               </label>
@@ -563,14 +561,14 @@ export default function DealFinder() {
                 placeholder="e.g. 2023"
               />
             </div>
-            
-            {/* Max Deals input is hidden but still in formData state */}
-            
-            <div className="flex items-end md:col-span-2 justify-end">
+            <div className="flex flex-col justify-end">
+              <label className="block text-sm font-medium text-transparent dark:text-transparent mb-1">
+                Submit
+              </label>
               <button
                 type="submit"
                 disabled={loading}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors duration-200"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors duration-200"
               >
                 {loading ? 'Searching...' : 'Find Deals'}
               </button>

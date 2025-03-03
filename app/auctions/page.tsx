@@ -74,7 +74,6 @@ function AuctionsContent() {
   const [filteredResults, setFilteredResults] = useState<AuctionResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showForm, setShowForm] = useState(true);
   
   // State for database connection status
   const [dbConnectionError, setDbConnectionError] = useState(false);
@@ -588,9 +587,6 @@ function AuctionsContent() {
         make: formData.make,
         model: formData.model
       });
-      
-      // Hide the form after successful search
-      setShowForm(false);
     } catch (err) {
       setError('Failed to generate visualizations. Please try again.');
       console.error('Error:', err);
@@ -611,14 +607,6 @@ function AuctionsContent() {
               Analyze Historical Auction Results
             </p>
           </div>
-          <div>
-            <button
-              onClick={() => setShowForm(!showForm)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition duration-200"
-            >
-              {showForm ? 'Hide Form' : 'Generate New Visualizations'}
-            </button>
-          </div>
         </div>
       
         {dbConnectionError && (
@@ -628,135 +616,132 @@ function AuctionsContent() {
           </div>
         )}
       
-        {showForm && (
-          <div className="bg-white shadow-md rounded-lg p-6 mb-8">
-            <h2 className="text-xl font-semibold mb-4">Generate Visualizations</h2>
-            <form onSubmit={handleSubmit}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* First row: Make and Model */}
-                <div className="relative">
-                  <label htmlFor="make" className="block text-sm font-medium text-gray-700 mb-1">
-                    Make
-                  </label>
-                  <input
-                    type="text"
-                    id="make"
-                    name="make"
-                    value={formData.make}
-                    onChange={handleInputChange}
-                    onFocus={() => formData.make.length >= 2 && debouncedFetchMakeSuggestions(formData.make)}
-                    onClick={(e) => e.stopPropagation()}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                    autoComplete="off"
-                    placeholder={dbConnectionError ? "Enter car make manually..." : "Start typing to see suggestions..."}
-                  />
-                  {showMakeSuggestions && makeSuggestions.length > 0 && (
-                    <div className="absolute z-10 w-full mt-1 bg-white shadow-lg rounded-md border border-gray-200 max-h-60 overflow-y-auto">
-                      <div className="py-1">
-                        {makeSuggestions.map((make, index) => (
-                          <div
-                            key={index}
-                            className="px-4 py-2 hover:bg-blue-50 cursor-pointer transition-colors duration-150"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleSuggestionClick('make', make);
-                            }}
-                          >
-                            {make}
-                          </div>
-                        ))}
-                      </div>
+        <div className="bg-white shadow-md rounded-lg p-6 mb-8">
+          <h2 className="text-xl font-semibold mb-4">Generate Analysis</h2>
+          <form onSubmit={handleSubmit}>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="flex flex-col relative">
+                <label htmlFor="make" className="mb-1 font-medium">
+                  Make <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="make"
+                  name="make"
+                  value={formData.make}
+                  onChange={handleInputChange}
+                  onFocus={() => formData.make.length >= 2 && debouncedFetchMakeSuggestions(formData.make)}
+                  onClick={(e) => e.stopPropagation()}
+                  className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
+                  required
+                  autoComplete="off"
+                  placeholder={dbConnectionError ? "Enter car make manually..." : "Start typing to see suggestions..."}
+                />
+                {showMakeSuggestions && makeSuggestions.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 top-full bg-white dark:bg-gray-700 shadow-lg rounded-md border border-gray-200 dark:border-gray-600 max-h-60 overflow-y-auto">
+                    <div className="py-1">
+                      {makeSuggestions.map((make, index) => (
+                        <div
+                          key={index}
+                          className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer transition-colors duration-150"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSuggestionClick('make', make);
+                          }}
+                        >
+                          {make}
+                        </div>
+                      ))}
                     </div>
-                  )}
-                </div>
-                <div className="relative">
-                  <label htmlFor="model" className="block text-sm font-medium text-gray-700 mb-1">
-                    Model
-                  </label>
-                  <input
-                    type="text"
-                    id="model"
-                    name="model"
-                    value={formData.model}
-                    onChange={handleInputChange}
-                    onFocus={() => formData.model.length >= 2 && debouncedFetchModelSuggestions(formData.model)}
-                    onClick={(e) => e.stopPropagation()}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                    autoComplete="off"
-                    placeholder={dbConnectionError 
-                      ? "Enter model manually..." 
-                      : (formData.make ? `Enter ${formData.make} model...` : "First select a make...")}
-                  />
-                  {showModelSuggestions && modelSuggestions.length > 0 && (
-                    <div className="absolute z-10 w-full mt-1 bg-white shadow-lg rounded-md border border-gray-200 max-h-60 overflow-y-auto">
-                      <div className="py-1">
-                        {modelSuggestions.map((model, index) => (
-                          <div
-                            key={index}
-                            className="px-4 py-2 hover:bg-blue-50 cursor-pointer transition-colors duration-150"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleSuggestionClick('model', model);
-                            }}
-                          >
-                            {model}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-                
-                {/* Second row: Year Min and Year Max side by side */}
-                <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label htmlFor="yearMin" className="block text-sm font-medium text-gray-700 mb-1">
-                      Year Min
-                    </label>
-                    <input
-                      type="number"
-                      id="yearMin"
-                      name="yearMin"
-                      value={formData.yearMin}
-                      onChange={handleInputChange}
-                      min="1900"
-                      max="2025"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
                   </div>
-                  <div>
-                    <label htmlFor="yearMax" className="block text-sm font-medium text-gray-700 mb-1">
-                      Year Max
-                    </label>
-                    <input
-                      type="number"
-                      id="yearMax"
-                      name="yearMax"
-                      value={formData.yearMax}
-                      onChange={handleInputChange}
-                      min="1900"
-                      max="2025"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-                
-                {/* Button row */}
-                <div className="flex items-end justify-end md:col-span-2">
-                  <button
-                    type="submit"
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md transition duration-200 disabled:bg-blue-400"
-                    disabled={loading}
-                  >
-                    {loading ? 'Generating...' : 'Generate'}
-                  </button>
-                </div>
+                )}
               </div>
-            </form>
-          </div>
-        )}
+              
+              <div className="flex flex-col relative">
+                <label htmlFor="model" className="mb-1 font-medium">
+                  Model <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="model"
+                  name="model"
+                  value={formData.model}
+                  onChange={handleInputChange}
+                  onFocus={() => formData.model.length >= 2 && debouncedFetchModelSuggestions(formData.model)}
+                  onClick={(e) => e.stopPropagation()}
+                  className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
+                  required
+                  autoComplete="off"
+                  placeholder={dbConnectionError 
+                    ? "Enter model manually..." 
+                    : (formData.make ? `Enter ${formData.make} model...` : "First select a make...")}
+                />
+                {showModelSuggestions && modelSuggestions.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 top-full bg-white dark:bg-gray-700 shadow-lg rounded-md border border-gray-200 dark:border-gray-600 max-h-60 overflow-y-auto">
+                    <div className="py-1">
+                      {modelSuggestions.map((model, index) => (
+                        <div
+                          key={index}
+                          className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer transition-colors duration-150"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSuggestionClick('model', model);
+                          }}
+                        >
+                          {model}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex flex-col">
+                <label htmlFor="yearMin" className="mb-1 font-medium">
+                  Year (Min)
+                </label>
+                <input
+                  type="number"
+                  id="yearMin"
+                  name="yearMin"
+                  value={formData.yearMin}
+                  onChange={handleInputChange}
+                  className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
+                  placeholder="e.g. 1950"
+                  min="1900"
+                  max="2025"
+                />
+              </div>
+              
+              <div className="flex flex-col">
+                <label htmlFor="yearMax" className="mb-1 font-medium">
+                  Year (Max)
+                </label>
+                <input
+                  type="number"
+                  id="yearMax"
+                  name="yearMax"
+                  value={formData.yearMax}
+                  onChange={handleInputChange}
+                  className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
+                  placeholder="e.g. 2025"
+                  min="1900"
+                  max="2025"
+                />
+              </div>
+              
+              <div className="md:col-span-2 lg:col-span-4 flex justify-end">
+                <button
+                  type="submit"
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-md transition-colors"
+                  disabled={loading}
+                >
+                  {loading ? 'Generating...' : 'Generate'}
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
         
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
@@ -944,15 +929,9 @@ function AuctionsContent() {
           </div>
         )}
         
-        {!loading && !currentSearch && !showForm && (
+        {!loading && !currentSearch && (
           <div className="text-center py-12 bg-white shadow-md rounded-lg">
-            <p className="text-gray-600 mb-8">Click "Generate New Visualizations" to search for auction results</p>
-            <button
-              onClick={() => setShowForm(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-md transition duration-200"
-            >
-              Get Started
-            </button>
+            <p className="text-gray-600 mb-4">Enter make and model above to analyze auction results</p>
           </div>
         )}
         
