@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { TopLevelSpec } from 'vega-lite';
@@ -51,6 +51,15 @@ type Deal = {
   endingSoon: boolean;
 };
 
+// Define types for car data from Supabase
+type CarMake = {
+  Make: string;
+};
+
+type CarModel = {
+  Model: string;
+};
+
 export default function DealFinder() {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -65,6 +74,16 @@ export default function DealFinder() {
     maxDeals: '10'
   });
 
+  // State for suggestions
+  const [makeSuggestions, setMakeSuggestions] = useState<string[]>([]);
+  const [showMakeSuggestions, setShowMakeSuggestions] = useState(false);
+  
+  // Debounce timers
+  const makeDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // State for database connection status
+  const [dbConnectionError, setDbConnectionError] = useState(false);
+
   // Update current time every minute for countdown timers
   useEffect(() => {
     const timer = setInterval(() => {
@@ -74,10 +93,119 @@ export default function DealFinder() {
     return () => clearInterval(timer);
   }, []);
 
+  // Fetch make suggestions from Supabase with debounce
+  const fetchMakeSuggestions = async (query: string) => {
+    if (!query || query.length < 2) {
+      setMakeSuggestions([]);
+      return;
+    }
+    
+    try {
+      console.log('Fetching make suggestions for query:', query);
+      const response = await fetch(`/api/cars?type=makes&query=${encodeURIComponent(query)}`);
+      
+      if (response.status === 503) {
+        // Database connection error
+        setDbConnectionError(true);
+        setMakeSuggestions([]);
+        return;
+      }
+      
+      if (!response.ok) {
+        console.error('Make suggestions API error:', response.status, response.statusText);
+        // Don't throw error, just log it and return empty array
+        setMakeSuggestions([]);
+        return;
+      }
+      
+      // Reset connection error state if we got a successful response
+      setDbConnectionError(false);
+      
+      const data = await response.json();
+      console.log('Received make suggestions data:', data);
+      
+      if (!data || !Array.isArray(data)) {
+        console.error('Invalid make suggestions data format:', data);
+        setMakeSuggestions([]);
+        return;
+      }
+      
+      // Get unique makes using Set to remove duplicates
+      const uniqueMakes = Array.from(new Set(data.map((item: CarMake) => item.Make)))
+        .filter((make): make is string => !!make)
+        .sort()
+        .slice(0, 5); // Limit to 5 results
+      
+      console.log('Processed unique makes:', uniqueMakes);
+      setMakeSuggestions(uniqueMakes);
+      setShowMakeSuggestions(uniqueMakes.length > 0);
+    } catch (error) {
+      console.error('Error fetching make suggestions:', error);
+      // Don't show error to user, just silently fail
+      setMakeSuggestions([]);
+      setShowMakeSuggestions(false);
+    }
+  };
+  
+  // Debounced version of fetchMakeSuggestions
+  const debouncedFetchMakeSuggestions = (query: string) => {
+    // Clear any existing timer
+    if (makeDebounceTimerRef.current) {
+      clearTimeout(makeDebounceTimerRef.current);
+    }
+    
+    // Set a new timer
+    makeDebounceTimerRef.current = setTimeout(() => {
+      fetchMakeSuggestions(query);
+    }, 300); // 300ms delay
+  };
+
+  // Handle suggestion selection
+  const handleSuggestionClick = (name: string, value: string) => {
+    setFormData({
+      ...formData,
+      [name]: value,
+    });
+    
+    if (name === 'make') {
+      setShowMakeSuggestions(false);
+    }
+  };
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setShowMakeSuggestions(false);
+    };
+    
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, []);
+
+  // Clean up timers on unmount
+  useEffect(() => {
+    return () => {
+      if (makeDebounceTimerRef.current) {
+        clearTimeout(makeDebounceTimerRef.current);
+      }
+    };
+  }, []);
+
   // Handle form input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+
+    // Fetch suggestions for make field with debounce
+    if (name === 'make') {
+      debouncedFetchMakeSuggestions(value);
+      // Clear model when make changes
+      if (formData.model) {
+        setFormData(prev => ({ ...prev, model: '' }));
+      }
+    }
   };
 
   // Handle sort change
@@ -492,88 +620,120 @@ export default function DealFinder() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="container mx-auto px-4 py-8">
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white sm:text-4xl">
-                Deal Finder
-              </h1>
-              <p className="mt-3 max-w-2xl mx-auto text-lg text-gray-500 dark:text-gray-300">
-                Find underpriced auctions ending within the next 7 days on Bring a Trailer
-              </p>
-            </div>
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white sm:text-4xl">
+              Deal Finder
+            </h1>
+            <p className="mt-2 text-lg text-gray-500 dark:text-gray-300">
+              Find the best deals on current auctions
+            </p>
           </div>
+        </div>
 
-        {/* Search Form */}
-        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 mb-8">
-          <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Search for Deals</h2>
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-            <div className="flex flex-col relative">
-              <label htmlFor="make" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Make <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                id="make"
-                name="make"
-                value={formData.make}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                placeholder="e.g. Porsche"
-              />
-            </div>
-            <div className="flex flex-col relative">
-              <label htmlFor="model" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Model
-              </label>
-              <input
-                type="text"
-                id="model"
-                name="model"
-                value={formData.model}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                placeholder="e.g. 911"
-              />
-            </div>
-            <div className="flex flex-col">
-              <label htmlFor="yearMin" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Year Min
-              </label>
-              <input
-                type="number"
-                id="yearMin"
-                name="yearMin"
-                value={formData.yearMin}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                placeholder="e.g. 1950"
-              />
-            </div>
-            <div className="flex flex-col">
-              <label htmlFor="yearMax" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Year Max
-              </label>
-              <input
-                type="number"
-                id="yearMax"
-                name="yearMax"
-                value={formData.yearMax}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                placeholder="e.g. 2023"
-              />
-            </div>
-            <div className="flex flex-col justify-end">
-              <label className="block text-sm font-medium text-transparent dark:text-transparent mb-1">
-                Submit
-              </label>
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors duration-200"
-              >
-                {loading ? 'Searching...' : 'Find Deals'}
-              </button>
+        {dbConnectionError && (
+          <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-6">
+            <p className="font-medium">Database connection unavailable</p>
+            <p className="text-sm">Autocomplete suggestions are not available. You can still enter make and model manually.</p>
+          </div>
+        )}
+
+        <div className="bg-white shadow-md rounded-lg p-6 mb-8">
+          <h2 className="text-xl font-semibold mb-4">Find Deals</h2>
+          <form onSubmit={handleSubmit}>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              <div className="flex flex-col relative">
+                <label htmlFor="make" className="mb-1 font-medium">
+                  Make <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="make"
+                  name="make"
+                  value={formData.make}
+                  onChange={handleInputChange}
+                  onFocus={() => formData.make.length >= 2 && debouncedFetchMakeSuggestions(formData.make)}
+                  onClick={(e) => e.stopPropagation()}
+                  className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
+                  placeholder={dbConnectionError ? "Enter car make manually..." : "Start typing to see suggestions..."}
+                  autoComplete="off"
+                  required
+                />
+                {showMakeSuggestions && makeSuggestions.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 top-full bg-white dark:bg-gray-700 shadow-lg rounded-md border border-gray-200 dark:border-gray-600 max-h-60 overflow-y-auto">
+                    <div className="py-1">
+                      {makeSuggestions.map((make, index) => (
+                        <div
+                          key={index}
+                          className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer transition-colors duration-150"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSuggestionClick('make', make);
+                          }}
+                        >
+                          {make}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex flex-col">
+                <label htmlFor="model" className="mb-1 font-medium">
+                  Model <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="model"
+                  name="model"
+                  value={formData.model}
+                  onChange={handleInputChange}
+                  className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
+                  placeholder={formData.make ? `Enter ${formData.make} model...` : "First select a make..."}
+                  autoComplete="off"
+                  required
+                />
+              </div>
+              
+              <div className="flex flex-col">
+                <label htmlFor="yearMin" className="mb-1 font-medium">
+                  Year (Min)
+                </label>
+                <input
+                  type="text"
+                  id="yearMin"
+                  name="yearMin"
+                  value={formData.yearMin}
+                  onChange={handleInputChange}
+                  className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
+                  placeholder="e.g. 1950"
+                />
+              </div>
+              
+              <div className="flex flex-col">
+                <label htmlFor="yearMax" className="mb-1 font-medium">
+                  Year (Max)
+                </label>
+                <input
+                  type="text"
+                  id="yearMax"
+                  name="yearMax"
+                  value={formData.yearMax}
+                  onChange={handleInputChange}
+                  className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
+                  placeholder="e.g. 2025"
+                />
+              </div>
+              <div className="md:col-span-2 lg:col-span-5 flex justify-end">
+                <button
+                  type="submit"
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-md transition-colors"
+                  disabled={loading}
+                >
+                  {loading ? 'Searching...' : 'Find Deals'}
+                </button>
+              </div>
             </div>
           </form>
         </div>
