@@ -342,18 +342,10 @@ function ListingsContent() {
   const [yearMin, setYearMin] = useState(searchParams.get('yearMin') || '');
   const [yearMax, setYearMax] = useState(searchParams.get('yearMax') || '');
   
-  // State for suggestions
-  const [makeSuggestions, setMakeSuggestions] = useState<string[]>([]);
-  const [modelSuggestions, setModelSuggestions] = useState<string[]>([]);
-  const [showMakeSuggestions, setShowMakeSuggestions] = useState(false);
-  const [showModelSuggestions, setShowModelSuggestions] = useState(false);
-  
   // Notification state
   const [notification, setNotification] = useState<string | null>(null);
   
   // Debounce timers
-  const makeDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const modelDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const notificationTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   // State for database connection status
@@ -361,7 +353,6 @@ function ListingsContent() {
   
   // Debounced form values
   const debouncedMake = useDebounce(make, 300);
-  const debouncedModel = useDebounce(model, 300);
   const debouncedYearMin = useDebounce(yearMin, 300);
   const debouncedYearMax = useDebounce(yearMax, 300);
   
@@ -390,6 +381,13 @@ function ListingsContent() {
   const [priceHistogram, setPriceHistogram] = useState<TopLevelSpec | null>(null);
   const [mileageHistogram, setMileageHistogram] = useState<TopLevelSpec | null>(null);
   
+  // State for suggestions
+  const [makeSuggestions, setMakeSuggestions] = useState<string[]>([]);
+  const [showMakeSuggestions, setShowMakeSuggestions] = useState(false);
+
+  // Debounce timers
+  const makeDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   // Show notification for a short time
   const showNotification = (message: string) => {
     // Clear any existing notification timer
@@ -482,63 +480,6 @@ function ListingsContent() {
     }, 300); // 300ms delay
   };
   
-  // Fetch model suggestions from Supabase based on selected make
-  const fetchModelSuggestions = async (query: string) => {
-    if (!query || query.length < 2) {
-      setModelSuggestions([]);
-      return;
-    }
-    
-    try {
-      console.log('Fetching model suggestions for query:', query, 'make:', make);
-      const makeParam = make ? `&make=${encodeURIComponent(make)}` : '';
-      const response = await fetch(`/api/cars?type=models&query=${encodeURIComponent(query)}${makeParam}`);
-      
-      if (!response.ok) {
-        console.error('Model suggestions API error:', response.status, response.statusText);
-        // Don't throw error, just log it and return empty array
-        setModelSuggestions([]);
-        return;
-      }
-      
-      const data = await response.json();
-      console.log('Received model suggestions data:', data);
-      
-      if (!data || !Array.isArray(data)) {
-        console.error('Invalid model suggestions data format:', data);
-        setModelSuggestions([]);
-        return;
-      }
-      
-      const uniqueModels = Array.from(new Set(data.map((item: CarModel) => item.Model)))
-        .filter((Model): Model is string => !!Model)
-        .sort()
-        .slice(0, 5); // Limit to 5 results
-      
-      console.log('Processed unique models:', uniqueModels);
-      setModelSuggestions(uniqueModels);
-      setShowModelSuggestions(uniqueModels.length > 0);
-    } catch (error) {
-      console.error('Error fetching model suggestions:', error);
-      // Don't show error to user, just silently fail
-      setModelSuggestions([]);
-      setShowModelSuggestions(false);
-    }
-  };
-  
-  // Debounced version of fetchModelSuggestions
-  const debouncedFetchModelSuggestions = (query: string) => {
-    // Clear any existing timer
-    if (modelDebounceTimerRef.current) {
-      clearTimeout(modelDebounceTimerRef.current);
-    }
-    
-    // Set a new timer
-    modelDebounceTimerRef.current = setTimeout(() => {
-      fetchModelSuggestions(query);
-    }, 300); // 300ms delay
-  };
-  
   // Handle input changes with debounce for suggestions
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -549,11 +490,9 @@ function ListingsContent() {
       // Clear model when make changes
       if (model) {
         setModel('');
-        setModelSuggestions([]);
       }
     } else if (name === 'model') {
       setModel(value);
-      debouncedFetchModelSuggestions(value);
     } else if (name === 'yearMin') {
       setYearMin(value);
     } else if (name === 'yearMax') {
@@ -571,9 +510,6 @@ function ListingsContent() {
       if (modelInput) {
         modelInput.focus();
       }
-    } else if (name === 'model') {
-      setModel(value);
-      setShowModelSuggestions(false);
     }
   };
   
@@ -581,7 +517,6 @@ function ListingsContent() {
   useEffect(() => {
     const handleClickOutside = () => {
       setShowMakeSuggestions(false);
-      setShowModelSuggestions(false);
     };
     
     document.addEventListener('click', handleClickOutside);
@@ -595,9 +530,6 @@ function ListingsContent() {
     return () => {
       if (makeDebounceTimerRef.current) {
         clearTimeout(makeDebounceTimerRef.current);
-      }
-      if (modelDebounceTimerRef.current) {
-        clearTimeout(modelDebounceTimerRef.current);
       }
     };
   }, []);
@@ -965,32 +897,10 @@ function ListingsContent() {
               name="model"
               value={model}
               onChange={handleInputChange}
-              onFocus={() => model.length >= 2 && debouncedFetchModelSuggestions(model)}
-              onClick={(e) => e.stopPropagation()}
               className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
-              placeholder={dbConnectionError 
-                ? "Enter model manually..." 
-                : (make ? `Enter ${make} model...` : "First select a make...")}
+              placeholder={make ? `Enter ${make} model...` : "First select a make..."}
               autoComplete="off"
             />
-            {showModelSuggestions && modelSuggestions.length > 0 && (
-              <div className="absolute z-10 w-full mt-1 top-full bg-white dark:bg-gray-700 shadow-lg rounded-md border border-gray-200 dark:border-gray-600 max-h-60 overflow-y-auto">
-                <div className="py-1">
-                  {modelSuggestions.map((suggestion, index) => (
-                    <div
-                      key={index}
-                      className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer transition-colors duration-150"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleSuggestionClick('model', suggestion);
-                      }}
-                    >
-                      {suggestion}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
           
           <div className="flex flex-col">
