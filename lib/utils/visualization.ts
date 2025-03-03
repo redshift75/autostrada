@@ -32,6 +32,7 @@ export async function generatePriceTimeSeriesChart(
       price: parseInt((listing.status === 'sold' ? listing.sold_price : listing.bid_amount).replace(/[^0-9]/g, '')),
       title: listing.title,
       url: listing.url,
+      mileage: listing.mileage,
       status: listing.status
     }));
 
@@ -84,7 +85,7 @@ export async function generatePriceTimeSeriesChart(
           { field: 'price', type: 'quantitative', title: 'Price', format: '$,.0f' },
           { field: 'title', type: 'nominal', title: 'Vehicle' },
           { field: 'status', type: 'nominal', title: 'Status' },
-          { field: 'url', type: 'nominal', title: 'URL' }
+          { field: 'mileage', type: 'quantitative', title: 'Mileage', format: ',.0f' }
         ]
       }
     };

@@ -32,7 +32,7 @@ export interface BaTCompletedListing {
   premium?: boolean;
   timestamp_end?: number;
   excerpt?: string;
-  mileage?: string;
+  mileage?: number;
   images?: {
     small?: {
       url: string;
@@ -330,6 +330,7 @@ export class BringATrailerResultsScraper extends BaseScraper {
           // If mileage not found in title and we have a URL, try to fetch it from the listing page
           if (!mileage && item.url) {
             try {
+              console.log(`Fetching mileage for ${item.title} from ${item.url}`);
               mileage = await this.fetchMileageFromListingPage(item.url);
             } catch (error) {
               console.error(`Error fetching mileage for ${item.title}:`, error);
@@ -469,7 +470,7 @@ export class BringATrailerResultsScraper extends BaseScraper {
    * Extracts mileage from the title if available
    * Examples: "9k-Mile 2008 Ferrari 612 Scaglietti", "4,400-Mile 1988 Ferrari Testarossa", "43K-Mile 1988 Audi 90 Quattro 5-Speed"
    */
-  private extractMileageFromTitle(title: string): string | undefined {
+  private extractMileageFromTitle(title: string): number | undefined {
     // Match patterns like "9k-Mile", "4,400-Mile", "43K-Mile"
     const mileageRegex = /(\d{1,3}(?:,\d{3})*|\d+k)[-\s]?mile/i;
     const match = title.match(mileageRegex);
@@ -485,7 +486,7 @@ export class BringATrailerResultsScraper extends BaseScraper {
       // Remove commas
       mileage = mileage.replace(/,/g, '');
       
-      return mileage;
+      return parseInt(mileage);
     }
     
     return undefined;
@@ -494,11 +495,9 @@ export class BringATrailerResultsScraper extends BaseScraper {
   /**
    * Fetches the listing page and extracts mileage from the BAT Essentials section
    */
-  private async fetchMileageFromListingPage(url: string): Promise<string | undefined> {
+  private async fetchMileageFromListingPage(url: string): Promise<number | undefined> {
     try {
-      console.log(`Fetching mileage from listing page: ${url}`);
-      
-      const response = await axios.get(url, {
+        const response = await axios.get(url, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -539,7 +538,7 @@ export class BringATrailerResultsScraper extends BaseScraper {
             mileage = mileage.replace(/,/g, '');
             
             console.log(`Found mileage in listing page: ${mileage}`);
-            return mileage;
+            return parseInt(mileage);
           }
         }
       }

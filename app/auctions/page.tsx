@@ -31,6 +31,7 @@ type AuctionResult = {
   image_url?: string;
   make?: string;
   model?: string;
+  mileage?: number;
   images?: {
     small?: {
       url: string;
@@ -683,7 +684,7 @@ function AuctionsContent() {
               {summary && (
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
                   <h2 className="text-xl font-semibold mb-4">Market Summary</h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                     <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md">
                       <p className="text-sm text-gray-500 dark:text-gray-400">Total Results</p>
                       <p className="text-2xl font-bold">{summary.totalResults}</p>
@@ -695,6 +696,10 @@ function AuctionsContent() {
                     <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md">
                       <p className="text-sm text-gray-500 dark:text-gray-400">Highest Sold Price</p>
                       <p className="text-2xl font-bold">{formatPrice(summary.highestSoldPrice)}</p>
+                    </div>                    
+                    <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Avg Mileage</p>
+                      <p className="text-2xl font-bold">{summary.averageMileage}</p>
                     </div>
                     <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md">
                       <p className="text-sm text-gray-500 dark:text-gray-400">Sold Percentage</p>
@@ -802,7 +807,9 @@ function AuctionsContent() {
                                         <span className={`text-sm font-semibold ${result.status === 'sold' ? 'text-green-600' : 'text-red-600'}`}>
                                           {result.status === 'sold' ? formatPrice(result.sold_price) : formatPrice(result.bid_amount)}
                                         </span>
-                                        <span className="mx-2 text-gray-400">•</span>
+                                        <span className="text-xs px-2 py-0.5 rounded-full">
+                                          {result.mileage ? `${result.mileage.toLocaleString()}mi` : ''}
+                                        </span>
                                         <span className={`text-xs px-2 py-0.5 rounded-full ${
                                           result.status === 'sold' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                                         }`}>

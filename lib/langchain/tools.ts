@@ -190,6 +190,7 @@ export const createAuctionResultsTool = () => {
           sold_date: item.sold_date,
           status: item.status,
           url: item.url,
+          mileage: item.mileage,
           country: item.country,
           noreserve: item.noreserve ? 'No Reserve' : 'Reserve',
           premium: item.premium ? 'Premium' : 'Standard',
@@ -235,7 +236,8 @@ export const createAuctionResultsTool = () => {
             averageSoldPrice: calculateAverageSoldPrice(results),
             highestSoldPrice: findHighestSoldPrice(results),
             lowestSoldPrice: findLowestSoldPrice(results),
-            soldPercentage: calculateSoldPercentage(results)
+            soldPercentage: calculateSoldPercentage(results),
+            averageMileage: calculateAverageMileage(results)
           },
           visualizations: generateVisualizations ? visualizations : undefined,
           results: formattedResults
@@ -282,6 +284,16 @@ function calculateSoldPercentage(results: BaTCompletedListing[]): string {
   
   const soldItems = results.filter(item => item.status === 'sold');
   return `${Math.round((soldItems.length / results.length) * 100)}%`;
+}
+
+function calculateAverageMileage(results: BaTCompletedListing[]): string {
+  if (results.length === 0) return 'N/A';
+  
+  const Items = results.filter(item => item.mileage);
+  const totalMileage = Items.reduce((sum: number, item: BaTCompletedListing) => {
+    return sum + (item.mileage ? parseInt(String(item.mileage)) : 0);
+  }, 0);
+  return `${Math.round(totalMileage / Items.length).toLocaleString()} miles`;
 }
 
 // Tool to analyze current listings
@@ -446,7 +458,7 @@ function analyzePriceComparison(listings: any[]) {
   const lowestPrice = sortedByPrice[0];
   const highestPrice = sortedByPrice[sortedByPrice.length - 1];
   const averagePrice = listings.reduce((sum: number, listing: any) => sum + listing.price, 0) / listings.length;
-  
+  const averageMileage = listings.reduce((sum: number, listing: any) => sum + listing.mileage, 0) / listings.length;
   const priceRanges: {
     low: any[];
     medium: any[];
