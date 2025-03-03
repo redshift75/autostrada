@@ -254,8 +254,8 @@ export class BringATrailerResultsScraper extends BaseScraper {
       }
       
       // Process items in batches to avoid overwhelming the server
-      const batchSize = 5; // Process 5 items at a time
-      const delayBetweenBatches = 100; // between batches
+      const batchSize = 50; // Process 5 items at a time
+      const delayBetweenBatches = 50; // between batches
       const results: BaTCompletedListing[] = [];
       
       // Group items into batches
