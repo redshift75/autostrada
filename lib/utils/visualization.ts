@@ -55,7 +55,7 @@ export async function generatePriceTimeSeriesChart(
           type: 'temporal',
           title: null,
           axis: {
-            format: '%b %d',
+            format: '%b %d %y',
             labelAngle: -45,
             grid: true,
             labelLimit: 100,

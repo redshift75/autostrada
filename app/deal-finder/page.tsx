@@ -521,7 +521,7 @@ export default function DealFinder() {
             </div>
             <div className="flex flex-col relative">
               <label htmlFor="model" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Model <span className="text-red-500">*</span>
+                Model
               </label>
               <input
                 type="text"
