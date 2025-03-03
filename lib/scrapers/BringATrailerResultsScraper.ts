@@ -365,8 +365,7 @@ export class BringATrailerResultsScraper extends BaseScraper {
       }
       
       // If no model suggestion matched or none were provided, fall back to the original logic
-
-      console.log(`Listing ${title} cant find model : ${afterMake}`);
+      console.log(`Parsing ${title} cant find model : ${afterMake}`);
 
       const parts = afterMake.split(/\s+/);
       
@@ -467,8 +466,8 @@ export class BringATrailerResultsScraper extends BaseScraper {
         if (model && listing.model) {
           const listingModel = listing.model.toLowerCase();
           const searchModel = model.toLowerCase();
-          if (!listingModel.includes(searchModel)) {
-            console.log(`Listing ${listing.title} does not match model ${model}`);
+          if (!listingModel.includes(searchModel) && !searchModel.includes(listingModel)) {
+            console.log(`Filtering ${listing.title} does not match model ${model}`);
             return false;
           }
         } else if (model) {

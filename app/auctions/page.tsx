@@ -531,7 +531,7 @@ function AuctionsContent() {
                 {
                   mark: {
                     type: "line",
-                    color: "red",
+                    color: "blue",
                     strokeWidth: 2
                   },
                   transform: [
@@ -785,24 +785,25 @@ function AuctionsContent() {
               </h2>
               
               {summary && (
-                <div className="bg-blue-50 p-4 rounded-md mb-6">
-                  <h3 className="text-lg font-semibold mb-2">Market Summary</h3>
-                  <div className="text-gray-700 space-y-2">
-                    {summary.totalResults && (
-                      <p><strong>Total Results:</strong> {summary.totalResults}</p>
-                    )}
-                    {summary.averageSoldPrice && (
-                      <p><strong>Average Sold Price:</strong> {formatPrice(summary.averageSoldPrice)}</p>
-                    )}
-                    {summary.highestSoldPrice && (
-                      <p><strong>Highest Sold Price:</strong> {formatPrice(summary.highestSoldPrice)}</p>
-                    )}
-                    {summary.lowestSoldPrice && (
-                      <p><strong>Lowest Sold Price:</strong> {formatPrice(summary.lowestSoldPrice)}</p>
-                    )}
-                    {summary.soldPercentage && (
-                      <p><strong>Sold Percentage:</strong> {summary.soldPercentage}</p>
-                    )}
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
+                  <h2 className="text-xl font-semibold mb-4">Market Summary</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Total Results</p>
+                      <p className="text-2xl font-bold">{summary.totalResults}</p>
+                    </div>
+                    <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Average Sold Price</p>
+                      <p className="text-2xl font-bold">{formatPrice(summary.averageSoldPrice)}</p>
+                    </div>
+                    <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Highest Sold Price</p>
+                      <p className="text-2xl font-bold">{formatPrice(summary.highestSoldPrice)}</p>
+                    </div>
+                    <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Sold Percentage</p>
+                      <p className="text-2xl font-bold">{summary.soldPercentage}</p>
+                    </div>
                   </div>
                 </div>
               )}
