@@ -110,8 +110,8 @@ export class BringATrailerResultsScraper extends BaseScraper {
       const modelSuggestions = params.modelSuggestions || []; // Get model suggestions from params
       
       // Set rate limiting parameters with defaults
-      const delayBetweenRequests = params.delayBetweenRequests || 1000; // 1 seconds between requests
-      const longPauseInterval = params.longPauseInterval || 10; // Pause every 10 pages
+      const delayBetweenRequests = params.delayBetweenRequests || 100; // 0.1seconds between requests
+      const longPauseInterval = params.longPauseInterval || 100; // Pause every 100 pages
       const longPauseDelay = params.longPauseDelay || 10000; // 10 seconds for long pause
       
       // Prepare search term based on make and model
@@ -537,7 +537,7 @@ export class BringATrailerResultsScraper extends BaseScraper {
             // Remove commas
             mileage = mileage.replace(/,/g, '');
             
-            console.log(`Found mileage in listing page: ${mileage}`);
+            console.log(`Found mileage from ${url}: ${mileage}`);
             return parseInt(mileage);
           }
         }
@@ -559,7 +559,7 @@ export class BringATrailerResultsScraper extends BaseScraper {
         // Remove commas
         mileage = mileage.replace(/,/g, '');
         
-        console.log(`Found mileage in page content: ${mileage}`);
+        console.log(`Found mileage from ${url}: ${mileage}`);
         return mileage;
       }
       

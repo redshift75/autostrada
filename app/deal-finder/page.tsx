@@ -29,6 +29,7 @@ type Deal = {
     no_reserve?: boolean;
     premium?: boolean;
     featured?: boolean;
+    mileage: number;
   };
   historicalData: {
     averagePrice: number;
@@ -39,6 +40,7 @@ type Deal = {
       title: string;
       sold_price?: string;
       sold_date: string;
+      mileage: number;
       url: string;
       image_url?: string;
     }>;
@@ -268,7 +270,7 @@ export default function DealFinder() {
         },
         tooltip: [
           { field: 'category', type: 'nominal', title: 'Category' },
-          { field: 'price', type: 'quantitative', title: 'Price', format: '$,.0f' }
+          { field: 'price', type: 'quantitative', title: 'Price', format: '$,.0f' },
         ]
       }
     };
@@ -281,7 +283,7 @@ export default function DealFinder() {
       date: string;
       price: number;
       title: string;
-      url: string;
+      mileage: number;
       isCurrent?: boolean;
     };
 
@@ -313,7 +315,7 @@ export default function DealFinder() {
         date: formattedDate,
         price: price,
         title: sale.title,
-        url: sale.url
+        mileage: sale.mileage
       };
     }).filter(item => item !== null) as ChartDataPoint[];
 
@@ -329,7 +331,7 @@ export default function DealFinder() {
       date: new Date().toISOString().split('T')[0], // Today's date in YYYY-MM-DD format
       price: deal.activeListing.current_bid,
       title: deal.activeListing.title,
-      url: deal.activeListing.url,
+      mileage: deal.activeListing.mileage || 0,
       isCurrent: true
     });
     
@@ -343,7 +345,7 @@ export default function DealFinder() {
         date: sixMonthsAgo.toISOString().split('T')[0],
         price: deal.activeListing.current_bid * 0.9, // 90% of current price
         title: "Historical Average",
-        url: "#",
+        mileage: deal.activeListing.mileage || 0,
         isCurrent: false
       });
     }
@@ -415,7 +417,7 @@ export default function DealFinder() {
           { field: 'date', type: 'temporal', title: 'Date', format: '%b %d, %Y' },
           { field: 'price', type: 'quantitative', title: 'Price', format: '$,.0f' },
           { field: 'title', type: 'nominal', title: 'Vehicle' },
-          { field: 'url', type: 'nominal', title: 'URL' }
+          { field: 'mileage', type: 'quantitative', title: 'Mileage', format: '~s' }
         ]
       }
     };
@@ -651,6 +653,9 @@ export default function DealFinder() {
                             <a href={deal.activeListing.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
                               {deal.activeListing.title}
                             </a>
+                            <span className="text-xl px-2 py-0.5 rounded-full">
+                              {deal.activeListing.mileage ? `${deal.activeListing.mileage}mi` : ''}
+                            </span>
                           </h3>
                           
                           <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium mt-2 sm:mt-0 sm:ml-3 ${
@@ -774,6 +779,9 @@ export default function DealFinder() {
                                   Vehicle
                                 </th>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                  Mileage
+                                </th>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                                   Sold Price
                                 </th>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
@@ -790,7 +798,10 @@ export default function DealFinder() {
                                     </a>
                                   </td>
                                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                                    {sale.sold_price}
+                                    {sale.mileage ? `${sale.mileage.toLocaleString()}mi` : ''}
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                                    {formatPrice(sale.sold_price)}
                                   </td>
                                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
                                     {sale.sold_date}
