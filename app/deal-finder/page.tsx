@@ -654,7 +654,7 @@ export default function DealFinder() {
                               {deal.activeListing.title}
                             </a>
                             <span className="text-xl px-2 py-0.5 rounded-full">
-                              {deal.activeListing.mileage ? `${deal.activeListing.mileage}mi` : ''}
+                              {deal.activeListing.mileage ? `${deal.activeListing.mileage.toLocaleString()} mi` : ''}
                             </span>
                           </h3>
                           

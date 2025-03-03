@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
+import { extractMileageFromTitle, fetchMileageFromListingPage } from '../utils/MileageExtractor';
 
 // Define our own BaTListing interface
 export interface BaTActiveListing {
@@ -27,6 +28,7 @@ export interface BaTActiveListing {
   premium?: boolean;
   featured?: boolean;
   status?: string;
+  mileage?: number; // Vehicle mileage if available, extracted from title or listing page
 }
 
 // Interface for auction data from the website
@@ -226,11 +228,12 @@ export class BringATrailerActiveListingScraper extends BaseScraper {
       
       console.log(`Filtered to ${filteredListings.length} listings`);
       
-      // Log the makes of the first 10 listings to verify filtering
+      // Log the makes and mileage of the first 10 listings to verify filtering
       if (filteredListings.length > 0) {
-        console.log("Sample of filtered listings makes:");
+        console.log("Sample of filtered listings:");
         filteredListings.slice(0, Math.min(10, filteredListings.length)).forEach(listing => {
-          console.log(`- ${listing.title} (${listing.make})`);
+          const mileageInfo = listing.mileage ? `${listing.mileage} miles` : 'unknown mileage';
+          console.log(`- ${listing.title} (${listing.make}, ${mileageInfo})`);
         });
       }
       
@@ -509,13 +512,24 @@ export class BringATrailerActiveListingScraper extends BaseScraper {
       soldPrice = auction.current_bid;
     }
     
-    return {
+    // Extract make and model
+    const make = this.extractMakeFromTitle(auction.title);
+    const model = this.extractModelFromTitle(auction.title, make);
+    
+    // Extract mileage from title
+    let mileage = undefined;
+    if (auction.title) {
+      mileage = extractMileageFromTitle(auction.title);
+    }
+    
+    // Create the listing object
+    const listing: BaTActiveListing = {
       id: auction.id,
       url: auction.url,
       title: auction.title,
       year: auction.year,
-      make: this.extractMakeFromTitle(auction.title),
-      model: this.extractModelFromTitle(auction.title, this.extractMakeFromTitle(auction.title)),
+      make,
+      model,
       current_bid: auction.current_bid,
       current_bid_formatted: auction.current_bid_formatted,
       endDate,
@@ -525,8 +539,35 @@ export class BringATrailerActiveListingScraper extends BaseScraper {
       no_reserve: auction.noreserve,
       premium: auction.premium,
       status: isEnded ? 'ended' : 'active',
-      sold_price: soldPrice > 0 ? soldPrice : undefined
+      sold_price: soldPrice > 0 ? soldPrice : undefined,
+      mileage
     };
+    
+    // If mileage not found in title, fetch it asynchronously from the listing page
+    // We'll do this in the background and not wait for it to complete
+    if (!mileage && auction.url) {
+      this.fetchAndUpdateMileage(listing);
+    }
+    
+    return listing;
+  }
+  
+  /**
+   * Fetches mileage from the listing page and updates the listing object
+   * This is done asynchronously to avoid blocking the main flow
+   */
+  private async fetchAndUpdateMileage(listing: BaTActiveListing): Promise<void> {
+    try {
+      console.log(`Fetching mileage for ${listing.title} from ${listing.url}`);
+      const mileage = await fetchMileageFromListingPage(listing.url);
+      
+      if (mileage) {
+        console.log(`Updated mileage for ${listing.title}: ${mileage}`);
+        listing.mileage = mileage;
+      }
+    } catch (error) {
+      console.error(`Error fetching mileage for ${listing.title}:`, error);
+    }
   }
   
   private extractMakeFromTitle(title: string): string {
