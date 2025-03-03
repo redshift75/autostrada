@@ -32,6 +32,7 @@ export interface BaTCompletedListing {
   premium?: boolean;
   timestamp_end?: number;
   excerpt?: string;
+  mileage?: string;
   images?: {
     small?: {
       url: string;
@@ -109,9 +110,9 @@ export class BringATrailerResultsScraper extends BaseScraper {
       const modelSuggestions = params.modelSuggestions || []; // Get model suggestions from params
       
       // Set rate limiting parameters with defaults
-      const delayBetweenRequests = params.delayBetweenRequests || 2000; // 2 seconds between requests
+      const delayBetweenRequests = params.delayBetweenRequests || 1000; // 1 seconds between requests
       const longPauseInterval = params.longPauseInterval || 10; // Pause every 10 pages
-      const longPauseDelay = params.longPauseDelay || 30000; // 30 seconds for long pause
+      const longPauseDelay = params.longPauseDelay || 10000; // 10 seconds for long pause
       
       // Prepare search term based on make and model
       let searchTerm = make;
@@ -130,12 +131,6 @@ export class BringATrailerResultsScraper extends BaseScraper {
       // Fetch all requested pages
       for (let page = 1; page <= maxPages; page++) {
         console.log(`Fetching page ${page}/${maxPages}...`);
-        
-        // Check if we need to take a longer pause
-        if (page > 1 && (page - 1) % longPauseInterval === 0) {
-          console.log(`Taking a longer pause of ${longPauseDelay/1000} seconds after ${longPauseInterval} pages...`);
-          await new Promise(resolve => setTimeout(resolve, longPauseDelay));
-        }
         
         try {
           // Prepare request data
@@ -191,7 +186,7 @@ export class BringATrailerResultsScraper extends BaseScraper {
           }
           
           // Extract listings from the API response
-          const pageListings = this.extractCompletedListingsFromApiData(response.data, make, modelSuggestions);
+          const pageListings = await this.extractCompletedListingsFromApiData(response.data, make, modelSuggestions);
           console.log(`Page ${page}: Found ${pageListings.length} listings`);
           
           // Only add listings that we haven't seen before
@@ -215,7 +210,7 @@ export class BringATrailerResultsScraper extends BaseScraper {
             console.log('Taking a longer pause before retrying...');
             
             // Take a longer pause when we hit rate limits
-            await new Promise(resolve => setTimeout(resolve, longPauseDelay * 2));
+            await new Promise(resolve => setTimeout(resolve, longPauseDelay));
             
             // Retry the current page
             page--;
@@ -240,6 +235,9 @@ export class BringATrailerResultsScraper extends BaseScraper {
       
       if (filteredListings.length > 0) {
         console.log(`First result: ${filteredListings[0].title}`);
+        if (filteredListings[0].mileage) {
+          console.log(`First result mileage: ${filteredListings[0].mileage}`);
+        }
       }
       
       return filteredListings;
@@ -249,85 +247,131 @@ export class BringATrailerResultsScraper extends BaseScraper {
     }
   }
 
-  private extractCompletedListingsFromApiData(data: any, make: string = 'Porsche', modelSuggestions: string[] = []): BaTCompletedListing[] {
+  private async extractCompletedListingsFromApiData(data: any, make: string = 'Porsche', modelSuggestions: string[] = []): Promise<BaTCompletedListing[]> {
     try {
       if (!data || !data.items || !Array.isArray(data.items)) {
         return [];
       }
       
-      return data.items.map((item: any) => {
-        // Extract year, make, model from title if available
-        let itemYear: number | undefined = undefined;
-        let itemMake: string | undefined = undefined;
-        let itemModel: string | undefined = undefined;
+      // Process items in batches to avoid overwhelming the server
+      const batchSize = 5; // Process 5 items at a time
+      const delayBetweenBatches = 100; // between batches
+      const results: BaTCompletedListing[] = [];
+      
+      // Group items into batches
+      const batches: any[][] = [];
+      for (let i = 0; i < data.items.length; i += batchSize) {
+        batches.push(data.items.slice(i, i + batchSize));
+      }
+      
+      // Process each batch sequentially
+      for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+        const batch = batches[batchIndex];
+        console.log(`Processing batch ${batchIndex + 1}/${batches.length} (${batch.length} items)`);
         
-        if (item.title) {
-          // Use the improved parseTitle method to extract year, make, and model
-          const titleInfo = this.parseTitle(item.title, make, modelSuggestions);
-          itemYear = titleInfo.year;
-          itemMake = titleInfo.make;
-          itemModel = titleInfo.model;
-        }
-        
-        // Extract sold price and date from sold_text
-        let soldPrice = '';
-        let soldDate = '';
-        let status = 'unsold';
-        let bidAmount = '';
-        
-        if (item.sold_text) {
-          // Example: "Sold for USD $28,050 on 2/27/25" or "Bid to USD $12,750 on 2/27/25"
-          const soldMatch = item.sold_text.match(/Sold for USD \$([0-9,]+) <span> on (\d+\/\d+\/\d+)/);
-          const bidMatch = item.sold_text.match(/Bid to USD \$([0-9,]+) <span> on (\d+\/\d+\/\d+)/);
+        // Process all items in the current batch in parallel
+        const batchPromises = batch.map(async (item: any) => {
+          // Extract year, make, model from title if available
+          let itemYear: number | undefined = undefined;
+          let itemMake: string | undefined = undefined;
+          let itemModel: string | undefined = undefined;
           
-          if (soldMatch) {
-            soldPrice = soldMatch[1].replace(/,/g, '');
-            soldDate = soldMatch[2];
-            bidAmount = soldPrice; // For sold items, bid amount equals sold price
-            status = 'sold';
-          } else if (bidMatch) {
-            bidAmount = bidMatch[1].replace(/,/g, '');
-            soldDate = bidMatch[2];
-            status = 'unsold';
+          if (item.title) {
+            // Use the improved parseTitle method to extract year, make, and model
+            const titleInfo = this.parseTitle(item.title, make, modelSuggestions);
+            itemYear = titleInfo.year;
+            itemMake = titleInfo.make;
+            itemModel = titleInfo.model;
           }
-        }
-        
-        // Use current_bid if available
-        if (item.current_bid && !bidAmount) {
-          bidAmount = item.current_bid.toString();
-        }
-        
-        // Extract images if available
-        let images = undefined;
-        if (item.images) {
-          images = {
-            small: item.images.small,
-            large: item.images.large
+          
+          // Extract sold price and date from sold_text
+          let soldPrice = '';
+          let soldDate = '';
+          let status = 'unsold';
+          let bidAmount = '';
+          
+          if (item.sold_text) {
+            // Example: "Sold for USD $28,050 on 2/27/25" or "Bid to USD $12,750 on 2/27/25"
+            const soldMatch = item.sold_text.match(/Sold for USD \$([0-9,]+) <span> on (\d+\/\d+\/\d+)/);
+            const bidMatch = item.sold_text.match(/Bid to USD \$([0-9,]+) <span> on (\d+\/\d+\/\d+)/);
+            
+            if (soldMatch) {
+              soldPrice = soldMatch[1].replace(/,/g, '');
+              soldDate = soldMatch[2];
+              bidAmount = soldPrice; // For sold items, bid amount equals sold price
+              status = 'sold';
+            } else if (bidMatch) {
+              bidAmount = bidMatch[1].replace(/,/g, '');
+              soldDate = bidMatch[2];
+              status = 'unsold';
+            }
+          }
+          
+          // Use current_bid if available
+          if (item.current_bid && !bidAmount) {
+            bidAmount = item.current_bid.toString();
+          }
+          
+          // Extract images if available
+          let images = undefined;
+          if (item.images) {
+            images = {
+              small: item.images.small,
+              large: item.images.large
+            };
+          }
+          
+          // Extract mileage from title
+          let mileage = undefined;
+          if (item.title) {
+            mileage = this.extractMileageFromTitle(item.title);
+          }
+          
+          // If mileage not found in title and we have a URL, try to fetch it from the listing page
+          if (!mileage && item.url) {
+            try {
+              mileage = await this.fetchMileageFromListingPage(item.url);
+            } catch (error) {
+              console.error(`Error fetching mileage for ${item.title}:`, error);
+            }
+          }
+          
+          return {
+            id: item.id?.toString() || '',
+            url: item.url || '',
+            title: item.title || '',
+            image_url: item.thumbnail_url || '',
+            sold_price: soldPrice,
+            sold_date: soldDate,
+            bid_amount: bidAmount,
+            bid_date: soldDate, // Using sold date as bid date since they're the same in the API
+            status: status,
+            year: itemYear,
+            make: itemMake,
+            model: itemModel,
+            country: item.country || '',
+            country_code: item.country_code || '',
+            noreserve: item.noreserve || false,
+            premium: item.premium || false,
+            timestamp_end: item.timestamp_end || 0,
+            excerpt: item.excerpt || '',
+            mileage: mileage,
+            images: images
           };
-        }
+        });
         
-        return {
-          id: item.id?.toString() || '',
-          url: item.url || '',
-          title: item.title || '',
-          image_url: item.thumbnail_url || '',
-          sold_price: soldPrice,
-          sold_date: soldDate,
-          bid_amount: bidAmount,
-          bid_date: soldDate, // Using sold date as bid date since they're the same in the API
-          status: status,
-          year: itemYear,
-          make: itemMake,
-          model: itemModel,
-          country: item.country || '',
-          country_code: item.country_code || '',
-          noreserve: item.noreserve || false,
-          premium: item.premium || false,
-          timestamp_end: item.timestamp_end || 0,
-          excerpt: item.excerpt || '',
-          images: images
-        };
-      });
+        // Wait for all items in the current batch to be processed
+        const batchResults = await Promise.all(batchPromises);
+        results.push(...batchResults);
+        
+        // Add a delay between batches (except for the last batch)
+        if (batchIndex < batches.length - 1) {
+          console.log(`Waiting ${delayBetweenBatches/1000} seconds before processing next batch...`);
+          await new Promise(resolve => setTimeout(resolve, delayBetweenBatches));
+        }
+      }
+      
+      return results;
     } catch (error) {
       console.error('Error extracting listings from API data:', error);
       return [];
@@ -421,6 +465,113 @@ export class BringATrailerResultsScraper extends BaseScraper {
     return { year, make: undefined, model: undefined };
   }
 
+  /**
+   * Extracts mileage from the title if available
+   * Examples: "9k-Mile 2008 Ferrari 612 Scaglietti", "4,400-Mile 1988 Ferrari Testarossa", "43K-Mile 1988 Audi 90 Quattro 5-Speed"
+   */
+  private extractMileageFromTitle(title: string): string | undefined {
+    // Match patterns like "9k-Mile", "4,400-Mile", "43K-Mile"
+    const mileageRegex = /(\d{1,3}(?:,\d{3})*|\d+k)[-\s]?mile/i;
+    const match = title.match(mileageRegex);
+    
+    if (match) {
+      let mileage = match[1];
+      
+      // Convert "k" or "K" notation to full number
+      if (mileage.toLowerCase().endsWith('k')) {
+        mileage = mileage.toLowerCase().replace('k', '000');
+      }
+      
+      // Remove commas
+      mileage = mileage.replace(/,/g, '');
+      
+      return mileage;
+    }
+    
+    return undefined;
+  }
+
+  /**
+   * Fetches the listing page and extracts mileage from the BAT Essentials section
+   */
+  private async fetchMileageFromListingPage(url: string): Promise<string | undefined> {
+    try {
+      console.log(`Fetching mileage from listing page: ${url}`);
+      
+      const response = await axios.get(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.5',
+          'Connection': 'keep-alive'
+        }
+      });
+      
+      const html = response.data;
+      
+      // First try to find the BAT Essentials section
+      const batEssentialsRegex = /<div[^>]*class="[^"]*bat-essentials[^"]*"[^>]*>([\s\S]*?)<\/div>/i;
+      const essentialsMatch = html.match(batEssentialsRegex);
+      
+      if (essentialsMatch && essentialsMatch[1]) {
+        const essentialsSection = essentialsMatch[1];
+        
+        // Look for a list item that contains "miles" or "mileage"
+        const mileageItemRegex = /<li[^>]*>([\s\S]*?(?:miles?|mileage)[\s\S]*?)<\/li>/i;
+        const mileageItemMatch = essentialsSection.match(mileageItemRegex);
+        
+        if (mileageItemMatch && mileageItemMatch[1]) {
+          const mileageItem = mileageItemMatch[1];
+          
+          // Extract the numeric part (with possible commas or 'k' suffix)
+          const mileageValueRegex = /(\d{1,3}(?:,\d{3})*|\d+k)\s*miles?/i;
+          const mileageValueMatch = mileageItem.match(mileageValueRegex);
+          
+          if (mileageValueMatch && mileageValueMatch[1]) {
+            let mileage = mileageValueMatch[1];
+            
+            // Convert "k" notation to full number
+            if (mileage.toLowerCase().endsWith('k')) {
+              mileage = mileage.toLowerCase().replace('k', '000');
+            }
+            
+            // Remove commas
+            mileage = mileage.replace(/,/g, '');
+            
+            console.log(`Found mileage in listing page: ${mileage}`);
+            return mileage;
+          }
+        }
+      }
+      
+      // If we couldn't find mileage in the BAT Essentials section, try a broader search
+      // Look for any mention of mileage in the page content
+      const contentMileageRegex = /(?:(?:indicated|showing|shows|documented|actual|original|current|chassis|odometer|reads?)\s+)?(\d{1,3}(?:,\d{3})*|\d+k)\s*miles?/i;
+      const contentMileageMatch = html.match(contentMileageRegex);
+      
+      if (contentMileageMatch && contentMileageMatch[1]) {
+        let mileage = contentMileageMatch[1];
+        
+        // Convert "k" notation to full number
+        if (mileage.toLowerCase().endsWith('k')) {
+          mileage = mileage.toLowerCase().replace('k', '000');
+        }
+        
+        // Remove commas
+        mileage = mileage.replace(/,/g, '');
+        
+        console.log(`Found mileage in page content: ${mileage}`);
+        return mileage;
+      }
+      
+      console.log(`No mileage found in listing page: ${url}`);
+      return undefined;
+    } catch (error) {
+      console.error(`Error fetching mileage from listing page ${url}:`, error);
+      return undefined;
+    }
+  }
+
   private filterListings(listings: BaTCompletedListing[], params: BaTResultsScraperParams): BaTCompletedListing[] {
     // Handle undefined or empty params
     const make = params.make || '';
@@ -457,7 +608,7 @@ export class BringATrailerResultsScraper extends BaseScraper {
             return false;
           }
         } else if (make) {
-          console.log(`Listing ${listing.title} does not have a make`);
+          console.log(`Listing ${listing.title} has ${listing.make}`);
           // If make is specified but the listing doesn't have a make, exclude it
           return false;
         }

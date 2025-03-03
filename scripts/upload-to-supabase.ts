@@ -105,6 +105,7 @@ async function uploadCompletedAuctionsToSupabase() {
         year: listing.year,
         make: listing.make,
         model: listing.model,
+        mileage: listing.mileage,
         source_file: file,
         created_at: new Date(),
         updated_at: new Date()
@@ -176,6 +177,7 @@ async function uploadCompletedAuctionsToSupabase() {
       }
       
       console.log(`Finished processing ${file}`);
+      moveProcessedFiles([file], 'results/');
       console.log(`Successfully uploaded ${successCount} listings, ${errorCount} errors`);
     }
     
@@ -320,6 +322,7 @@ async function uploadActiveAuctionsToSupabase() {
     }
     
     console.log('Completed uploading active auction listings to Supabase');
+  
   } catch (error) {
     console.error('Error uploading active auctions to Supabase:', error);
     throw error;
@@ -347,6 +350,7 @@ async function uploadToSupabase() {
     }
     
     console.log('All uploads completed successfully');
+    
   } catch (error) {
     console.error('Error during upload process:', error);
     process.exit(1);
@@ -358,3 +362,21 @@ uploadToSupabase().catch(error => {
   console.error('Unhandled error:', error);
   process.exit(1);
 }); 
+
+  function moveProcessedFiles(resultFiles: string[], resultsDir: string) {
+    // Path to processed directory
+    const processedDir = path.join(process.cwd(), 'results', 'processed');
+    
+    // Check if processed directory exists, if not create it
+    if (!fs.existsSync(processedDir)) {
+      fs.mkdirSync(processedDir, { recursive: true });
+    }
+    
+    // Move each processed file to the processed directory
+    for (const file of resultFiles) {
+      const oldPath = path.join(resultsDir, file);
+      const newPath = path.join(processedDir, file);
+      fs.renameSync(oldPath, newPath);
+      console.log(`Moved ${file} to ${newPath}`);
+    }
+  }
