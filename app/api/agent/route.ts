@@ -19,6 +19,9 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    // Log the received context for debugging
+    console.log('Received context:', JSON.stringify(context, null, 2));
+    
     // Initialize the agent
     const agent = await initializeAgent();
     
@@ -47,28 +50,72 @@ export async function POST(request: NextRequest) {
       // Store the auction results in the global context
       global.currentAuctionResults = context.auctionResults;
       
+      // Log a sample auction result for debugging
+      console.log('Sample auction result:', JSON.stringify(context.auctionResults[0], null, 2));
+      
       // Format the auction results data for the agent
       const auctionData = context.auctionResults.map((result: any, index: number) => {
         // Ensure price values are properly formatted
-        const soldPrice = result.status === 'sold' && result.sold_price ? 
-          `$${result.sold_price.replace(/[^0-9.]/g, '')}` : 
-          (result.price ? `$${result.price}` : 'Not available');
+        let soldPrice;
+        if (result.status === 'sold' && result.sold_price) {
+          if (typeof result.sold_price === 'string') {
+            soldPrice = `$${result.sold_price.replace(/[^0-9.]/g, '')}`;
+          } else if (typeof result.sold_price === 'number') {
+            soldPrice = `$${result.sold_price}`;
+          } else {
+            soldPrice = 'Not available';
+          }
+        } else {
+          soldPrice = result.price ? `$${result.price}` : 'Not available';
+        }
         
-        const bidAmount = result.bid_amount ? 
-          `$${result.bid_amount.replace(/[^0-9.]/g, '')}` : 
-          'Not available';
+        let bidAmount;
+        if (result.bid_amount) {
+          if (typeof result.bid_amount === 'string') {
+            bidAmount = `$${result.bid_amount.replace(/[^0-9.]/g, '')}`;
+          } else if (typeof result.bid_amount === 'number') {
+            bidAmount = `$${result.bid_amount}`;
+          } else {
+            bidAmount = 'Not available';
+          }
+        } else {
+          bidAmount = 'Not available';
+        }
         
-        return `Auction Result #${index + 1}: ${result.title}, ${
+        // Format additional metrics with proper null/undefined checking
+        const bidders = typeof result.bidders !== 'undefined' && result.bidders !== null ? 
+          `${result.bidders} bidder${result.bidders !== 1 ? 's' : ''}` : 'Bidders: Unknown';
+        
+        const comments = typeof result.comments !== 'undefined' && result.comments !== null ? 
+          `${result.comments} comment${result.comments !== 1 ? 's' : ''}` : 'Comments: Unknown';
+        
+        const watchers = typeof result.watchers !== 'undefined' && result.watchers !== null ? 
+          `${result.watchers} watcher${result.watchers !== 1 ? 's' : ''}` : 'Watchers: Unknown';
+        
+        const mileage = typeof result.mileage !== 'undefined' && result.mileage !== null ? 
+          `${result.mileage.toLocaleString()} miles` : 'Mileage: Unknown';
+        
+        const formattedResult = `Auction Result #${index + 1}: ${result.title}, ${
           result.status === 'sold' ? 
             `Sold Price: ${soldPrice}` : 
             `Bid Amount: ${bidAmount}`
         }, Status: ${result.status}, Date: ${result.sold_date || 'Not available'}${
           result.url ? `, URL: ${result.url}` : ''
-        }`;
+        }, ${mileage}, ${bidders}, ${comments}, ${watchers}`;
+        
+        // Log the formatted result for debugging
+        if (index === 0) {
+          console.log('Formatted auction result:', formattedResult);
+        }
+        
+        return formattedResult;
       }).join('\n');
       
       // Enhance the query with the auction results context
       enhancedQuery = `The user is viewing the following car auction results:\n\n${auctionData}\n\nUser query: ${query}`;
+      
+      // Log the enhanced query for debugging
+      console.log('Enhanced query sample (first 200 chars):', enhancedQuery.substring(0, 200) + '...');
     } else {
       // Clear the global auction results if none are provided
       global.currentAuctionResults = [];

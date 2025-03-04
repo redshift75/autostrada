@@ -12,6 +12,10 @@ export type AuctionResult = {
   image_url?: string;
   make?: string;
   model?: string;
+  mileage?: number;
+  bidders?: number;
+  watchers?: number;
+  comments?: number;
   images?: {
     small?: {
       url: string;
