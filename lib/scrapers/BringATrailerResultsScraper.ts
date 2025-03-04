@@ -392,7 +392,7 @@ export class BringATrailerResultsScraper extends BaseScraper {
     }
     
     // Look for the make in the title
-    const makeIndex = title.indexOf(make);
+    const makeIndex = title.toLowerCase().indexOf(make.toLowerCase());
     if (makeIndex !== -1) {
       // Extract the text after the make
       const afterMake = title.substring(makeIndex + make.length).trim();
