@@ -342,16 +342,6 @@ export class BringATrailerResultsScraper extends BaseScraper {
               item.bidders = listingData.bidders;
               item.watchers = listingData.watchers;
               item.comments = listingData.comments;
-              
-              if (listingData.bidders) {
-                console.log(`Found bidders for ${item.title}: ${listingData.bidders}`);
-              }
-              if (listingData.watchers) {
-                console.log(`Found watchers for ${item.title}: ${listingData.watchers}`);
-              }
-              if (listingData.comments) {
-                console.log(`Found comments for ${item.title}: ${listingData.comments}`);
-              }
             } catch (error) {
               console.error(`Error fetching details for ${item.title}:`, error);
             }
