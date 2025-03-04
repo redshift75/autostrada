@@ -105,8 +105,6 @@ export async function fetchDetailsFromListingPage(url: string): Promise<ListingD
         
         // Remove commas
         mileage = mileage.replace(/,/g, '');
-        
-        console.log(`Found mileage from ${url}: ${mileage}`);
         result.mileage = parseInt(mileage);
       } else {
         console.log(`No mileage found in listing page: ${url}`);
@@ -120,7 +118,6 @@ export async function fetchDetailsFromListingPage(url: string): Promise<ListingD
       const bidders = biddersMatch[1].trim().replace(/,/g, '');
       if (!isNaN(parseInt(bidders))) {
         result.bidders = parseInt(bidders);
-        console.log(`Found bidders from ${url}: ${result.bidders}`);
       }
     }
     
@@ -134,7 +131,6 @@ export async function fetchDetailsFromListingPage(url: string): Promise<ListingD
       if (watchersNumberMatch && watchersNumberMatch[1]) {
         const watchers = watchersNumberMatch[1].replace(/,/g, '');
         result.watchers = parseInt(watchers);
-        console.log(`Found watchers from ${url}: ${result.watchers}`);
       }
     }
     
@@ -153,7 +149,6 @@ export async function fetchDetailsFromListingPage(url: string): Promise<ListingD
       const commentsNumberMatch = commentsText.match(/(\d+)/);
       if (commentsNumberMatch && commentsNumberMatch[1]) {
         result.comments = parseInt(commentsNumberMatch[1]);
-        console.log(`Found comments from ${url}: ${result.comments}`);
       }
     }
     

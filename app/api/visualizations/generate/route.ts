@@ -249,10 +249,6 @@ export async function POST(request: NextRequest) {
       source: parsedResult.source || 'scraper' // Add source information
     };
     
-    // Log the response structure for debugging
-    console.log('Response structure:', Object.keys(response));
-    console.log('Visualizations structure:', Object.keys(response.visualizations));
-    
     return NextResponse.json(response);
   } catch (error) {
     console.error('Error generating visualizations:', error);

@@ -145,7 +145,6 @@ export async function POST(request: Request) {
       }
 
       const data = await response.json();
-      console.log('Auto.dev API response structure:', Object.keys(data));
       
       // Check if data has the expected structure
       if (!data) {

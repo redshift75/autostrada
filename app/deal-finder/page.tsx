@@ -412,6 +412,7 @@ export default function DealFinder() {
       price: number;
       title: string;
       mileage: number;
+      url: string;
       isCurrent?: boolean;
     };
 
@@ -443,7 +444,8 @@ export default function DealFinder() {
         date: formattedDate,
         price: price,
         title: sale.title,
-        mileage: sale.mileage
+        mileage: sale.mileage,
+        url: sale.url
       };
     }).filter(item => item !== null) as ChartDataPoint[];
 
@@ -460,7 +462,8 @@ export default function DealFinder() {
       price: deal.activeListing.current_bid,
       title: deal.activeListing.title,
       mileage: deal.activeListing.mileage || 0,
-      isCurrent: true
+      isCurrent: true,
+      url: deal.activeListing.url
     });
     
     // Ensure we have enough data points for a meaningful chart
@@ -474,7 +477,8 @@ export default function DealFinder() {
         price: deal.activeListing.current_bid * 0.9, // 90% of current price
         title: "Historical Average",
         mileage: deal.activeListing.mileage || 0,
-        isCurrent: false
+        isCurrent: false,
+        url: deal.activeListing.url
       });
     }
 

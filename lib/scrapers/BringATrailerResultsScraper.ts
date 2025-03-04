@@ -226,13 +226,6 @@ export class BringATrailerResultsScraper extends BaseScraper {
       const filteredListings = this.filterListings(allListings, params);
       console.log(`All listings ${allListings.length} and filtered ${filteredListings.length} completed auctions`);
       
-      if (filteredListings.length > 0) {
-        console.log(`First result: ${filteredListings[0].title}`);
-        if (filteredListings[0].mileage) {
-          console.log(`First result mileage: ${filteredListings[0].mileage}`);
-        }
-      }
-      
       return filteredListings;
     } catch (error) {
       console.error('Error scraping BaT completed auctions:', error);
@@ -323,7 +316,6 @@ export class BringATrailerResultsScraper extends BaseScraper {
           // If mileage not found in title and we have a URL, try to fetch it from the listing page
           if (item.url) {
             try {
-              console.log(`Fetching details for ${item.title} from ${item.url}`);
               const listingData = await fetchDetailsFromListingPage(item.url);
               mileage = listingData.mileage;
               
@@ -411,9 +403,6 @@ export class BringATrailerResultsScraper extends BaseScraper {
         }
       }
       
-      // If no model suggestion matched or none were provided, fall back to the original logic
-      console.log(`Parsing ${title} cant find model : ${afterMake}`);
-
       const parts = afterMake.split(/\s+/);
       
       // The model is typically the next word or two after the make
@@ -476,12 +465,6 @@ export class BringATrailerResultsScraper extends BaseScraper {
     const yearMax = params.yearMax;
     
     console.log('Filtering listings with params:', { make, model, yearMin, yearMax });
-    console.log('First listing before filtering:', listings.length > 0 ? {
-      title: listings[0].title,
-      make: listings[0].make,
-      model: listings[0].model,
-      year: listings[0].year
-    } : 'No listings');
     
     try {
       return listings.filter(listing => {
