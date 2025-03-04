@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { BringATrailerActiveListingScraper } from '@/lib/scrapers/BringATrailerActiveListingScraper';
 import { BringATrailerResultsScraper } from '@/lib/scrapers/BringATrailerResultsScraper';
+import { fetchDetailsFromListingPage } from '@/lib/utils/BATDetailsExtractor';
 
 // Define the response type for the Deal Finder API
 type DealFinderResponse = {
@@ -87,20 +88,21 @@ export async function GET(request: NextRequest) {
           listing.model.toLowerCase() === model.toLowerCase() || 
           listing.model.toLowerCase().includes(model.toLowerCase()) || 
           listing.title.toLowerCase().includes(model.toLowerCase());
-        
         return makeMatch && modelMatch;
       });
     }
     console.log(`After make/model filtering: ${filteredListings.length} listings`);
     
+    // Get mileage from listing page
+    filteredListings.forEach(async (listing) => {
+      const mileage = await fetchDetailsFromListingPage(listing.url);
+      listing.mileage = mileage.mileage;
+    });
+
     // Log a few sample listings after filtering
-    if (filteredListings.length > 0) {
+    if (filteredListings.length > 0) 
       console.log('Sample listings after filtering:');
-      filteredListings.slice(0, 3).forEach(listing => {
-        console.log(`- Title: "${listing.title}", Make: "${listing.make}", Model: "${listing.model}"`);
-      });
-    }
-    
+
     // Filter by year if provided
     if (yearMin || yearMax) {
       filteredListings = filteredListings.filter(listing => {
@@ -117,7 +119,7 @@ export async function GET(request: NextRequest) {
     const now = new Date();
     const endDate = new Date(now);
     endDate.setDate(endDate.getDate() + 7); // Look for auctions ending in the next 7 days
-    
+
     const endingSoon = filteredListings.filter(listing => {
       if (!listing.endDate) {
         console.log(`Listing missing endDate: ${listing.title}`);

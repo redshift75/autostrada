@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
-import { extractMileageFromTitle, fetchDetailsFromListingPage } from '../utils/BATDetailsExtractor';
+import { fetchDetailsFromListingPage } from '../utils/BATDetailsExtractor';
 
 // Define our own BaTListing interface
 export interface BaTActiveListing {
@@ -462,16 +462,6 @@ export class BringATrailerActiveListingScraper extends BaseScraper {
     // Convert timestamp to Date
     const endDate = auction.timestamp_end * 1000; // Convert to milliseconds
     
-    // Debug logging for timestamp conversion (only for the first auction)
-    if (auction.id && !BringATrailerActiveListingScraper.debuggedAuction) {
-      console.log(`Debug timestamp for auction ${auction.id}:`);
-      console.log(`- Title: ${auction.title}`);
-      console.log(`- Raw timestamp_end: ${auction.timestamp_end}`);
-      console.log(`- Converted to milliseconds: ${endDate}`);
-      console.log(`- As Date object: ${new Date(endDate).toISOString()}`);
-      BringATrailerActiveListingScraper.debuggedAuction = true;
-    }
-    
     // Check if the auction has ended
     const now = Date.now();
     const isEnded = endDate < now;
@@ -485,12 +475,6 @@ export class BringATrailerActiveListingScraper extends BaseScraper {
     // Extract make and model
     const make = this.extractMakeFromTitle(auction.title);
     const model = this.extractModelFromTitle(auction.title, make);
-    
-    // Extract mileage from title
-    let mileage = undefined;
-    if (auction.title) {
-      mileage = extractMileageFromTitle(auction.title);
-    }
     
     // Create the listing object
     const listing: BaTActiveListing = {
@@ -510,7 +494,6 @@ export class BringATrailerActiveListingScraper extends BaseScraper {
       premium: auction.premium,
       status: isEnded ? 'ended' : 'active',
       sold_price: soldPrice > 0 ? soldPrice : undefined,
-      mileage
     };
     return listing;
   }

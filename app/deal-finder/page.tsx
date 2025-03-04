@@ -439,7 +439,7 @@ export default function DealFinder() {
         console.error(`Invalid date format for ${sale.title}: ${sale.sold_date}`);
         return null;
       }
-      
+  
       return {
         date: formattedDate,
         price: price,
