@@ -823,7 +823,11 @@ function AuctionsContent() {
                                       </div>
                                       {result.sold_date && (
                                         <p className="text-xs text-gray-500 mt-1">
-                                          {result.sold_date}
+                                          {new Date(result.sold_date).toLocaleDateString('en-US', {
+                                            month: '2-digit',
+                                            day: '2-digit',
+                                            year: 'numeric'
+                                          })}
                                         </p>
                                       )}
                                       <div className="flex items-center mt-1 space-x-2">
