@@ -512,47 +512,7 @@ export class BringATrailerActiveListingScraper extends BaseScraper {
       sold_price: soldPrice > 0 ? soldPrice : undefined,
       mileage
     };
-    
-    // If mileage not found in title, fetch it asynchronously from the listing page
-    // We'll do this in the background and not wait for it to complete
-    if (!mileage && auction.url) {
-      this.fetchAndUpdateDetails(listing);
-    }
-    
     return listing;
-  }
-  
-  /**
-   * Fetches details from the listing page and updates the listing object
-   * This is done asynchronously to avoid blocking the main flow
-   */
-  private async fetchAndUpdateDetails(listing: BaTActiveListing): Promise<void> {
-    try {
-      console.log(`Fetching details for ${listing.title} from ${listing.url}`);
-      const listingData = await fetchDetailsFromListingPage(listing.url);
-      
-      if (listingData.mileage) {
-        console.log(`Updated mileage for ${listing.title}: ${listingData.mileage}`);
-        listing.mileage = listingData.mileage;
-      }
-      
-      if (listingData.bidders) {
-        console.log(`Updated bidders for ${listing.title}: ${listingData.bidders}`);
-        listing.bidders = listingData.bidders;
-      }
-      
-      if (listingData.watchers) {
-        console.log(`Updated watchers for ${listing.title}: ${listingData.watchers}`);
-        listing.watchers = listingData.watchers;
-      }
-      
-      if (listingData.comments) {
-        console.log(`Updated comments for ${listing.title}: ${listingData.comments}`);
-        listing.comments = listingData.comments;
-      }
-    } catch (error) {
-      console.error(`Error fetching details for ${listing.title}:`, error);
-    }
   }
   
   private extractMakeFromTitle(title: string): string {
