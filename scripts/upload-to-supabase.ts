@@ -131,7 +131,6 @@ async function uploadCompletedAuctionsToSupabase() {
         
         try {
           // Insert data with upsert (update if exists, insert if not)
-          console.log('batch', batch);
           const { data, error } = await supabase
             .from(COMPLETED_AUCTIONS_TABLE)
             .upsert(batch, { 

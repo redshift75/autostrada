@@ -28,6 +28,7 @@ public/*.html
 # misc
 .DS_Store
 *.pem
+results/
 
 # debug
 npm-debug.log*
