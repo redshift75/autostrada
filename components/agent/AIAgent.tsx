@@ -7,6 +7,11 @@ export type Message = {
   content: string;
 };
 
+// Generic interface for common data properties
+export interface DataFormatter<T> {
+  formatData: (data: T[]) => any;
+}
+
 interface AIAgentProps {
   title: string;
   subtitle: string;

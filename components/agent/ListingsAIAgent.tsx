@@ -1,5 +1,6 @@
 import { Listing } from '../listings/ListingCard';
 import AIAgent from './AIAgent';
+import { listingsFormatter } from '@/lib/utils/formatters';
 
 type ListingsAIAgentProps = {
   listings: Listing[];
@@ -15,29 +16,12 @@ export default function ListingsAIAgent({ listings }: ListingsAIAgentProps) {
     "Summarize these listings for me"
   ];
 
-  // Format listings data for the API
-  const formatListingsData = (data: Listing[]) => {
-    return {
-      listings: data.map(listing => ({
-        title: listing.title,
-        price: listing.price,
-        year: listing.year,
-        make: listing.make,
-        model: listing.model,
-        mileage: listing.mileage,
-        vin: listing.vin,
-        location: listing.location || (listing.dealer ? `${listing.dealer.city}, ${listing.dealer.state}` : null),
-        clickoffURL: listing.clickoffURL || listing.url || null
-      }))
-    };
-  };
-
   return (
     <AIAgent
       title="Listings AI Assistant"
       subtitle="Ask questions about the current listings"
       initialSuggestions={suggestions}
-      formatData={formatListingsData}
+      formatData={listingsFormatter.formatData}
       data={listings}
     />
   );

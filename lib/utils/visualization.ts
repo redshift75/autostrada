@@ -36,29 +36,6 @@ type CursorType = 'auto' | 'default' | 'none' | 'context-menu' | 'help' | 'point
                  'nwse-resize' | 'col-resize' | 'row-resize' | 'all-scroll' | 'zoom-in' | 
                  'zoom-out' | 'grab' | 'grabbing';
 
-/**
- * Creates a base Vega-Lite specification with common properties
- * @param config Chart configuration
- * @param data Chart data
- * @returns Base Vega-Lite specification
- */
-function createBaseSpec(
-  config: ChartConfig,
-  data: ChartData
-): Partial<vegaLite.TopLevelSpec> {
-  return {
-    $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
-    description: config.description,
-    width: config.width || 800,
-    height: config.height || 400,
-    data: data,
-    autosize: {
-      type: "fit",
-      contains: "padding",
-      resize: true
-    }
-  };
-}
 
 /**
  * Generates a time series chart specification for auction prices
