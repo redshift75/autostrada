@@ -108,7 +108,10 @@ async function uploadCompletedAuctionsToSupabase() {
         mileage: listing.mileage,
         source_file: file,
         created_at: new Date(),
-        updated_at: new Date()
+        updated_at: new Date(),
+        comments: listing.comments,
+        watchers: listing.watchers,
+        bidders: listing.bidders
       }));
       
       // Deduplicate listings to avoid the "ON CONFLICT DO UPDATE command cannot affect row a second time" error
@@ -128,6 +131,7 @@ async function uploadCompletedAuctionsToSupabase() {
         
         try {
           // Insert data with upsert (update if exists, insert if not)
+          console.log('batch', batch);
           const { data, error } = await supabase
             .from(COMPLETED_AUCTIONS_TABLE)
             .upsert(batch, { 
