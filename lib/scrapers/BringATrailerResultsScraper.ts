@@ -160,17 +160,6 @@ export class BringATrailerResultsScraper extends BaseScraper {
             }
           });
           
-          // Save debug response only in development environment
-          if (process.env.NODE_ENV === 'development') {
-            try {
-              const debugFilePath = path.join(this.debugDir, `bat_api_response_page_${page}_${Date.now()}.json`);
-              fs.writeFileSync(debugFilePath, JSON.stringify(response.data, null, 2));
-            } catch (error) {
-              console.error('Error saving debug file:', error);
-              // Continue execution even if debug file saving fails
-            }
-          }
-          
           if (!response.data || !response.data.items || !Array.isArray(response.data.items)) {
             console.error(`Failed to get valid data for page ${page}`);
             continue;
