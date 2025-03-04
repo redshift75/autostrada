@@ -92,16 +92,6 @@ export async function GET(request: NextRequest) {
       });
     }
     console.log(`After make/model filtering: ${filteredListings.length} listings`);
-    
-    // Get mileage from listing page
-    filteredListings.forEach(async (listing) => {
-      const mileage = await fetchDetailsFromListingPage(listing.url);
-      listing.mileage = mileage.mileage;
-    });
-
-    // Log a few sample listings after filtering
-    if (filteredListings.length > 0) 
-      console.log('Sample listings after filtering:');
 
     // Filter by year if provided
     if (yearMin || yearMax) {
@@ -149,6 +139,12 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // Get mileage from listing page
+    filteredListings.forEach(async (listing) => {
+      const mileage = await fetchDetailsFromListingPage(listing.url);
+      listing.mileage = mileage.mileage;
+    });
+    
     // Only fetch historical data if we have active auctions ending soon
     console.log(`Fetching historical data for ${make} ${model}...`);
     const historicalResults = await historicalScraper.scrape({
