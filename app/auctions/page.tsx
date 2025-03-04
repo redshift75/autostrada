@@ -32,6 +32,9 @@ type AuctionResult = {
   make?: string;
   model?: string;
   mileage?: number;
+  bidders?: number;
+  watchers?: number;
+  comments?: number;
   images?: {
     small?: {
       url: string;
@@ -815,6 +818,11 @@ function AuctionsContent() {
                                         }`}>
                                           {result.status === 'sold' ? 'Sold' : 'Not Sold'}
                                         </span>
+                                        {result.bidders && (
+                                          <span className="text-xs px-2 py-0.5 ml-1 bg-blue-100 text-blue-800 rounded-full">
+                                            {result.bidders} {result.bidders === 1 ? 'bid' : 'bids'}
+                                          </span>
+                                        )}
                                       </div>
                                       {result.sold_date && (
                                         <p className="text-xs text-gray-500 mt-1">

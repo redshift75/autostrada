@@ -1,7 +1,7 @@
 import axios from 'axios';
 import '../server-only';
 import { BaseScraper } from './BaseScraper';
-import { extractMileageFromTitle, fetchMileageFromListingPage } from '../utils/MileageExtractor';
+import { extractMileageFromTitle, fetchDetailsFromListingPage } from '../utils/BATDetailsExtractor';
 
 // Import Node.js modules conditionally
 let fs: any;
@@ -34,6 +34,9 @@ export interface BaTCompletedListing {
   timestamp_end?: number;
   excerpt?: string;
   mileage?: number;
+  bidders?: number;
+  watchers?: number;
+  comments?: number;
   images?: {
     small?: {
       url: string;
@@ -329,12 +332,28 @@ export class BringATrailerResultsScraper extends BaseScraper {
           }
           
           // If mileage not found in title and we have a URL, try to fetch it from the listing page
-          if (!mileage && item.url) {
+          if (item.url) {
             try {
-              console.log(`Fetching mileage for ${item.title} from ${item.url}`);
-              mileage = await fetchMileageFromListingPage(item.url);
+              console.log(`Fetching details for ${item.title} from ${item.url}`);
+              const listingData = await fetchDetailsFromListingPage(item.url);
+              mileage = listingData.mileage;
+              
+              // Store the additional details
+              item.bidders = listingData.bidders;
+              item.watchers = listingData.watchers;
+              item.comments = listingData.comments;
+              
+              if (listingData.bidders) {
+                console.log(`Found bidders for ${item.title}: ${listingData.bidders}`);
+              }
+              if (listingData.watchers) {
+                console.log(`Found watchers for ${item.title}: ${listingData.watchers}`);
+              }
+              if (listingData.comments) {
+                console.log(`Found comments for ${item.title}: ${listingData.comments}`);
+              }
             } catch (error) {
-              console.error(`Error fetching mileage for ${item.title}:`, error);
+              console.error(`Error fetching details for ${item.title}:`, error);
             }
           }
           
@@ -358,6 +377,9 @@ export class BringATrailerResultsScraper extends BaseScraper {
             timestamp_end: item.timestamp_end || 0,
             excerpt: item.excerpt || '',
             mileage: mileage,
+            bidders: item.bidders || 0,
+            watchers: item.watchers || 0,
+            comments: item.comments || 0,
             images: images
           };
         });
