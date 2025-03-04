@@ -119,7 +119,8 @@ export async function POST(request: Request) {
       // Build query parameters
       const params = new URLSearchParams();
       params.append('make', make);
-      if (model) params.append('model', model);
+      params.append('model', model);
+      params.append('trim', model);
       if (yearMin) params.append('year_min', yearMin.toString());
       if (yearMax) params.append('year_max', yearMax.toString());
       params.append('limit', maxResults.toString());
