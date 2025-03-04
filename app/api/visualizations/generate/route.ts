@@ -1,16 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAuctionResultsTool } from '../../../../lib/langchain/tools';
+import { validateVegaLiteSpec } from '../../../../lib/utils/visualization';
 import fs from 'fs';
 import path from 'path';
-
-// Helper function to validate Vega-Lite specifications
-function validateVegaLiteSpec(spec: any): boolean {
-  if (!spec || typeof spec !== 'object') return false;
-  
-  // Check if it has required Vega-Lite properties
-  return !!(spec.mark || spec.layer || spec.facet || spec.hconcat || 
-            spec.vconcat || spec.concat || spec.repeat);
-}
 
 export async function POST(request: NextRequest) {
   try {

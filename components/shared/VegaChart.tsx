@@ -84,6 +84,8 @@ export default function VegaChart({ spec, className, onSignalClick }: VegaChartP
 
         // Add signals for histogram selection if it's a histogram
         const isHistogram = specAny.description?.includes('Distribution');
+        const isPriceHistogram = specAny.description?.includes('Price Distribution');
+        const isMileageHistogram = specAny.description?.includes('Mileage Distribution');
         
         if (isHistogram) {
           // For Vega-Lite, we need to use a different approach for signals
@@ -133,8 +135,83 @@ export default function VegaChart({ spec, className, onSignalClick }: VegaChartP
             if (onSignalClick) {
               result.view.addEventListener('click', (event: any, item: any) => {
                 if (item && item.datum) {
-                  onSignalClick('barClick', item.datum);
+                  console.log('Chart click event:', item.datum);
+                  
+                  // Normalize the data format for consistent handling in parent components
+                  let normalizedData = item.datum;
+                  
+                  // For price histogram
+                  if (isPriceHistogram) {
+                    // Check if we have bin_maxbins_20_price format (actual format from Vega-Lite)
+                    if (normalizedData.bin_maxbins_20_price !== undefined && normalizedData.bin_maxbins_20_price_end !== undefined) {
+                      normalizedData = {
+                        price_bin0: normalizedData.bin_maxbins_20_price,
+                        price_bin1: normalizedData.bin_maxbins_20_price_end
+                      };
+                    }
+                    // Check if we have bin_start and bin_end properties
+                    else if (normalizedData.bin_start !== undefined && normalizedData.bin_end !== undefined) {
+                      normalizedData = {
+                        price_bin0: normalizedData.bin_start,
+                        price_bin1: normalizedData.bin_end
+                      };
+                    } 
+                    // Check if we have price bin properties
+                    else if (normalizedData.price !== undefined && normalizedData.price_end !== undefined) {
+                      normalizedData = {
+                        price_bin0: normalizedData.price,
+                        price_bin1: normalizedData.price_end
+                      };
+                    }
+                    // Check for bin0 and bin1 format
+                    else if (normalizedData.bin0 !== undefined && normalizedData.bin1 !== undefined) {
+                      normalizedData = {
+                        price_bin0: normalizedData.bin0,
+                        price_bin1: normalizedData.bin1
+                      };
+                    }
+                  } 
+                  // For mileage histogram
+                  else if (isMileageHistogram) {
+                    // Check if we have bin_maxbins_20_mileage format (actual format from Vega-Lite)
+                    if (normalizedData.bin_maxbins_20_mileage !== undefined && normalizedData.bin_maxbins_20_mileage_end !== undefined) {
+                      normalizedData = {
+                        mileage_bin0: normalizedData.bin_maxbins_20_mileage,
+                        mileage_bin1: normalizedData.bin_maxbins_20_mileage_end
+                      };
+                    }
+                    // Check if we have bin_start and bin_end properties
+                    else if (normalizedData.bin_start !== undefined && normalizedData.bin_end !== undefined) {
+                      normalizedData = {
+                        mileage_bin0: normalizedData.bin_start,
+                        mileage_bin1: normalizedData.bin_end
+                      };
+                    } 
+                    // Check if we have mileage bin properties
+                    else if (normalizedData.mileage !== undefined && normalizedData.mileage_end !== undefined) {
+                      normalizedData = {
+                        mileage_bin0: normalizedData.mileage,
+                        mileage_bin1: normalizedData.mileage_end
+                      };
+                    }
+                    // Check for bin0 and bin1 format
+                    else if (normalizedData.bin0 !== undefined && normalizedData.bin1 !== undefined) {
+                      normalizedData = {
+                        mileage_bin0: normalizedData.bin0,
+                        mileage_bin1: normalizedData.bin1
+                      };
+                    }
+                  }
+                  
+                  console.log('Normalized click data:', normalizedData);
+                  onSignalClick('barClick', normalizedData);
                 }
+              });
+              
+              // Add double-click event listener to clear filters
+              result.view.addEventListener('dblclick', () => {
+                console.log('Chart double-click event detected');
+                onSignalClick('clearFilters', null);
               });
             }
           }).catch((error: Error) => {

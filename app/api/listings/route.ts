@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { generateListingPriceHistogram, generateScatterPlot } from '../../../lib/utils/visualization';
+import { Listing } from '@/components/listings/ListingCard';
 
 // Define the response type for Auto.dev API based on actual response
 type AutoDevListingsResponse = {
@@ -343,6 +345,8 @@ function generateVisualizations(listings: TransformedListing[]) {
       model: listing.model,
       year: listing.year,
       mileage: listing.mileage,
+      title: `${listing.year} ${listing.make} ${listing.model}`,
+      url: listing.url,
       date: new Date(listing.listed_date).toISOString(),
     }));
 
@@ -350,55 +354,31 @@ function generateVisualizations(listings: TransformedListing[]) {
     return null;
   }
 
-  // Create price histogram specification
-  const priceHistogram = {
-    $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
+  // Create price histogram using the refactored function
+  const priceHistogram = generateListingPriceHistogram(priceData as unknown as Listing[], {
     description: 'Listing Price Distribution',
-    data: { values: priceData },
-    mark: 'bar',
-    encoding: {
-      x: {
-        bin: { maxbins: 20 },
-        field: 'price',
-        title: 'Price ($)'
-      },
-      y: {
-        aggregate: 'count',
-        title: 'Number of Listings'
-      },
-      tooltip: [
-        { field: 'price', bin: true, title: 'Price Range' },
-        { aggregate: 'count', title: 'Number of Listings' }
-      ]
-    }
-  };
+    xAxisTitle: 'Price ($)',
+    yAxisTitle: 'Number of Listings'
+  });
 
-  // Create price vs. mileage scatter plot
-  const priceVsMileage = {
-    $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
-    description: 'Price vs. Mileage',
-    data: { values: priceData },
-    mark: 'point',
-    encoding: {
-      x: {
-        field: 'mileage',
-        type: 'quantitative',
-        title: 'Mileage'
-      },
-      y: {
-        field: 'price',
-        type: 'quantitative',
-        title: 'Price ($)'
-      },
-      tooltip: [
-        { field: 'year', type: 'ordinal', title: 'Year' },
-        { field: 'make', type: 'nominal', title: 'Make' },
-        { field: 'model', type: 'nominal', title: 'Model' },
-        { field: 'price', type: 'quantitative', title: 'Price', format: '$,.0f' },
-        { field: 'mileage', type: 'quantitative', title: 'Mileage', format: ',.0f' }
+  // Create price vs. mileage scatter plot using the refactored function
+  const priceVsMileage = generateScatterPlot(
+    priceData,
+    'mileage',
+    'price',
+    {
+      description: 'Price vs. Mileage',
+      xAxisTitle: 'Mileage',
+      yAxisTitle: 'Price ($)',
+      tooltipFields: [
+        { field: 'year', title: 'Year', type: 'ordinal' },
+        { field: 'make', title: 'Make', type: 'nominal' },
+        { field: 'model', title: 'Model', type: 'nominal' },
+        { field: 'price', title: 'Price', format: '$,.0f', type: 'quantitative' },
+        { field: 'mileage', title: 'Mileage', format: ',.0f', type: 'quantitative' }
       ]
     }
-  };
+  );
 
   return {
     priceHistogram,

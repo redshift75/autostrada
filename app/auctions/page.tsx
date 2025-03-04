@@ -10,6 +10,7 @@ import AuctionAIAgent from '../../components/agent/AuctionAIAgent';
 import VegaChart from '@/components/shared/VegaChart';
 // Import utility functions
 import { formatPrice } from '@/lib/utils/index';
+import { validateVegaLiteSpec } from '@/lib/utils/visualization';
 
 // Define types for car data from Supabase
 type CarMake = {
@@ -423,27 +424,15 @@ function AuctionsContent() {
         }
         
         // Validate the Vega-Lite specifications
-        const validateSpec = (spec: any, name: string) => {
-          if (!spec) {
-            console.log(`${name} spec is null or undefined`);
-            return null;
-          }
-          
-          console.log(`${name} spec type:`, typeof spec);
-          console.log(`${name} spec keys:`, Object.keys(spec));
-          
-          // Check if it has required Vega-Lite properties
-          if (!spec.mark && !spec.layer && !spec.facet && !spec.hconcat && 
-              !spec.vconcat && !spec.concat && !spec.repeat) {
-            console.error(`Invalid ${name} specification:`, spec);
-            return null;
-          }
-          
-          return spec;
-        };
+        if (!validateVegaLiteSpec(data.visualizations.timeSeriesChart)) {
+          console.error('Invalid time series chart specification:', data.visualizations.timeSeriesChart);
+          data.visualizations.timeSeriesChart = null;
+        }
         
-        data.visualizations.timeSeriesChart = validateSpec(data.visualizations.timeSeriesChart, 'time series chart');
-        data.visualizations.priceHistogram = validateSpec(data.visualizations.priceHistogram, 'price histogram');
+        if (!validateVegaLiteSpec(data.visualizations.priceHistogram)) {
+          console.error('Invalid price histogram specification:', data.visualizations.priceHistogram);
+          data.visualizations.priceHistogram = null;
+        }
         
         // Add 90-day moving average to time series chart
         if (data.visualizations.timeSeriesChart) {

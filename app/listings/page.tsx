@@ -7,6 +7,7 @@ import ListingCard, { Listing } from '@/components/listings/ListingCard';
 import ListingsAIAgent from '@/components/agent/ListingsAIAgent';
 import { generateListingPriceHistogram, generateListingMileageHistogram } from '@/lib/utils/visualization';
 import type { TopLevelSpec } from 'vega-lite';
+import VegaChart from '@/components/shared/VegaChart';
 
 // CSS for animations
 const fadeInAnimation = `
@@ -62,273 +63,6 @@ function useDebounce<T>(value: T, delay: number): T {
   }, [value, delay]);
   
   return debouncedValue;
-}
-
-// VegaChart component for client-side rendering
-function VegaChart({ 
-  spec, 
-  className, 
-  onSignalClick 
-}: { 
-  spec: TopLevelSpec, 
-  className?: string,
-  onSignalClick?: (name: string, value: any) => void 
-}) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const viewRef = useRef<any>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!containerRef.current || !spec) {
-      console.log('VegaChart: Missing container or spec', { hasContainer: !!containerRef.current, hasSpec: !!spec });
-      return;
-    }
-
-    console.log('VegaChart: Rendering chart with spec type:', typeof spec);
-    console.log('VegaChart: Spec description:', (spec as any).description);
-
-    // Clear any previous errors
-    setError(null);
-
-    // Dynamically import vega-embed to avoid SSR issues
-    import('vega-embed').then(({ default: vegaEmbed }) => {
-      console.log('vega-embed loaded successfully');
-      
-      try {
-        // Ensure we're working with a proper Vega-Lite specification
-        if (typeof spec === 'string') {
-          try {
-            // Try to parse it as JSON
-            const parsedSpec = JSON.parse(spec);
-            renderChart(parsedSpec, vegaEmbed);
-          } catch (error) {
-            console.error('Failed to parse string spec:', error);
-            setError('Failed to parse chart specification');
-            return;
-          }
-        } else {
-          // Continue with the object spec
-          renderChart(spec, vegaEmbed);
-        }
-      } catch (error) {
-        console.error('Error in VegaChart component:', error);
-        setError('Error initializing chart');
-      }
-    }).catch(error => {
-      console.error('Failed to load vega-embed:', error);
-      setError('Failed to load visualization library');
-    });
-
-    function renderChart(chartSpec: any, vegaEmbed: any) {
-      try {
-        // Check if the spec has required Vega-Lite properties
-        const specAny = chartSpec as any;
-        if (!specAny.mark && !specAny.layer && !specAny.facet && !specAny.hconcat && 
-            !specAny.vconcat && !specAny.concat && !specAny.repeat) {
-          console.error('Invalid Vega-Lite specification: Missing required properties', chartSpec);
-          setError('Invalid chart specification');
-          return;
-        }
-
-        // Create a deep copy of the spec to avoid modifying the original
-        const specCopy = JSON.parse(JSON.stringify(chartSpec));
-
-        // Create a modified spec with responsive width
-        const responsiveSpec = {
-          ...specCopy,
-          width: "container", // Make width responsive to container
-          height: 400, // Set a fixed height
-          autosize: {
-            type: "fit",
-            contains: "padding",
-            resize: true
-          }
-        };
-
-        // Add signals for histogram selection if it's a histogram
-        if (specAny.description === 'Listing Price Distribution' || specAny.description === 'Listing Mileage Distribution') {
-          // For Vega-Lite, we need to use a different approach for signals
-          // We'll use selection instead of signals directly
-          const histogramSpec = {
-            ...responsiveSpec,
-            selection: {
-              barSelection: {
-                type: "single",
-                encodings: ["x"],
-                on: "click",
-                clear: "dblclick",
-                resolve: "global"
-              }
-            }
-          };
-
-          // Safely handle the mark property
-          if (typeof histogramSpec.mark === 'string') {
-            // If mark is a string (e.g., 'bar'), convert it to an object
-            histogramSpec.mark = {
-              type: histogramSpec.mark,
-              cursor: 'pointer'
-            };
-          } else if (typeof histogramSpec.mark === 'object') {
-            // If mark is already an object, just add the cursor property
-            histogramSpec.mark = {
-              ...histogramSpec.mark,
-              cursor: 'pointer'
-            };
-          } else {
-            // If mark is undefined or something else, set a default
-            histogramSpec.mark = {
-              type: 'bar',
-              cursor: 'pointer'
-            };
-          }
-
-          vegaEmbed(containerRef.current!, histogramSpec as any, {
-            actions: { export: true, source: false, compiled: false, editor: false },
-            renderer: 'svg',
-            mode: 'vega-lite'
-          }).then((result: any) => {
-            viewRef.current = result.view;
-            
-            // Add signal listener for histogram bar clicks
-            if (onSignalClick) {
-              result.view.addEventListener('click', (event: any, item: any) => {
-                if (item && item.datum) {
-                  console.log('Chart click event:', item.datum);
-                  
-                  // Extract bin data based on the histogram type
-                  let clickData = item.datum;
-                  
-                  // For price histogram
-                  if (specAny.description === 'Listing Price Distribution') {
-                    // Check if we have bin_maxbins_20_price format (actual format from Vega-Lite)
-                    if (clickData.bin_maxbins_20_price !== undefined && clickData.bin_maxbins_20_price_end !== undefined) {
-                      clickData = {
-                        price_bin0: clickData.bin_maxbins_20_price,
-                        price_bin1: clickData.bin_maxbins_20_price_end
-                      };
-                    }
-                    // Check if we have bin_start and bin_end properties
-                    else if (clickData.bin_start !== undefined && clickData.bin_end !== undefined) {
-                      clickData = {
-                        price_bin0: clickData.bin_start,
-                        price_bin1: clickData.bin_end
-                      };
-                    } 
-                    // Check if we have price bin properties
-                    else if (clickData.price !== undefined && clickData.price_end !== undefined) {
-                      clickData = {
-                        price_bin0: clickData.price,
-                        price_bin1: clickData.price_end
-                      };
-                    }
-                    // Check for bin0 and bin1 format
-                    else if (clickData.bin0 !== undefined && clickData.bin1 !== undefined) {
-                      clickData = {
-                        price_bin0: clickData.bin0,
-                        price_bin1: clickData.bin1
-                      };
-                    }
-                    // Check for price_bin0 and price_bin1 format (from our transform)
-                    else if (clickData.price_bin0 !== undefined && clickData.price_bin1 !== undefined) {
-                      // Already in the right format, no need to transform
-                    }
-                  } 
-                  // For mileage histogram
-                  else if (specAny.description === 'Listing Mileage Distribution') {
-                    // Check if we have bin_maxbins_20_mileage format (actual format from Vega-Lite)
-                    if (clickData.bin_maxbins_20_mileage !== undefined && clickData.bin_maxbins_20_mileage_end !== undefined) {
-                      clickData = {
-                        mileage_bin0: clickData.bin_maxbins_20_mileage,
-                        mileage_bin1: clickData.bin_maxbins_20_mileage_end
-                      };
-                    }
-                    // Check if we have bin_start and bin_end properties
-                    else if (clickData.bin_start !== undefined && clickData.bin_end !== undefined) {
-                      clickData = {
-                        mileage_bin0: clickData.bin_start,
-                        mileage_bin1: clickData.bin_end
-                      };
-                    } 
-                    // Check if we have mileage bin properties
-                    else if (clickData.mileage !== undefined && clickData.mileage_end !== undefined) {
-                      clickData = {
-                        mileage_bin0: clickData.mileage,
-                        mileage_bin1: clickData.mileage_end
-                      };
-                    }
-                    // Check for bin0 and bin1 format
-                    else if (clickData.bin0 !== undefined && clickData.bin1 !== undefined) {
-                      clickData = {
-                        mileage_bin0: clickData.bin0,
-                        mileage_bin1: clickData.bin1
-                      };
-                    }
-                    // Check for mileage_bin0 and mileage_bin1 format (from our transform)
-                    else if (clickData.mileage_bin0 !== undefined && clickData.mileage_bin1 !== undefined) {
-                      // Already in the right format, no need to transform
-                    }
-                  }
-                  
-                  console.log('Processed click data:', clickData);
-                  onSignalClick('barClick', clickData);
-                }
-              });
-              
-              // Add double-click event listener to clear filters
-              result.view.addEventListener('dblclick', () => {
-                console.log('Chart double-click event detected');
-                onSignalClick('clearFilters', null);
-              });
-            }
-          }).catch((error: Error) => {
-            console.error('Error rendering Vega chart:', error);
-            console.error('Problematic spec:', JSON.stringify(histogramSpec));
-            setError('Error rendering chart');
-          });
-        } else {
-          vegaEmbed(containerRef.current!, responsiveSpec as any, {
-            actions: { export: true, source: false, compiled: false, editor: false },
-            renderer: 'svg',
-            mode: 'vega-lite'
-          }).then((result: any) => {
-            viewRef.current = result.view;
-          }).catch((error: Error) => {
-            console.error('Error rendering Vega chart:', error);
-            console.error('Problematic spec:', JSON.stringify(responsiveSpec));
-            setError('Error rendering chart');
-          });
-        }
-      } catch (error) {
-        console.error('Error in renderChart function:', error);
-        setError('Error preparing chart');
-      }
-    }
-
-    // Cleanup function
-    return () => {
-      if (viewRef.current) {
-        viewRef.current.finalize();
-      }
-      if (containerRef.current) {
-        containerRef.current.innerHTML = '';
-      }
-    };
-  }, [spec, onSignalClick]);
-
-  return (
-    <div className="relative">
-      <div ref={containerRef} className={className} style={{ minHeight: "400px" }} />
-      {error && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-100 bg-opacity-80 dark:bg-gray-800 dark:bg-opacity-80">
-          <div className="text-red-600 dark:text-red-400 text-center p-4">
-            <p className="font-semibold">Error</p>
-            <p>{error}</p>
-          </div>
-        </div>
-      )}
-    </div>
-  );
 }
 
 // Create a separate component that uses useSearchParams
@@ -716,9 +450,8 @@ function ListingsContent() {
     console.log('Histogram bar click:', name, datum);
     
     if (name === 'barClick') {
-      // For price histogram - check for our normalized format first
+      // For price histogram
       if (datum.price_bin0 !== undefined && datum.price_bin1 !== undefined) {
-        // Price histogram was clicked
         const minPrice = Math.floor(datum.price_bin0).toString();
         const maxPrice = Math.ceil(datum.price_bin1).toString();
         
@@ -730,42 +463,13 @@ function ListingsContent() {
         
         // Show notification
         showNotification(`Price filter set: ${formatCurrency(parseInt(minPrice))} - ${formatCurrency(parseInt(maxPrice))}`);
-      } 
-      // Check for Vega-Lite's actual bin format for price
-      else if (datum.bin_maxbins_20_price !== undefined && datum.bin_maxbins_20_price_end !== undefined) {
-        const minPrice = Math.floor(datum.bin_maxbins_20_price).toString();
-        const maxPrice = Math.ceil(datum.bin_maxbins_20_price_end).toString();
-        
-        console.log(`Setting price filter from bin_maxbins format: ${minPrice} - ${maxPrice}`);
-        
-        // Update the state values
-        setPriceMin(minPrice);
-        setPriceMax(maxPrice);
-        
-        // Show notification
-        showNotification(`Price filter set: ${formatCurrency(parseInt(minPrice))} - ${formatCurrency(parseInt(maxPrice))}`);
       }
-      // For mileage histogram - check for our normalized format first
+      // For mileage histogram
       else if (datum.mileage_bin0 !== undefined && datum.mileage_bin1 !== undefined) {
-        // Mileage histogram was clicked
         const minMileage = Math.floor(datum.mileage_bin0).toString();
         const maxMileage = Math.ceil(datum.mileage_bin1).toString();
         
         console.log(`Setting mileage filter: ${minMileage} - ${maxMileage}`);
-        
-        // Update the state values
-        setMileageMin(minMileage);
-        setMileageMax(maxMileage);
-        
-        // Show notification
-        showNotification(`Mileage filter set: ${formatNumber(parseInt(minMileage))} - ${formatNumber(parseInt(maxMileage))} miles`);
-      }
-      // Check for Vega-Lite's actual bin format for mileage
-      else if (datum.bin_maxbins_20_mileage !== undefined && datum.bin_maxbins_20_mileage_end !== undefined) {
-        const minMileage = Math.floor(datum.bin_maxbins_20_mileage).toString();
-        const maxMileage = Math.ceil(datum.bin_maxbins_20_mileage_end).toString();
-        
-        console.log(`Setting mileage filter from bin_maxbins format: ${minMileage} - ${maxMileage}`);
         
         // Update the state values
         setMileageMin(minMileage);
@@ -1222,3 +926,4 @@ export default function ListingsPage() {
     </Suspense>
   );
 }
+
