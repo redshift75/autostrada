@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.SUPABASE_ANON_KEY || '';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 // Check if Supabase credentials are configured
 const isSupabaseConfigured = supabaseUrl && supabaseKey;
