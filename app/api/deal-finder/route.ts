@@ -127,17 +127,6 @@ export async function GET(request: NextRequest) {
       // The endDate is already in milliseconds, no need to multiply by 1000 again
       const auctionEndDate = new Date(listing.endDate);
       
-      // Debug logging for timestamp conversion
-      if (listing === filteredListings[0]) {
-        console.log(`Debug timestamp conversion for first listing:`);
-        console.log(`- Title: ${listing.title}`);
-        console.log(`- Raw endDate value: ${listing.endDate}`);
-        console.log(`- Converted to Date: ${auctionEndDate.toISOString()}`);
-        console.log(`- Current time: ${now.toISOString()}`);
-        console.log(`- End date cutoff: ${endDate.toISOString()}`);
-        console.log(`- Is ending soon: ${auctionEndDate >= now && auctionEndDate <= endDate}`);
-      }
-      
       return auctionEndDate >= now && auctionEndDate <= endDate;
     });
     
