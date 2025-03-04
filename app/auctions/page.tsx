@@ -400,8 +400,8 @@ function AuctionsContent() {
       const data = await response.json();
       console.log('API response received');
       
-      // Check if we have valid visualization specifications
-      if (data.visualizations) {
+      // Check if we have valid visualization specifications and results
+      if (data.visualizations && data.results.length > 0) {
         console.log('Visualization data types:', {
           timeSeriesChart: typeof data.visualizations.timeSeriesChart,
           priceHistogram: typeof data.visualizations.priceHistogram
@@ -520,6 +520,13 @@ function AuctionsContent() {
         make: formData.make,
         model: formData.model
       });
+      
+      // Set a helpful error message if there are no results
+      if (!data.results || data.results.length === 0) {
+        console.log('No results found for the search criteria');
+        // We don't set an error here because we want to show the "No results found" UI
+        // instead of the error UI
+      }
     } catch (err) {
       setError('Failed to generate visualizations. Please try again.');
       console.error('Error:', err);
@@ -662,7 +669,7 @@ function AuctionsContent() {
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
             {error}
           </div>
-        ) : results.length > 0 ? (
+        ) : results && results.length > 0 ? (
           <div className="bg-white shadow-md rounded-lg overflow-hidden">
             <div className="p-6">
               <h2 className="text-2xl font-bold mb-4">
@@ -717,9 +724,9 @@ function AuctionsContent() {
               <div className="flex flex-col lg:flex-row gap-6">
                 {/* Charts section */}
                 <div className="lg:w-2/3 flex-shrink-0 overflow-hidden">
-                  {visualizations && (
+                  {visualizations ? (
                     <div className="grid grid-cols-1 gap-6 mb-4">
-                      {(filteredVisualizations?.timeSeriesChart || visualizations.timeSeriesChart) && (
+                      {(filteredVisualizations?.timeSeriesChart || visualizations.timeSeriesChart) ? (
                         <div className="bg-gray-50 p-4 rounded-md">
                           <h3 className="text-lg font-semibold mb-2">
                             Price Trends
@@ -735,9 +742,24 @@ function AuctionsContent() {
                             />
                           </div>
                         </div>
+                      ) : (
+                        <div className="bg-gray-50 p-4 rounded-md">
+                          <h3 className="text-lg font-semibold mb-2">Price Trends</h3>
+                          <div className="w-full flex items-center justify-center" style={{ minHeight: '200px' }}>
+                            <div className="text-center p-6">
+                              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                              <h3 className="mt-2 text-sm font-medium text-gray-900">No price trend data available</h3>
+                              <p className="mt-1 text-sm text-gray-500">
+                                We couldn't generate a price trend chart for this search. This may be because there are too few results or the data is inconsistent.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
                       )}
                       
-                      {visualizations.priceHistogram && (
+                      {visualizations.priceHistogram ? (
                         <div className="bg-gray-50 p-4 rounded-md">
                           <div className="flex justify-between items-center mb-2">
                             <h3 className="text-lg font-semibold">
@@ -763,7 +785,37 @@ function AuctionsContent() {
                             />
                           </div>
                         </div>
+                      ) : (
+                        <div className="bg-gray-50 p-4 rounded-md">
+                          <h3 className="text-lg font-semibold mb-2">Price Distribution</h3>
+                          <div className="w-full flex items-center justify-center" style={{ minHeight: '200px' }}>
+                            <div className="text-center p-6">
+                              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                              </svg>
+                              <h3 className="mt-2 text-sm font-medium text-gray-900">No price distribution data available</h3>
+                              <p className="mt-1 text-sm text-gray-500">
+                                We couldn't generate a price distribution chart for this search. This may be because there are too few results or the data is inconsistent.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
                       )}
+                    </div>
+                  ) : (
+                    <div className="bg-gray-50 p-6 rounded-md">
+                      <div className="text-center">
+                        <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <h3 className="mt-2 text-sm font-medium text-gray-900">No visualizations available</h3>
+                        <p className="mt-1 text-sm text-gray-500">
+                          We couldn't generate visualizations for this search. This may be because there are no results matching your criteria.
+                        </p>
+                        <p className="mt-2 text-sm text-gray-500">
+                          Try adjusting your search parameters or selecting a different make/model.
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -858,10 +910,31 @@ function AuctionsContent() {
           <div className="text-center py-12 bg-white shadow-md rounded-lg">
             <p className="text-gray-600 mb-4">Enter make and model above to analyze auction results</p>
           </div>
-        ) : null}
+        ) : (
+          <div className="bg-white shadow-md rounded-lg overflow-hidden p-8">
+            <div className="text-center">
+              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+              <h3 className="mt-2 text-lg font-medium text-gray-900">No auction results found</h3>
+              <p className="mt-1 text-md text-gray-500">
+                We couldn't find any auction results matching your search criteria.
+              </p>
+              <div className="mt-6">
+                <h4 className="text-sm font-medium text-gray-900">Suggestions:</h4>
+                <ul className="mt-2 list-disc list-inside text-sm text-gray-500">
+                  <li>Check the spelling of the make and model</li>
+                  <li>Try a more popular make or model</li>
+                  <li>Expand your year range</li>
+                  <li>Remove any filters that might be too restrictive</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
         
         {/* Add AI Agent for auction results */}
-        {!loading && results.length > 0 && (
+        {!loading && results && results.length > 0 && (
           <div className="mt-8">
             <AuctionAIAgent auctionResults={results} />
           </div>
