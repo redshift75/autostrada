@@ -63,14 +63,27 @@ export async function generatePriceTimeSeriesChart(
     });
 
     // Prepare data for visualization
-    const data = validListings.map(listing => ({
-      date: listing.sold_date,
-      price: parseInt((listing.status === 'sold' ? listing.sold_price : listing.bid_amount).replace(/[^0-9]/g, '')),
-      title: listing.title,
-      url: listing.url,
-      mileage: listing.mileage,
-      status: listing.status
-    }));
+    const data = validListings.map(listing => {
+      // Get the price value based on status
+      const priceValue = listing.status === 'sold' ? listing.sold_price : listing.bid_amount;
+      
+      // Parse the price - handle both string and number types
+      let parsedPrice = 0;
+      if (typeof priceValue === 'number') {
+        parsedPrice = priceValue;
+      } else if (typeof priceValue === 'string') {
+        parsedPrice = parseInt(priceValue.replace(/[^0-9]/g, '') || '0');
+      }
+      
+      return {
+        date: listing.sold_date,
+        price: parsedPrice,
+        title: listing.title,
+        url: listing.url,
+        mileage: listing.mileage,
+        status: listing.status
+      };
+    });
 
     // Create a Vega-Lite specification
     const spec: vegaLite.TopLevelSpec = {
@@ -252,11 +265,21 @@ export function generatePriceHistogram(
   );
 
   // Prepare data for visualization
-  const data = soldListings.map(listing => ({
-    price: parseInt(listing.sold_price.replace(/[^0-9]/g, '')),
-    title: listing.title,
-    url: listing.url
-  }));
+  const data = soldListings.map(listing => {
+    // Parse the price - handle both string and number types
+    let parsedPrice = 0;
+    if (typeof listing.sold_price === 'number') {
+      parsedPrice = listing.sold_price;
+    } else if (typeof listing.sold_price === 'string') {
+      parsedPrice = parseInt(listing.sold_price.replace(/[^0-9]/g, '') || '0');
+    }
+    
+    return {
+      price: parsedPrice,
+      title: listing.title,
+      url: listing.url
+    };
+  });
 
   return generateHistogram(data, 'price', {
     description: config?.description || 'Auction Price Distribution',

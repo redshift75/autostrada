@@ -76,22 +76,15 @@ function AuctionsContent() {
   const [results, setResults] = useState<AuctionResult[]>([]);
   const [filteredResults, setFilteredResults] = useState<AuctionResult[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState<string>('Loading...');
   const [error, setError] = useState<string | null>(null);
   
   // State for database connection status
   const [dbConnectionError, setDbConnectionError] = useState(false);
   
   // State for visualizations
-  const [visualizations, setVisualizations] = useState<{
-    timeSeriesChart: TopLevelSpec | null;
-    priceHistogram: TopLevelSpec | null;
-  } | null>(null);
-  
-  // State for filtered visualizations
-  const [filteredVisualizations, setFilteredVisualizations] = useState<{
-    timeSeriesChart: TopLevelSpec | null;
-    priceHistogram: TopLevelSpec | null;
-  } | null>(null);
+  const [visualizations, setVisualizations] = useState<any>(null);
+  const [filteredVisualizations, setFilteredVisualizations] = useState<any>(null);
   
   // State for active filter
   const [activeFilter, setActiveFilter] = useState<{
@@ -100,13 +93,16 @@ function AuctionsContent() {
   } | null>(null);
   
   // State for summary
-  const [summary, setSummary] = useState<any | null>(null);
+  const [summary, setSummary] = useState<any>(null);
   
   // State for current search
   const [currentSearch, setCurrentSearch] = useState<{
     make: string;
     model: string;
   } | null>(null);
+  
+  // State for data source
+  const [dataSource, setDataSource] = useState<string | null>(null);
   
   // Fetch make suggestions from Supabase with debounce
   const fetchMakeSuggestions = async (query: string) => {
@@ -303,56 +299,58 @@ function AuctionsContent() {
   
   // Filter results by price range
   const filterResultsByPriceRange = (minPrice: number, maxPrice: number) => {
-    if (!results.length) {
-      console.log('No results to filter');
-      return;
-    }
+    if (results.length === 0) return;
     
-    console.log(`Filtering ${results.length} results by price range: ${minPrice} - ${maxPrice}`);
-    
-    // Filter results
+    // Filter results by price range
     const filtered = results.filter(result => {
-      const price = result.price;
-      const isInRange = price !== undefined && price >= minPrice && price <= maxPrice;
-      return isInRange;
+      const price = result.price || 0;
+      return price >= minPrice && price <= maxPrice;
     });
     
-    console.log(`Found ${filtered.length} results in price range`);
-    
-    setFilteredResults(filtered);
-    
-    // Update time series chart with filtered data
-    if (visualizations?.timeSeriesChart) {
-      // Get the original data values
-      const originalValues = (visualizations.timeSeriesChart.data as any).values;
+    if (filtered.length > 0) {
+      // Set filtered results
+      setFilteredResults(filtered);
       
-      // Filter the values
-      const filteredValues = originalValues.filter((d: any) => {
-        const price = d.price || d.sold_price || d.bid_amount;
-        return price >= minPrice && price <= maxPrice;
-      });
+      // Set active filter
+      setActiveFilter({ min: minPrice, max: maxPrice });
       
-      console.log(`Filtered time series data: ${filteredValues.length} of ${originalValues.length} points`);
-      
-      // Create a new spec with the filtered data
-      const filteredTimeSeriesChart = {
-        ...visualizations.timeSeriesChart,
-        data: {
-          values: filteredValues
-        }
-      };
-      
-      // Only update if we have data
-      if (filteredValues.length > 0) {
-        setFilteredVisualizations({
-          timeSeriesChart: filteredTimeSeriesChart as TopLevelSpec,
-          priceHistogram: visualizations.priceHistogram
+      // Filter visualizations
+      if (visualizations?.timeSeriesChart) {
+        // Get the original data values
+        const originalValues = (visualizations.timeSeriesChart.data as any).values;
+        
+        // Filter the values
+        const filteredValues = originalValues.filter((d: any) => {
+          const price = d.price || d.sold_price || d.bid_amount;
+          return price >= minPrice && price <= maxPrice;
         });
-      } else {
-        // If no data matches the filter, show a message instead
-        setError("No data matches the selected price range. Try a different range.");
-        clearFilters();
+        
+        console.log(`Filtered time series data: ${filteredValues.length} of ${originalValues.length} points`);
+        
+        // Create a new spec with the filtered data
+        const filteredTimeSeriesChart = {
+          ...visualizations.timeSeriesChart,
+          data: {
+            values: filteredValues
+          }
+        };
+        
+        // Only update if we have data
+        if (filteredValues.length > 0) {
+          setFilteredVisualizations({
+            timeSeriesChart: filteredTimeSeriesChart as TopLevelSpec,
+            priceHistogram: visualizations.priceHistogram
+          });
+        } else {
+          // If no data matches the filter, show a message instead
+          setError("No data matches the selected price range. Try a different range.");
+          clearFilters();
+        }
       }
+    } else {
+      // If no data matches the filter, show a message instead
+      setError("No data matches the selected price range. Try a different range.");
+      clearFilters();
     }
   };
   
@@ -367,6 +365,7 @@ function AuctionsContent() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setLoadingMessage('Checking database for results...');
     setError(null);
     setResults([]);
     setFilteredResults([]);
@@ -374,8 +373,15 @@ function AuctionsContent() {
     setFilteredVisualizations(null);
     setActiveFilter(null);
     setSummary(null);
+    setDataSource(null);
     
     try {
+      // Set a timeout to update the loading message after 2 seconds
+      // This assumes that if Supabase doesn't have results, we'll fall back to the scraper
+      const messageTimeout = setTimeout(() => {
+        setLoadingMessage('No results found in database. Fetching fresh data from Bring a Trailer...');
+      }, 2000);
+      
       const response = await fetch('/api/visualizations/generate', {
         method: 'POST',
         headers: {
@@ -383,6 +389,9 @@ function AuctionsContent() {
         },
         body: JSON.stringify(formData),
       });
+      
+      // Clear the timeout
+      clearTimeout(messageTimeout);
       
       if (!response.ok) {
         throw new Error(`Error: ${response.status}`);
@@ -506,6 +515,7 @@ function AuctionsContent() {
       setResults(data.results || []);
       setVisualizations(data.visualizations || null);
       setSummary(data.summary || null);
+      setDataSource(data.source || 'scraper');
       setCurrentSearch({
         make: formData.make,
         model: formData.model
@@ -515,33 +525,28 @@ function AuctionsContent() {
       console.error('Error:', err);
     } finally {
       setLoading(false);
+      setLoadingMessage('Loading...'); // Reset loading message
     }
   };
   
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white sm:text-4xl">
+            <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl">
               Auction Results
             </h1>
-            <p className="mt-2 text-lg text-gray-500 dark:text-gray-300">
+            <p className="mt-2 text-lg text-gray-500">
               Analyze Historical Auction Results
             </p>
           </div>
         </div>
-      
-        {dbConnectionError && (
-          <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-6">
-            <p className="font-medium">Database connection unavailable</p>
-            <p className="text-sm">Autocomplete suggestions are not available. You can still enter make and model manually.</p>
-          </div>
-        )}
-      
+        
+        {/* Search Form */}
         <div className="bg-white shadow-md rounded-lg p-6 mb-8">
-          <h2 className="text-xl font-semibold mb-4">Generate Analysis</h2>
-          <form onSubmit={handleSubmit}>
+          <h2 className="text-xl font-semibold mb-4">Search Auction Results</h2>
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="flex flex-col relative">
                 <label htmlFor="make" className="mb-1 font-medium">
@@ -647,31 +652,38 @@ function AuctionsContent() {
           </form>
         </div>
         
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+        {/* Results Section */}
+        {loading ? (
+          <div className="flex flex-col justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
+            <p className="text-gray-600">{loadingMessage}</p>
+          </div>
+        ) : error ? (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
             {error}
           </div>
-        )}
-        
-        {loading && (
-          <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600 mb-4"></div>
-            <p className="text-gray-600">Generating visualizations and fetching results...</p>
-            <p className="text-gray-500 text-sm mt-2">This may take a minute or two.</p>
-          </div>
-        )}
-        
-        {!loading && currentSearch && (
+        ) : results.length > 0 ? (
           <div className="bg-white shadow-md rounded-lg overflow-hidden">
             <div className="p-6">
               <h2 className="text-2xl font-bold mb-4">
-                {currentSearch.make} {currentSearch.model} Auction Results
+                {currentSearch?.make} {currentSearch?.model} Auction Results
                 {activeFilter && (
                   <span className="ml-2 text-sm font-normal text-gray-500">
                     (Filtered: {formatPrice(activeFilter.min.toString())} - {formatPrice(activeFilter.max.toString())})
                   </span>
                 )}
               </h2>
+              
+              {/* Data Source Indicator */}
+              <div className="mb-4 text-sm text-gray-600">
+                Data source: <span className="font-semibold">{dataSource === 'supabase' ? 'Database' : 'Live Scraper'}</span>
+                {dataSource === 'supabase' && (
+                  <span className="ml-2 bg-green-100 text-green-800 text-xs px-2 py-1 rounded">Faster response</span>
+                )}
+                {dataSource === 'scraper' && (
+                  <span className="ml-2 bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">Fresh data</span>
+                )}
+              </div>
               
               {summary && (
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
@@ -802,7 +814,7 @@ function AuctionsContent() {
                                         <span className="text-xs px-2 py-0.5 rounded-full">
                                           {result.mileage ? `${result.mileage.toLocaleString()}mi` : ''}
                                         </span>
-                  
+                    
                                         {result.bidders && (
                                           <span className="text-xs px-2 py-0.5 ml-1 bg-blue-100 text-blue-800 rounded-full">
                                             {result.bidders} {result.bidders === 1 ? 'bid' : 'bids'}
@@ -838,20 +850,17 @@ function AuctionsContent() {
               </div>
             </div>
           </div>
-        )}
-        
-        {!loading && !currentSearch && (
+        ) : !currentSearch ? (
           <div className="text-center py-12 bg-white shadow-md rounded-lg">
             <p className="text-gray-600 mb-4">Enter make and model above to analyze auction results</p>
           </div>
-        )}
-        
-        <div className="mt-8">
-        </div>
+        ) : null}
         
         {/* Add AI Agent for auction results */}
         {!loading && results.length > 0 && (
-          <AuctionAIAgent auctionResults={results} />
+          <div className="mt-8">
+            <AuctionAIAgent auctionResults={results} />
+          </div>
         )}
       </div>
     </div>
