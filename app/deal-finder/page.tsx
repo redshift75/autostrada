@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { TopLevelSpec } from 'vega-lite';
 import VegaChart from '@/components/shared/VegaChart';
-import { formatPrice } from '@/lib/utils/index';
+import { formatPrice } from '@/lib/scrapers/utils/index';
 
 // Define types for the Deal Finder page
 type Deal = {
@@ -817,9 +817,11 @@ export default function DealFinder() {
                             <a href={deal.activeListing.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
                               {deal.activeListing.title}
                             </a>
-                            <span className="text-xl px-2 py-0.5 rounded-full">
-                              {deal.activeListing.mileage ? `${deal.activeListing.mileage.toLocaleString()} mi` : ''}
-                            </span>
+                            {deal.activeListing.mileage && (
+                                <span className="ml-2 text-sm font-medium text-gray-600 dark:text-gray-400">
+                                  {deal.activeListing.mileage.toLocaleString()} mi
+                                </span>
+                              )}
                           </h3>
                           
                           <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium mt-2 sm:mt-0 sm:ml-3 ${
@@ -858,6 +860,7 @@ export default function DealFinder() {
                             <p className="text-sm text-gray-500 dark:text-gray-400">Current Bid</p>
                             <p className="text-lg font-semibold text-gray-900 dark:text-white">
                               {deal.activeListing.current_bid_formatted}
+   
                             </p>
                           </div>
                           <div>

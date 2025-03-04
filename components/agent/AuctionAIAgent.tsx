@@ -1,5 +1,5 @@
 import AIAgent from './AIAgent';
-import { auctionFormatter } from '@/lib/utils/formatters';
+import { auctionFormatter } from '@/lib/scrapers/utils/formatters';
 
 // Define the AuctionResult type
 export type AuctionResult = {

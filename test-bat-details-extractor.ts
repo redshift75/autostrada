@@ -1,4 +1,4 @@
-import { fetchDetailsFromListingPage } from './lib/utils/BATDetailsExtractor';
+import { fetchDetailsFromListingPage } from './lib/scrapers/utils/BATDetailsExtractor';
 
 async function testBATDetailsExtractor() {
   try {
