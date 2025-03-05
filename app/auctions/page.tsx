@@ -401,23 +401,47 @@ function AuctionsContent() {
         setLoadingMessage('No results found in database. Fetching fresh data from Bring a Trailer...');
       }, 2000);
       
-      const response = await fetch('/api/visualizations/generate', {
+      // Step 1: Fetch auction results
+      const resultsResponse = await fetch('/api/auction/results', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(submissionData), // Use the submission data directly
+        body: JSON.stringify(submissionData),
       });
       
       // Clear the timeout
       clearTimeout(messageTimeout);
       
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        throw new Error(errorData.error || `Error: ${response.status}`);
+      if (!resultsResponse.ok) {
+        const errorData = await resultsResponse.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `Error: ${resultsResponse.status}`);
       }
       
-      const data = await response.json();
+      const resultsData = await resultsResponse.json();
+      
+      // Update loading message for visualization generation
+      setLoadingMessage('Generating visualizations...');
+      
+      // Step 2: Generate visualizations
+      const visualizationsResponse = await fetch('/api/visualizations/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          results: resultsData.results,
+          summary: resultsData.summary,
+          source: resultsData.source
+        }),
+      });
+      
+      if (!visualizationsResponse.ok) {
+        const errorData = await visualizationsResponse.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `Error: ${visualizationsResponse.status}`);
+      }
+      
+      const data = await visualizationsResponse.json();
       console.log('API response received');
       
       // Check if we have valid visualization specifications and results
