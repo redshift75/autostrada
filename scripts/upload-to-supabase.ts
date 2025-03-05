@@ -19,7 +19,6 @@ dotenv.config();
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_SERVICE_KEY;
 
-console.log(process.env);
 // Validate Supabase configuration
 if (!supabaseUrl || !supabaseKey) {
   console.error('Error: SUPABASE_URL and SUPABASE_SERVICE_KEY must be set in .env file');
@@ -112,7 +111,8 @@ async function uploadCompletedAuctionsToSupabase() {
         updated_at: new Date(),
         comments: listing.comments,
         watchers: listing.watchers,
-        bidders: listing.bidders
+        bidders: listing.bidders,
+        transmission: listing.transmission
       }));
       
       // Deduplicate listings to avoid the "ON CONFLICT DO UPDATE command cannot affect row a second time" error
@@ -131,12 +131,13 @@ async function uploadCompletedAuctionsToSupabase() {
         console.log(`Uploading batch ${i / BATCH_SIZE + 1} of ${Math.ceil(uniqueDbListings.length / BATCH_SIZE)}...`);
         
         try {
+     
           // Insert data with upsert (update if exists, insert if not)
           const { data, error } = await supabase
             .from(COMPLETED_AUCTIONS_TABLE)
             .upsert(batch, { 
               onConflict: 'listing_id',
-              ignoreDuplicates: true // Changed to true to ignore duplicates
+              ignoreDuplicates: false // Changed to false to update existing records
             });
           
           if (error) {
@@ -157,7 +158,7 @@ async function uploadCompletedAuctionsToSupabase() {
                 .from(COMPLETED_AUCTIONS_TABLE)
                 .upsert([listing], { 
                   onConflict: 'listing_id',
-                  ignoreDuplicates: true
+                  ignoreDuplicates: false // Changed to false to update existing records
                 });
               
               if (error) {
@@ -381,6 +382,5 @@ uploadToSupabase().catch(error => {
       const oldPath = path.join(resultsDir, file);
       const newPath = path.join(processedDir, file);
       fs.renameSync(oldPath, newPath);
-      console.log(`Moved ${file} to ${newPath}`);
     }
   }

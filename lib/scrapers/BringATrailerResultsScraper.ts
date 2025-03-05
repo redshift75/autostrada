@@ -37,6 +37,7 @@ export interface BaTCompletedListing {
   bidders?: number;
   watchers?: number;
   comments?: number;
+  transmission?: string;
   images?: {
     small?: {
       url: string;
@@ -323,11 +324,12 @@ export class BringATrailerResultsScraper extends BaseScraper {
               item.bidders = listingData.bidders;
               item.watchers = listingData.watchers;
               item.comments = listingData.comments;
+              item.transmission = listingData.transmission;
             } catch (error) {
               console.error(`Error fetching details for ${item.title}:`, error);
             }
           }
-          
+
           return {
             id: item.id?.toString() || '',
             url: item.url || '',
@@ -348,6 +350,7 @@ export class BringATrailerResultsScraper extends BaseScraper {
             timestamp_end: item.timestamp_end || 0,
             excerpt: item.excerpt || '',
             mileage: mileage,
+            transmission: item.transmission || undefined,
             bidders: item.bidders || 0,
             watchers: item.watchers || 0,
             comments: item.comments || 0,
@@ -380,7 +383,6 @@ export class BringATrailerResultsScraper extends BaseScraper {
     
     // If no year found, return early
     if (!year) {
-      console.log(`Listing ${title} does not have a year`);
       return { year: undefined, make: undefined, model: undefined };
     }
     
@@ -470,11 +472,9 @@ export class BringATrailerResultsScraper extends BaseScraper {
       return listings.filter(listing => {
         // Filter by year range
         if (yearMin && listing.year && listing.year < yearMin) {
-          console.log(`Listing ${listing.title} does not have a year`);
           return false;
         }
         if (yearMax && listing.year && listing.year > yearMax) {
-          console.log(`Listing ${listing.title} does not have a year`);
           return false;
         }
         
@@ -487,8 +487,6 @@ export class BringATrailerResultsScraper extends BaseScraper {
             return false;
           }
         } else if (make) {
-          console.log(`Listing ${listing.title} has ${listing.make}`);
-          // If make is specified but the listing doesn't have a make, exclude it
           return false;
         }
         
