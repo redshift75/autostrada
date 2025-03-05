@@ -56,11 +56,11 @@ export const auctionFormatter: DataFormatter<AuctionResult> = {
           url: result.url,
           make: result.make || result.title.split(' ')[0] || '',
           model: result.model || result.title.split(' ')[1] || '',
-          image_url: result.image_url || (result.images?.small?.url || null),
           mileage: result.mileage || null,
           bidders: result.bidders || null,
           watchers: result.watchers || null,
-          comments: result.comments || null
+          comments: result.comments || null,
+          transmission: result.transmission || null
         };
       })
     };
