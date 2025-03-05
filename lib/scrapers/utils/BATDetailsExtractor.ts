@@ -67,14 +67,14 @@ export async function fetchDetailsFromListingPage(url: string): Promise<ListingD
       const mileageItemMatch = essentialsSection.match(mileageItemRegex);
       
       // Look for transmission type in the essentials section
-      const transmissionRegex = /<li[^>]*>([\s\S]*?(?:Dual[-\s]Clutch|Double\s+Clutch|PDK|Automatic|manual|Manual|Transmission|transaxle)[\s\S]*?)<\/li>/i;
+      const transmissionRegex = /<li[^>]*>([\s\S]*?(?:Dual[-\s]Clutch|Double\s+Clutch|PDK|Automatic|Automated|manual|Manual|Transmission|transaxle|Sequential)[\s\S]*?)<\/li>/i;
       const transmissionMatch = essentialsSection.match(transmissionRegex);
 
       if (transmissionMatch && transmissionMatch[1]) {
         const transmissionItem = transmissionMatch[1];
         
         // Check for automatic transmission indicators
-        if (/(?:Dual[-\s]Clutch|Double\s+Clutch|PDK|Automatic|DCT|Sequential)/i.test(transmissionItem)) {
+        if (/(?:Dual[-\s]Clutch|Double\s+Clutch|PDK|Automatic|Automated|DCT|Sequential)/i.test(transmissionItem)) {
           result.transmission = 'automatic';
         } 
         // Check for manual transmission
@@ -130,7 +130,7 @@ export async function fetchDetailsFromListingPage(url: string): Promise<ListingD
     // If transmission wasn't found in the essentials section, try a broader search
     if (!result.transmission) {
       // Look for automatic transmission indicators
-      const automaticRegex = /(?:Dual[-\s]Clutch|Double\s+Clutch|PDK|Automatic|DCT|Sequential)/i;
+      const automaticRegex = /(?:Dual[-\s]Clutch|Double\s+Clutch|PDK|Automatic|Automated|DCT|Sequential)/i;
       const manualRegex = /\bmanual\b/i;
       
       if (automaticRegex.test(html)) {
@@ -138,9 +138,9 @@ export async function fetchDetailsFromListingPage(url: string): Promise<ListingD
         console.log(`Found automatic transmission from broader search for ${url}`);
       } else if (manualRegex.test(html)) {
         result.transmission = 'manual';
-        console.log(`Found manual transmission from broader search`);
+        console.log(`Found manual transmission from broader search for ${url}`);
       } else {
-        console.log(`No transmission type found in listing page`);
+        console.log(`No transmission type found in listing page for ${url}`);
       }
     }
     

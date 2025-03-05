@@ -18,9 +18,9 @@ const mode = argv.mode || 'both'; // completed, active, both
 const make = argv.make || 'Porsche';
 const model = String(argv.model || ''); // Convert model to string
 const maxPages = argv.maxPages || 3;
-const delayBetweenRequests = argv.delay || 1000; // Default 1 seconds between requests
+const delayBetweenRequests = argv.delay || 100; // Default 1 seconds between requests
 const longPauseInterval = argv.pauseInterval || 10; // Default pause every 10 pages
-const longPauseDelay = argv.pauseDelay || 30000; // Default 30 seconds for long pause
+const longPauseDelay = argv.pauseDelay || 10000; // Default 10 seconds for long pause
 
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
