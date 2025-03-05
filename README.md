@@ -437,3 +437,43 @@ The `bat_active_auctions` table stores data about active auctions:
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+# Bring a Trailer Car Makes Scraper
+
+A simple Python script that scrapes the list of car makes from the Bring a Trailer website.
+
+## Requirements
+
+- Python 3.6+
+- Required packages: requests, beautifulsoup4
+
+## Installation
+
+1. Clone this repository or download the files.
+2. Install the required packages:
+
+```bash
+pip install -r requirements.txt
+```
+
+## Usage
+
+Run the script with:
+
+```bash
+python scraper.py
+```
+
+The script will:
+1. Output a numbered list of all car makes found on the Bring a Trailer models page
+2. Save the results to a CSV file in the `data` directory with a timestamp in the filename (e.g., `data/bat_makes_20240915_123045.csv`)
+
+## Output
+
+The CSV file contains two columns:
+- ID: A sequential number for each make
+- Make: The name of the car make
+
+## Note
+
+This script is for educational purposes only. Please respect the website's terms of service and robots.txt file when scraping websites.

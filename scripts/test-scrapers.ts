@@ -20,7 +20,8 @@ const model = String(argv.model || ''); // Convert model to string
 const maxPages = argv.maxPages || 3;
 const delayBetweenRequests = argv.delay || 100; // Default 1 seconds between requests
 const longPauseInterval = argv.pauseInterval || 10; // Default pause every 10 pages
-const longPauseDelay = argv.pauseDelay || 10000; // Default 10 seconds for long pause
+const longPauseDelay = argv.pauseDelay || 30000; // Default 10 seconds for long pause
+const makesFile = argv.makesFile || ''; // File containing list of makes to process
 
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -33,9 +34,47 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-async function testResultsScraper() {
+// Function to read makes from a file
+function readMakesFromFile(filePath: string): string[] {
   try {
-    console.log('Testing BringATrailerResultsScraper...');
+    if (!fs.existsSync(filePath)) {
+      console.error(`Makes file not found: ${filePath}`);
+      return [];
+    }
+    
+    const fileContent = fs.readFileSync(filePath, 'utf-8');
+    // Split by newline and filter out empty lines
+    const makes = fileContent.split('\n')
+      .map(line => line.trim())
+      .filter(line => line && !line.startsWith('#')); // Skip empty lines and comments
+    
+    console.log(`Read ${makes.length} makes from ${filePath}`);
+    return makes;
+  } catch (error) {
+    console.error(`Error reading makes file: ${error}`);
+    return [];
+  }
+}
+
+// Function to process a single make
+async function processMake(currentMake: string) {
+  console.log(`\n========== Processing make: ${currentMake} ==========`);
+  
+  // Create a temporary argv object with the current make
+  const tempArgv = { ...argv, make: currentMake };
+  
+  if (mode === 'completed' || mode === 'both') {
+    await testResultsScraper(currentMake);
+  }
+  
+  if (mode === 'active' || mode === 'both') {
+    await testActiveScraper(currentMake);
+  }
+}
+
+async function testResultsScraper(currentMake: string = make) {
+  try {
+    console.log(`Testing BringATrailerResultsScraper for ${currentMake}...`);
     
     // Create results directory if it doesn't exist
     const resultsDir = path.join(process.cwd(), 'results');
@@ -48,14 +87,14 @@ async function testResultsScraper() {
     
     // Fetch model suggestions if make is provided
     let modelSuggestions: string[] = [];
-    if (make) {
-      modelSuggestions = await fetchModelSuggestions(make);
-      console.log(`Using ${modelSuggestions.length} model suggestions for ${make}`);
+    if (currentMake) {
+      modelSuggestions = await fetchModelSuggestions(currentMake);
+      console.log(`Using ${modelSuggestions.length} model suggestions for ${currentMake}`);
     }
     
     // Scrape listings with the provided parameters
     const allListings = await scraper.scrape({
-      make,
+      make: currentMake,
       model,
       maxPages,
       delayBetweenRequests,
@@ -67,10 +106,10 @@ async function testResultsScraper() {
     console.log(`\nFound ${allListings.length} completed auctions`);
     
     // If make and model are provided, filter the results
-    if (make) {
+    if (currentMake) {
       const filteredListings = allListings.filter(listing => {
         const listingMake = listing.make?.toLowerCase() || '';
-        const searchMake = make.toLowerCase();
+        const searchMake = currentMake.toLowerCase();
         
         // Check if make matches
         if (!listingMake.includes(searchMake)) {
@@ -87,15 +126,15 @@ async function testResultsScraper() {
         return true;
       });
       
-      console.log(`\nFound ${filteredListings.length} completed ${make} ${model || ''} auctions`);
+      console.log(`\nFound ${filteredListings.length} completed ${currentMake} ${model || ''} auctions`);
       
       if (filteredListings.length > 0) {
         // Save filtered results to file
-        const makeForFilename = make ? make.toLowerCase() : 'all';
+        const makeForFilename = currentMake ? currentMake.toLowerCase() : 'all';
         const modelForFilename = model ? model.toLowerCase() : 'all';
         const filteredFile = path.join(resultsDir, `${makeForFilename}_${modelForFilename ? modelForFilename + '_' : ''}filter_completed_results.json`);
         fs.writeFileSync(filteredFile, JSON.stringify(filteredListings, null, 2));
-        console.log(`Saved ${filteredListings.length} completed ${make} ${model || ''} auctions to ${filteredFile}`);
+        console.log(`Saved ${filteredListings.length} completed ${currentMake} ${model || ''} auctions to ${filteredFile}`);
       }
       
       return filteredListings;
@@ -108,8 +147,8 @@ async function testResultsScraper() {
   }
 }
 
-async function testActiveScraper() {
-  console.log('Testing BringATrailerActiveListingScraper...');
+async function testActiveScraper(currentMake: string = make) {
+  console.log(`Testing BringATrailerActiveListingScraper for ${currentMake}...`);
   
   // Create results directory if it doesn't exist
   const resultsDir = path.join(process.cwd(), 'results');
@@ -136,25 +175,25 @@ async function testActiveScraper() {
   }
   
   // If make and model are provided, filter the results
-  if (make && model) {
+  if (currentMake && model) {
     const filteredListings = allListings.filter(listing => {
       const listingMake = listing.make?.toLowerCase() || '';
       const listingModel = listing.model?.toLowerCase() || '';
-      const searchMake = make.toLowerCase();
+      const searchMake = currentMake.toLowerCase();
       const searchModel = model.toLowerCase();
       
       return listingMake === searchMake && listingModel.includes(searchModel);
     });
     
-    console.log(`\nFound ${filteredListings.length} active ${make} ${model} auctions`);
+    console.log(`\nFound ${filteredListings.length} active ${currentMake} ${model} auctions`);
     
     if (filteredListings.length > 0) {
       // Save filtered results to file
-      const makeForFilename = make ? make.toLowerCase() : 'all';
+      const makeForFilename = currentMake ? currentMake.toLowerCase() : 'all';
       const modelForFilename = model ? model.toLowerCase() : 'all';
       const filteredFile = path.join(resultsDir, `${makeForFilename}_${modelForFilename}_active_results.json`);
       fs.writeFileSync(filteredFile, JSON.stringify(filteredListings, null, 2));
-      console.log(`Saved ${filteredListings.length} active ${make} ${model} auctions to ${filteredFile}`);
+      console.log(`Saved ${filteredListings.length} active ${currentMake} ${model} auctions to ${filteredFile}`);
     }
     
     return filteredListings;
@@ -207,15 +246,32 @@ async function runTest() {
   try {
     console.log(`Running scraper test in ${mode} mode`);
     
-    if (mode === 'completed' || mode === 'both') {
-      await testResultsScraper();
+    // Check if a makes file was specified
+    if (makesFile) {
+      const makes = readMakesFromFile(makesFile);
+      
+      if (makes.length === 0) {
+        console.log('No makes found in the specified file. Using default make.');
+        // Process the default make
+        await processMake(make);
+      } else {
+        // Process each make in the file
+        for (const currentMake of makes) {
+          await processMake(currentMake);
+          
+          // Add a pause between processing different makes to avoid rate limiting
+          if (makes.indexOf(currentMake) < makes.length - 1) {
+            console.log(`Pausing for ${longPauseDelay/1000} seconds before processing next make...`);
+            await new Promise(resolve => setTimeout(resolve, longPauseDelay));
+          }
+        }
+      }
+    } else {
+      // Process the default make
+      await processMake(make);
     }
     
-    if (mode === 'active' || mode === 'both') {
-      await testActiveScraper();
-    }
-    
-    console.log('\nTest completed successfully!');
+    console.log('\Scrape completed successfully!');
   } catch (error) {
     console.error('Error running scraper test:', error);
     process.exit(1);
