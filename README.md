@@ -166,19 +166,25 @@ npm run test-scrapers
 To scrape only completed auction results:
 
 ```bash
-npm run test-scrapers:completed
+npm run test-scrapers:completed -- --make="BMW" --recency='7D' --maxPages=10
+npx ts-node scripts/test-scrapers.ts --makesFile "scripts/sample-makes.txt"
+
+| Argument | Description | Default |
+|----------|-------------|---------|
+| `--mode` | Mode to run the scraper in (completed, active, both) | both |
+| `--make` | Make to search for | Porsche |
+| `--model` | Model to search for | (empty) |
+| `--maxPages` | Maximum number of pages to scrape | 3 |
+| `--delay` | Delay between requests in milliseconds | 100 |
+| `--pauseInterval` | Number of pages after which to pause for a longer time | 10 |
+| `--pauseDelay` | Duration of the longer pause in milliseconds | 30000 |
+| `--makesFile` | Path to a file containing a list of makes to process | (empty) |
 ```
 
 To scrape only active auction listings:
 
 ```bash
 npm run test-scrapers:active
-```
-
-You can customize the scraping by adding parameters:
-
-```bash
-npm run test-scrapers -- --make=Ferrari --model=Testarossa --maxPages=5
 ```
 
 The results will be saved to the `results` directory as JSON files.

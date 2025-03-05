@@ -18,6 +18,7 @@ const mode = argv.mode || 'both'; // completed, active, both
 const make = argv.make || 'Porsche';
 const model = String(argv.model || ''); // Convert model to string
 const maxPages = argv.maxPages || 3;
+const recency = argv.recency || '';
 const delayBetweenRequests = argv.delay || 100; // Default 1 seconds between requests
 const longPauseInterval = argv.pauseInterval || 10; // Default pause every 10 pages
 const longPauseDelay = argv.pauseDelay || 30000; // Default 10 seconds for long pause
@@ -89,7 +90,6 @@ async function testResultsScraper(currentMake: string = make) {
     let modelSuggestions: string[] = [];
     if (currentMake) {
       modelSuggestions = await fetchModelSuggestions(currentMake);
-      console.log(`Using ${modelSuggestions.length} model suggestions for ${currentMake}`);
     }
     
     // Scrape listings with the provided parameters
@@ -100,6 +100,7 @@ async function testResultsScraper(currentMake: string = make) {
       delayBetweenRequests,
       longPauseInterval,
       longPauseDelay,
+      recency,
       modelSuggestions, // Pass model suggestions to the scraper
     });
     

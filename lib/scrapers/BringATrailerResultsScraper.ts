@@ -60,6 +60,7 @@ export interface BaTResultsScraperParams {
   yearMax?: number;
   maxPages?: number; // Maximum number of pages to fetch
   perPage?: number; // Number of items per page
+  recency?: string;
   delayBetweenRequests?: number; // Delay between requests in milliseconds
   longPauseInterval?: number; // Number of pages after which to take a longer pause
   longPauseDelay?: number; // Duration of the longer pause in milliseconds
@@ -67,7 +68,6 @@ export interface BaTResultsScraperParams {
 }
 
 export class BringATrailerResultsScraper extends BaseScraper {
-  private baseUrl = 'https://bringatrailer.com/auctions/results/';
   private apiBaseUrl = 'https://bringatrailer.com/wp-json/bringatrailer/1.0/data/listings-filter';
   private debugDir: string;
 
@@ -125,12 +125,6 @@ export class BringATrailerResultsScraper extends BaseScraper {
         searchTerm += ` ${params.model}`;
       }
       
-      // Log model suggestions if available
-      if (modelSuggestions.length > 0) {
-        console.log(`Using ${modelSuggestions.length} model suggestions for ${make}`);
-      }
-      
-      console.log(`Searching for: ${searchTerm}`);
       console.log(`Rate limiting: ${delayBetweenRequests}ms between requests, ${longPauseDelay}ms pause every ${longPauseInterval} pages`);
       
       // Fetch all requested pages
@@ -139,7 +133,7 @@ export class BringATrailerResultsScraper extends BaseScraper {
         
         try {
           // Prepare request data
-          const requestData = {
+          const requestData: any = {
             page: page,
             per_page: perPage,
             get_items: 1,
@@ -148,6 +142,11 @@ export class BringATrailerResultsScraper extends BaseScraper {
             minimum_year: params.yearMin,
             maximum_year: params.yearMax
           };
+
+          // Add recency filter if provided
+          if (params.recency) {
+            requestData.recency = params.recency;
+          }
           
           // Make POST request to the API
           const response = await axios.post(this.apiBaseUrl, requestData, {
