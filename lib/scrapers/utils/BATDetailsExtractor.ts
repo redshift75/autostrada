@@ -27,18 +27,19 @@ export function extractMileageFromTitle(title: string): number | undefined {
 }
 
 /**
- * Interface for listing data including mileage, bidders, watchers, and comments
+ * Interface for listing data including mileage, bidders, watchers, comments, and transmission
  */
 export interface ListingData {
   mileage?: number;
   bidders?: number;
   watchers?: number;
   comments?: number;
+  transmission?: 'automatic' | 'manual';
 }
 
 /**
  * Fetches the listing page and extracts mileage from the BAT Essentials section
- * as well as bidders, watchers, and comments counts
+ * as well as bidders, watchers, comments counts, and transmission type
  */
 export async function fetchDetailsFromListingPage(url: string): Promise<ListingData> {
   try {
@@ -55,15 +56,32 @@ export async function fetchDetailsFromListingPage(url: string): Promise<ListingD
     const result: ListingData = {};
     
     // First try to find the BAT Essentials section for mileage
-    const batEssentialsRegex = /<div[^>]*class="[^"]*bat-essentials[^"]*"[^>]*>([\s\S]*?)<\/div>/i;
+    const batEssentialsRegex = /<div class="item">([\s\S]*?)<div class="item">/i;
     const essentialsMatch = html.match(batEssentialsRegex);
-    
+
     if (essentialsMatch && essentialsMatch[1]) {
       const essentialsSection = essentialsMatch[1];
       
       // Look for a list item that contains "miles" or "mileage"
-      const mileageItemRegex = /<li[^>]*>([\s\S]*?(?:miles?|mileage)[\s\S]*?)<\/li>/i;
+      const mileageItemRegex = /<li[^>]*>([\s\S]*?(?:\d+k\s*miles?|miles?|mileage)[\s\S]*?)<\/li>/i;
       const mileageItemMatch = essentialsSection.match(mileageItemRegex);
+      
+      // Look for transmission type in the essentials section
+      const transmissionRegex = /<li[^>]*>([\s\S]*?(?:Dual[-\s]Clutch|Double\s+Clutch|PDK|Automatic|manual|Manual|Transmission|transaxle)[\s\S]*?)<\/li>/i;
+      const transmissionMatch = essentialsSection.match(transmissionRegex);
+
+      if (transmissionMatch && transmissionMatch[1]) {
+        const transmissionItem = transmissionMatch[1];
+        
+        // Check for automatic transmission indicators
+        if (/(?:Dual[-\s]Clutch|Double\s+Clutch|PDK|Automatic|DCT|Sequential)/i.test(transmissionItem)) {
+          result.transmission = 'automatic';
+        } 
+        // Check for manual transmission
+        else if (/manual/i.test(transmissionItem)) {
+          result.transmission = 'manual';
+        }
+      }
       
       if (mileageItemMatch && mileageItemMatch[1]) {
         const mileageItem = mileageItemMatch[1];
@@ -82,8 +100,6 @@ export async function fetchDetailsFromListingPage(url: string): Promise<ListingD
           
           // Remove commas
           mileage = mileage.replace(/,/g, '');
-          
-          console.log(`Found mileage from ${url}: ${mileage}`);
           result.mileage = parseInt(mileage);
         }
       }
@@ -108,6 +124,23 @@ export async function fetchDetailsFromListingPage(url: string): Promise<ListingD
         result.mileage = parseInt(mileage);
       } else {
         console.log(`No mileage found in listing page: ${url}`);
+      }
+    }
+    
+    // If transmission wasn't found in the essentials section, try a broader search
+    if (!result.transmission) {
+      // Look for automatic transmission indicators
+      const automaticRegex = /(?:Dual[-\s]Clutch|Double\s+Clutch|PDK|Automatic|DCT|Sequential)/i;
+      const manualRegex = /\bmanual\b/i;
+      
+      if (automaticRegex.test(html)) {
+        result.transmission = 'automatic';
+        console.log(`Found automatic transmission from broader search for ${url}`);
+      } else if (manualRegex.test(html)) {
+        result.transmission = 'manual';
+        console.log(`Found manual transmission from broader search`);
+      } else {
+        console.log(`No transmission type found in listing page`);
       }
     }
     
