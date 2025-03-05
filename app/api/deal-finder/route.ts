@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { BringATrailerActiveListingScraper } from '@/lib/scrapers/BringATrailerActiveListingScraper';
 import { BringATrailerResultsScraper } from '@/lib/scrapers/BringATrailerResultsScraper';
-import { fetchDetailsFromListingPage } from '@/lib/utils/BATDetailsExtractor';
+import { fetchDetailsFromListingPage } from '@/lib/scrapers/utils/BATDetailsExtractor';
 
 // Define the response type for the Deal Finder API
 type DealFinderResponse = {
@@ -104,11 +104,11 @@ export async function GET(request: NextRequest) {
     }
     console.log(`After year filtering: ${filteredListings.length} listings`);
 
-    // Filter for auctions ending within the next 7 days (instead of just today)
+    // Filter for auctions ending within the next 3 days (instead of just today)
     // This gives us more results to work with
     const now = new Date();
     const endDate = new Date(now);
-    endDate.setDate(endDate.getDate() + 7); // Look for auctions ending in the next 7 days
+    endDate.setDate(endDate.getDate() + 3); // Look for auctions ending in the next 7 days
 
     const endingSoon = filteredListings.filter(listing => {
       if (!listing.endDate) {
@@ -122,7 +122,7 @@ export async function GET(request: NextRequest) {
       return auctionEndDate >= now && auctionEndDate <= endDate;
     });
     
-    console.log(`Auctions ending within 7 days: ${endingSoon.length}`);
+    console.log(`Auctions ending within 3 days: ${endingSoon.length}`);
     
     if (endingSoon.length === 0) {
       return NextResponse.json({ 

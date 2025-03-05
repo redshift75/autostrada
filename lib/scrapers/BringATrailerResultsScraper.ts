@@ -1,7 +1,7 @@
 import axios from 'axios';
 import '../server-only';
 import { BaseScraper } from './BaseScraper';
-import { extractMileageFromTitle, fetchDetailsFromListingPage } from '../utils/BATDetailsExtractor';
+import { extractMileageFromTitle, fetchDetailsFromListingPage } from './utils/BATDetailsExtractor';
 
 // Import Node.js modules conditionally
 let fs: any;

@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 
 // Export visualization utilities
-export * from './visualization';
+export * from '@/lib/utils/visualization';
 
 // Debounce function to delay execution
 export function useDebounce<T>(value: T, delay: number): T {

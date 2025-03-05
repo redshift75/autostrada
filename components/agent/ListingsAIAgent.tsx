@@ -1,6 +1,6 @@
 import { Listing } from '../listings/ListingCard';
 import AIAgent from './AIAgent';
-import { listingsFormatter } from '@/lib/utils/formatters';
+import { listingsFormatter } from '@/lib/scrapers/utils/formatters';
 
 type ListingsAIAgentProps = {
   listings: Listing[];

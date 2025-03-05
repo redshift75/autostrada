@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { TopLevelSpec } from 'vega-lite';
 import VegaChart from '@/components/shared/VegaChart';
-import { formatPrice } from '@/lib/utils/index';
+import { formatPrice } from '@/lib/scrapers/utils/index';
 
 // Define types for the Deal Finder page
 type Deal = {
@@ -66,6 +66,8 @@ export default function DealFinder() {
   const [error, setError] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<'timeAsc' | 'timeDesc' | 'dealScore'>('timeAsc');
   const [currentTime, setCurrentTime] = useState<number>(Date.now());
+  
+  // Form state - only updated on form submission
   const [formData, setFormData] = useState({
     make: '',
     model: '',
@@ -74,7 +76,13 @@ export default function DealFinder() {
     maxDeals: '10'
   });
 
-  // State for suggestions
+  // Form refs for uncontrolled inputs
+  const makeInputRef = useRef<HTMLInputElement>(null);
+  const modelInputRef = useRef<HTMLInputElement>(null);
+  const yearMinInputRef = useRef<HTMLInputElement>(null);
+  const yearMaxInputRef = useRef<HTMLInputElement>(null);
+
+  // State for suggestions - kept separate from form state
   const [makeSuggestions, setMakeSuggestions] = useState<string[]>([]);
   const [showMakeSuggestions, setShowMakeSuggestions] = useState(false);
   
@@ -137,6 +145,8 @@ export default function DealFinder() {
         .slice(0, 5); // Limit to 5 results
       
       console.log('Processed unique makes:', uniqueMakes);
+      
+      // Only update the suggestions, not the form state
       setMakeSuggestions(uniqueMakes);
       setShowMakeSuggestions(uniqueMakes.length > 0);
     } catch (error) {
@@ -162,13 +172,21 @@ export default function DealFinder() {
 
   // Handle suggestion selection
   const handleSuggestionClick = (name: string, value: string) => {
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
-    
     if (name === 'make') {
+      if (makeInputRef.current) {
+        makeInputRef.current.value = value;
+      }
+      
+      // Clear model when make changes
+      if (modelInputRef.current) {
+        modelInputRef.current.value = '';
+      }
+      
       setShowMakeSuggestions(false);
+    } else if (name === 'model') {
+      if (modelInputRef.current) {
+        modelInputRef.current.value = value;
+      }
     }
   };
 
@@ -193,21 +211,6 @@ export default function DealFinder() {
     };
   }, []);
 
-  // Handle form input changes
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-
-    // Fetch suggestions for make field with debounce
-    if (name === 'make') {
-      debouncedFetchMakeSuggestions(value);
-      // Clear model when make changes
-      if (formData.model) {
-        setFormData(prev => ({ ...prev, model: '' }));
-      }
-    }
-  };
-
   // Handle sort change
   const handleSortChange = (newSortOrder: 'timeAsc' | 'timeDesc' | 'dealScore') => {
     setSortOrder(newSortOrder);
@@ -230,6 +233,32 @@ export default function DealFinder() {
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Get values from refs
+    const make = makeInputRef.current?.value || '';
+    const model = modelInputRef.current?.value || '';
+    const yearMin = yearMinInputRef.current?.value || '';
+    const yearMax = yearMaxInputRef.current?.value || '';
+    const maxDeals = formData.maxDeals; // Use the default value from formData
+    
+    // Validate required fields
+    if (!make) {
+      setError('Make is a required field');
+      return;
+    }
+    
+    // Create submission data
+    const submissionData = {
+      make,
+      model,
+      yearMin,
+      yearMax,
+      maxDeals
+    };
+    
+    // Update form data state
+    setFormData(submissionData);
+    
     setLoading(true);
     setError(null);
     setDeals([]);
@@ -237,11 +266,11 @@ export default function DealFinder() {
     try {
       // Build query parameters
       const params = new URLSearchParams();
-      if (formData.make) params.append('make', formData.make);
-      if (formData.model) params.append('model', formData.model);
-      if (formData.yearMin) params.append('yearMin', formData.yearMin);
-      if (formData.yearMax) params.append('yearMax', formData.yearMax);
-      if (formData.maxDeals) params.append('maxDeals', formData.maxDeals);
+      if (make) params.append('make', make);
+      if (model) params.append('model', model);
+      if (yearMin) params.append('yearMin', yearMin);
+      if (yearMax) params.append('yearMax', yearMax);
+      if (maxDeals) params.append('maxDeals', maxDeals);
 
       // Fetch deals from the API
       const response = await fetch(`/api/deal-finder?${params.toString()}`);
@@ -654,9 +683,24 @@ export default function DealFinder() {
                   type="text"
                   id="make"
                   name="make"
-                  value={formData.make}
-                  onChange={handleInputChange}
-                  onFocus={() => formData.make.length >= 2 && debouncedFetchMakeSuggestions(formData.make)}
+                  ref={makeInputRef}
+                  defaultValue={formData.make}
+                  onChange={(e) => {
+                    // Only fetch suggestions, don't update form state
+                    if (e.target.value.length >= 2) {
+                      debouncedFetchMakeSuggestions(e.target.value);
+                    } else {
+                      // Clear suggestions if input is too short
+                      setMakeSuggestions([]);
+                      setShowMakeSuggestions(false);
+                    }
+                  }}
+                  onFocus={(e) => {
+                    // Only fetch suggestions on focus if input has enough characters
+                    if (e.target.value.length >= 2) {
+                      debouncedFetchMakeSuggestions(e.target.value);
+                    }
+                  }}
                   onClick={(e) => e.stopPropagation()}
                   className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
                   placeholder={dbConnectionError ? "Enter car make manually..." : "Start typing to see suggestions..."}
@@ -685,18 +729,17 @@ export default function DealFinder() {
               
               <div className="flex flex-col">
                 <label htmlFor="model" className="mb-1 font-medium">
-                  Model <span className="text-red-500">*</span>
+                  Model
                 </label>
                 <input
                   type="text"
                   id="model"
                   name="model"
-                  value={formData.model}
-                  onChange={handleInputChange}
+                  ref={modelInputRef}
+                  defaultValue={formData.model}
                   className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
-                  placeholder={formData.make ? `Enter ${formData.make} model...` : "First select a make..."}
+                  placeholder={makeInputRef.current?.value ? `Enter ${makeInputRef.current.value} model...` : "First select a make..."}
                   autoComplete="off"
-                  required
                 />
               </div>
               
@@ -708,8 +751,8 @@ export default function DealFinder() {
                   type="text"
                   id="yearMin"
                   name="yearMin"
-                  value={formData.yearMin}
-                  onChange={handleInputChange}
+                  ref={yearMinInputRef}
+                  defaultValue={formData.yearMin}
                   className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
                   placeholder="e.g. 1950"
                 />
@@ -723,8 +766,8 @@ export default function DealFinder() {
                   type="text"
                   id="yearMax"
                   name="yearMax"
-                  value={formData.yearMax}
-                  onChange={handleInputChange}
+                  ref={yearMaxInputRef}
+                  defaultValue={formData.yearMax}
                   className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
                   placeholder="e.g. 2025"
                 />
@@ -817,9 +860,11 @@ export default function DealFinder() {
                             <a href={deal.activeListing.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
                               {deal.activeListing.title}
                             </a>
-                            <span className="text-xl px-2 py-0.5 rounded-full">
-                              {deal.activeListing.mileage ? `${deal.activeListing.mileage.toLocaleString()} mi` : ''}
-                            </span>
+                            {deal.activeListing.mileage && (
+                                <span className="ml-2 text-sm font-medium text-gray-600 dark:text-gray-400">
+                                  {deal.activeListing.mileage.toLocaleString()} mi
+                                </span>
+                              )}
                           </h3>
                           
                           <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium mt-2 sm:mt-0 sm:ml-3 ${
@@ -858,6 +903,7 @@ export default function DealFinder() {
                             <p className="text-sm text-gray-500 dark:text-gray-400">Current Bid</p>
                             <p className="text-lg font-semibold text-gray-900 dark:text-white">
                               {deal.activeListing.current_bid_formatted}
+   
                             </p>
                           </div>
                           <div>

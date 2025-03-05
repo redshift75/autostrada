@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
-import { fetchDetailsFromListingPage } from '../utils/BATDetailsExtractor';
+import { fetchDetailsFromListingPage } from './utils/BATDetailsExtractor';
 
 // Define our own BaTListing interface
 export interface BaTActiveListing {

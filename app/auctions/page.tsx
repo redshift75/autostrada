@@ -9,7 +9,7 @@ import AuctionAIAgent from '../../components/agent/AuctionAIAgent';
 // Import the shared VegaChart component
 import VegaChart from '@/components/shared/VegaChart';
 // Import utility functions
-import { formatPrice } from '@/lib/utils/index';
+import { formatPrice } from '@/lib/scrapers/utils/index';
 import { validateVegaLiteSpec } from '@/lib/utils/visualization';
 
 // Define types for car data from Supabase
@@ -63,6 +63,12 @@ function AuctionsContent() {
     yearMax: 2025,
     maxPages: 2,
   });
+  
+  // Form refs for uncontrolled inputs
+  const makeInputRef = useRef<HTMLInputElement>(null);
+  const modelInputRef = useRef<HTMLInputElement>(null);
+  const yearMinInputRef = useRef<HTMLInputElement>(null);
+  const yearMaxInputRef = useRef<HTMLInputElement>(null);
   
   // State for suggestions
   const [makeSuggestions, setMakeSuggestions] = useState<string[]>([]);
@@ -171,24 +177,6 @@ function AuctionsContent() {
     }, 300); // 300ms delay
   };
   
-  // Handle input changes with debounce for suggestions
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: name === 'yearMin' || name === 'yearMax' ? parseInt(value) : value,
-    });
-    
-    // Fetch suggestions for make field with debounce
-    if (name === 'make') {
-      debouncedFetchMakeSuggestions(value);
-      // Clear model when make changes
-      if (formData.model) {
-        setFormData(prev => ({ ...prev, model: '' }));
-      }
-    }
-  };
-  
   // Clean up timers on unmount
   useEffect(() => {
     return () => {
@@ -203,13 +191,19 @@ function AuctionsContent() {
   
   // Handle suggestion selection
   const handleSuggestionClick = (name: string, value: string) => {
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
-    
     if (name === 'make') {
-      setShowMakeSuggestions(false);
+      if (makeInputRef.current) {
+        makeInputRef.current.value = value;
+      }
+      
+      // Clear model when make changes
+      if (modelInputRef.current) {
+        modelInputRef.current.value = '';
+      }
+    } else if (name === 'model') {
+      if (modelInputRef.current) {
+        modelInputRef.current.value = value;
+      }
     }
   };
   
@@ -364,6 +358,31 @@ function AuctionsContent() {
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Get values from refs
+    const make = makeInputRef.current?.value || '';
+    const model = modelInputRef.current?.value || '';
+    const yearMin = parseInt(yearMinInputRef.current?.value || '1950');
+    const yearMax = parseInt(yearMaxInputRef.current?.value || '2025');
+    
+    // Validate required fields
+    if (!make || !model) {
+      setError('Make and model are required fields');
+      return;
+    }
+    
+    // Create submission data
+    const submissionData = {
+      make,
+      model,
+      yearMin,
+      yearMax,
+      maxPages: formData.maxPages, // Keep the default value
+    };
+    
+    // Update form data state
+    setFormData(submissionData);
+    
     setLoading(true);
     setLoadingMessage('Checking database for results...');
     setError(null);
@@ -387,14 +406,15 @@ function AuctionsContent() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(submissionData), // Use the submission data directly
       });
       
       // Clear the timeout
       clearTimeout(messageTimeout);
       
       if (!response.ok) {
-        throw new Error(`Error: ${response.status}`);
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `Error: ${response.status}`);
       }
       
       const data = await response.json();
@@ -482,7 +502,7 @@ function AuctionsContent() {
                     x: { field: "date", type: "temporal",
                       title: null,
                       axis: {
-                        format: '%b %d',
+                        format: '%b %d %y',
                         labelAngle: -45,
                         grid: true,
                         labelLimit: 100,
@@ -517,8 +537,8 @@ function AuctionsContent() {
       setSummary(data.summary || null);
       setDataSource(data.source || 'scraper');
       setCurrentSearch({
-        make: formData.make,
-        model: formData.model
+        make,
+        model
       });
       
       // Set a helpful error message if there are no results
@@ -563,9 +583,14 @@ function AuctionsContent() {
                   type="text"
                   id="make"
                   name="make"
-                  value={formData.make}
-                  onChange={handleInputChange}
-                  onFocus={() => formData.make.length >= 2 && debouncedFetchMakeSuggestions(formData.make)}
+                  ref={makeInputRef}
+                  defaultValue={formData.make}
+                  onChange={(e) => {
+                    if (e.target.value.length >= 2) {
+                      debouncedFetchMakeSuggestions(e.target.value);
+                    }
+                  }}
+                  onFocus={(e) => e.target.value.length >= 2 && debouncedFetchMakeSuggestions(e.target.value)}
                   onClick={(e) => e.stopPropagation()}
                   className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
                   required
@@ -600,15 +625,15 @@ function AuctionsContent() {
                   type="text"
                   id="model"
                   name="model"
-                  value={formData.model}
-                  onChange={handleInputChange}
+                  ref={modelInputRef}
+                  defaultValue={formData.model}
                   onClick={(e) => e.stopPropagation()}
                   className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
                   required
                   autoComplete="off"
                   placeholder={dbConnectionError 
                     ? "Enter model manually..." 
-                    : (formData.make ? `Enter ${formData.make} model...` : "First select a make...")}
+                    : (makeInputRef.current?.value ? `Enter ${makeInputRef.current.value} model...` : "First select a make...")}
                 />
               </div>
               
@@ -620,8 +645,8 @@ function AuctionsContent() {
                   type="number"
                   id="yearMin"
                   name="yearMin"
-                  value={formData.yearMin}
-                  onChange={handleInputChange}
+                  ref={yearMinInputRef}
+                  defaultValue={formData.yearMin}
                   className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
                   placeholder="e.g. 1950"
                   min="1900"
@@ -637,8 +662,8 @@ function AuctionsContent() {
                   type="number"
                   id="yearMax"
                   name="yearMax"
-                  value={formData.yearMax}
-                  onChange={handleInputChange}
+                  ref={yearMaxInputRef}
+                  defaultValue={formData.yearMax}
                   className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
                   placeholder="e.g. 2025"
                   min="1900"
