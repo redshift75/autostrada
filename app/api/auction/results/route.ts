@@ -62,7 +62,8 @@ export async function POST(request: NextRequest) {
     let query = supabase
       .from('bat_completed_auctions')
       .select('*')
-      .ilike('make', `%${make}%`);
+      .ilike('make', `%${make}%`)
+      .order('sold_date', { ascending: false });
     
     // Add model filter if provided
     if (model && model !== 'Any') {
