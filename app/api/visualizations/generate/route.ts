@@ -30,7 +30,8 @@ export async function POST(request: NextRequest) {
     
     // Add model filter if provided
     if (model && model !== 'Any') {
-      query = query.ilike('model', `%${model}%`);
+      query = query.ilike('title', `%${model}%`);
+     // query = query.or(title.ilike('%${model}%'), model.ilike('%${model}%'));
     }
     
     // Add year range filters if provided
