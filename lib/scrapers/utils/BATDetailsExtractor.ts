@@ -54,6 +54,7 @@ export async function fetchDetailsFromListingPage(url: string): Promise<ListingD
     
     const html = response.data;
     const result: ListingData = {};
+    console.log(`Scraping Details for ${url}`);
     
     // First try to find the BAT Essentials section for mileage
     const batEssentialsRegex = /<div class="item">([\s\S]*?)<div class="item">/i;
@@ -80,7 +81,6 @@ export async function fetchDetailsFromListingPage(url: string): Promise<ListingD
         else if (/manual/i.test(transmissionItem)) {
           result.transmission = 'manual';
         }
-        console.log(`Found transmission in essentials: ${result.transmission} for ${url}`);
       }
       
       if (mileageItemMatch && mileageItemMatch[1]) {
@@ -191,8 +191,3 @@ export async function fetchDetailsFromListingPage(url: string): Promise<ListingD
     return {};
   }
 }
-
-// For backward compatibility
-export async function fetchMileageFromListingPage(url: string): Promise<ListingData> {
-  return fetchDetailsFromListingPage(url);
-} 

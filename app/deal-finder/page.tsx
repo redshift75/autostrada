@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
 import Image from 'next/image';
 import { TopLevelSpec } from 'vega-lite';
 import VegaChart from '@/components/shared/VegaChart';
@@ -280,7 +279,7 @@ export default function DealFinder() {
       }
       
       const data = await response.json();
-      
+
       // Handle error message from API
       if (data.message) {
         setError(data.message);
@@ -449,7 +448,6 @@ export default function DealFinder() {
     const data: ChartDataPoint[] = deal.historicalData.recentSales.map(sale => {
       // Parse the price string to a number
       const price = parsePriceString(sale.sold_price || 0);
-      
       // Skip entries with invalid prices
       if (price === null) {
         return null;

@@ -129,12 +129,6 @@ export async function GET(request: NextRequest) {
         }))
       });
     }
-
-    // Get mileage from listing page
-    filteredListings.forEach(async (listing) => {
-      const mileage = await fetchDetailsFromListingPage(listing.url);
-      listing.mileage = mileage.mileage;
-    });
     
     // Calculate deals by comparing active listings with historical data
     const deals = await Promise.all(
@@ -257,6 +251,12 @@ export async function GET(request: NextRequest) {
       .sort((a, b) => b!.dealScore - a!.dealScore)
       .slice(0, maxDeals);
     
+    // Get mileage from listing page
+    for (const validDeal of validDeals) {
+      const data = await fetchDetailsFromListingPage(validDeal.activeListing.url);
+      validDeal.activeListing.mileage = data.mileage;
+    }
+
     console.log(`Found ${validDeals.length} valid deals`);
 
     return NextResponse.json({ deals: validDeals });
