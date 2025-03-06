@@ -46,16 +46,31 @@ export async function POST(request: NextRequest) {
   try {
     // Parse the request body
     const body = await request.json();
-    const { make, model, yearMin, yearMax, maxPages } = body;
+    const { make, model, yearMin, yearMax, maxPages, sortBy, sortOrder, status } = body;
 
     // First, try to fetch results from Supabase
     console.log(`Checking Supabase for ${make} ${model} (${yearMin || 'any'}-${yearMax || 'any'})`);
     
+    // Determine sort field and direction
+    const sortField = sortBy || 'sold_date';
+    const ascending = sortOrder === 'asc';
+    
     let query = supabase
       .from('bat_completed_auctions')
       .select('*')
-      .ilike('make', `%${make}%`)
-      .order('sold_date', { ascending: false });
+      .ilike('make', `%${make}%`);
+      
+    // Apply sorting based on parameters
+    if (sortField === 'sold_date') {
+      query = query.order('sold_date', { ascending });
+    } else if (sortField === 'mileage') {
+      query = query.order('mileage', { ascending });
+    } else if (sortField === 'price_sold') {
+      query = query.order('sold_price', { ascending });
+    } else {
+      // Default sort
+      query = query.order('sold_date', { ascending: false });
+    }
     
     // Add model filter if provided
     if (model && model !== 'Any') {
@@ -69,6 +84,15 @@ export async function POST(request: NextRequest) {
     
     if (yearMax) {
       query = query.lte('year', yearMax);
+    }
+    
+    // Add status filter if provided
+    if (status) {
+      if (status === 'sold') {
+        query = query.eq('status', 'sold');
+      } else if (status === 'unsold') {
+        query = query.neq('status', 'sold');
+      }
     }
     
     // Execute the query
@@ -160,6 +184,15 @@ export async function POST(request: NextRequest) {
           image_url: item.image_url
         }));
         
+        // Apply status filter if provided
+        if (status) {
+          if (status === 'sold') {
+            results = results.filter(item => item.status === 'sold');
+          } else if (status === 'unsold') {
+            results = results.filter(item => item.status !== 'sold');
+          }
+        }
+        
         // Create a result object
         parsedResult = {
           query: {
@@ -212,6 +245,28 @@ export async function POST(request: NextRequest) {
       };
     });
     
+    // Sort processed results if needed (for scraped results or additional sorting)
+    if (sortBy) {
+      const ascending = sortOrder === 'asc' ? 1 : -1;
+      
+      processedResults.sort((a: any, b: any) => {
+        if (sortBy === 'sold_date') {
+          const dateA = new Date(a.sold_date || 0);
+          const dateB = new Date(b.sold_date || 0);
+          return ascending * (dateA.getTime() - dateB.getTime());
+        } else if (sortBy === 'mileage') {
+          const mileageA = a.mileage || 0;
+          const mileageB = b.mileage || 0;
+          return ascending * (mileageA - mileageB);
+        } else if (sortBy === 'price_sold') {
+          const priceA = a.status === 'sold' ? a.price || 0 : 0;
+          const priceB = b.status === 'sold' ? b.price || 0 : 0;
+          return ascending * (priceA - priceB);
+        }
+        return 0;
+      });
+    }
+    
     // Create a response with the processed data
     const response = {
       message: 'Auction results fetched successfully',
@@ -224,7 +279,18 @@ export async function POST(request: NextRequest) {
         averageMileage: 'N/A'
       },
       results: processedResults,
-      source: parsedResult?.source || 'unknown'
+      source: parsedResult?.source || 'unknown',
+      sorting: {
+        sortBy: sortBy || 'sold_date',
+        sortOrder: sortOrder || 'desc'
+      },
+      filters: {
+        make,
+        model: model || 'Any',
+        yearMin: yearMin || 'Any',
+        yearMax: yearMax || 'Any',
+        status: status || 'all'
+      }
     };
     
     return NextResponse.json(response);

@@ -1,5 +1,6 @@
 import { DynamicStructuredTool } from "@langchain/core/tools";
 import { z } from "zod";
+import { generatePriceTimeSeriesChart, generatePriceHistogram } from "../utils/visualization";
 
 // Tool to search for vehicles by criteria
 export const createVehicleSearchTool = () => {
@@ -158,16 +159,57 @@ export const createAuctionResultsTool = () => {
       yearMin: z.number().optional().describe("The minimum year to filter results"),
       yearMax: z.number().optional().describe("The maximum year to filter results"),
       maxPages: z.number().optional().describe("Maximum number of pages to fetch (default: 2)"),
+      generateVisualizations: z.boolean().optional().describe("Whether to generate visualizations of the results (default: false)"),
       maxResults: z.number().optional().describe("Maximum number of results to return (default: 100)"),
+      sortBy: z.enum(["price_high_to_low", "price_low_to_high", "date_newest_first", "date_oldest_first", "mileage_lowest_first", "mileage_highest_first"]).optional().describe("How to sort the results before limiting them (default: date_newest_first)"),
+      status: z.enum(["sold", "unsold", "all"]).optional().describe("Filter results by sold status (default: all)"),
     }),
-    func: async ({ make, model, yearMin, yearMax, maxPages, maxResults = 100 }) => {
+    func: async ({ make, model, yearMin, yearMax, maxPages, generateVisualizations = false, maxResults = 100, sortBy = "date_newest_first", status = "all" }) => {
       try {
-        console.log(`Fetching auction results for ${make} ${model || ''} (${yearMin || 'any'}-${yearMax || 'any'})`);
+        console.log(`Fetching auction results for ${make} ${model || ''} (${yearMin || 'any'}-${yearMax || 'any'}), status: ${status}`);
+        
+        // Map the tool's sort options to the API's sort parameters
+        let apiSortBy: string;
+        let apiSortOrder: string;
+        
+        switch (sortBy) {
+          case "price_high_to_low":
+            apiSortBy = "price_sold";
+            apiSortOrder = "desc";
+            break;
+          case "price_low_to_high":
+            apiSortBy = "price_sold";
+            apiSortOrder = "asc";
+            break;
+          case "date_newest_first":
+            apiSortBy = "sold_date";
+            apiSortOrder = "desc";
+            break;
+          case "date_oldest_first":
+            apiSortBy = "sold_date";
+            apiSortOrder = "asc";
+            break;
+          case "mileage_lowest_first":
+            apiSortBy = "mileage";
+            apiSortOrder = "asc";
+            break;
+          case "mileage_highest_first":
+            apiSortBy = "mileage";
+            apiSortOrder = "desc";
+            break;
+          default:
+            apiSortBy = "sold_date";
+            apiSortOrder = "desc";
+        }
         
         // Ensure we have a valid base URL
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
         const apiUrl = new URL('/api/auction/results', baseUrl).toString();
         console.log("In tool calling fetch: ", apiUrl);
+        
+        // Only pass status if it's not 'all'
+        const statusParam = status !== 'all' ? status : undefined;
+        
         const response = await fetch(apiUrl, {
           method: 'POST',
           headers: {
@@ -178,7 +220,10 @@ export const createAuctionResultsTool = () => {
             model,
             yearMin,
             yearMax,
-            maxPages: maxPages || 2
+            maxPages: maxPages || 2,
+            sortBy: apiSortBy,
+            sortOrder: apiSortOrder,
+            status: statusParam
           }),
         });
         
@@ -188,25 +233,63 @@ export const createAuctionResultsTool = () => {
         
         const data = await response.json();
         
+        // Filter out results where sold_price is 'Not sold' if needed
+        if (data.results && data.results.length > 0) {
+          // Only filter out non-sold items for price-based sorts
+          if (sortBy === "price_high_to_low" || sortBy === "price_low_to_high") {
+            data.results = data.results.filter((result: any) => result.sold_price !== 'Not sold');
+          }
+        }
+        
         // Limit the number of results to prevent context length issues
         if (data.results && data.results.length > maxResults) {
           console.log(`Limiting results from ${data.results.length} to ${maxResults}`);
+
           data.results = data.results.slice(0, maxResults);
           
           // Update the summary to reflect the limited results
           if (data.summary) {
-            data.summary = `${data.summary} (showing ${maxResults} of ${data.results.length} results)`;
+            data.summary = `${data.summary} (showing ${maxResults} of ${data.results.length} results, sorted by ${sortBy})`;
           }
         }
         
-        // Return a summary, and the results
+        // Generate visualizations if requested
+        let visualizations = {};
+        if (generateVisualizations && data.results && data.results.length > 0) {
+          console.log('Generating visualization specifications...');
+          try {
+            // Generate time series chart Vega-Lite specification (not SVG)
+            const timeSeriesChartSpec = await generatePriceTimeSeriesChart(data.results);
+            
+            // Generate price histogram Vega-Lite specification (not SVG)
+            const priceHistogramSpec = await generatePriceHistogram(data.results);
+            
+            visualizations = {
+              timeSeriesChart: timeSeriesChartSpec,
+              priceHistogram: priceHistogramSpec
+            };
+            
+            console.log('Visualization specifications generated successfully');
+          } catch (error) {
+            console.error('Error generating visualizations:', error);
+            visualizations = {
+              error: 'Failed to generate visualizations',
+              details: error instanceof Error ? error.message : 'Unknown error'
+            };
+          }
+        }
+        
+        // Return a summary, visualizations (if generated), and the results
         return JSON.stringify({
           query: {
             make,
             model: model || 'Any',
-            yearRange: `${yearMin || 'Any'}-${yearMax || 'Any'}`
+            yearRange: `${yearMin || 'Any'}-${yearMax || 'Any'}`,
+            sortBy,
+            status
           },
           summary: data.summary,
+          visualizations: generateVisualizations ? visualizations : undefined,
           results: data.results,
           source: data.source
         });
@@ -1306,7 +1389,7 @@ function analyzeAuctionPriceRange(results: any[]) {
     }
     
     return 0;
-  }).filter(price => price > 0); // Filter out zero prices
+  }).filter(price => price > 0);
   
   if (prices.length === 0) {
     return {
