@@ -72,7 +72,7 @@ export default function DealFinder() {
     model: '',
     yearMin: '',
     yearMax: '',
-    maxDeals: '10'
+    maxDeals: '5'
   });
 
   // Form refs for uncontrolled inputs
@@ -116,7 +116,7 @@ export default function DealFinder() {
     try {
       // Build query parameters - only include maxDeals
       const params = new URLSearchParams();
-      params.append('maxDeals', '10');
+      params.append('maxDeals', formData.maxDeals);
 
       // Fetch deals from the API
       const response = await fetch(`/api/deal-finder?${params.toString()}`);
