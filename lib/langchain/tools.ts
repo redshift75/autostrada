@@ -1,6 +1,5 @@
 import { DynamicStructuredTool } from "@langchain/core/tools";
 import { z } from "zod";
-import { BringATrailerResultsScraper, BaTCompletedListing } from "../scrapers/BringATrailerResultsScraper";
 import { generatePriceTimeSeriesChart, generatePriceHistogram } from "../utils/visualization";
 
 // Tool to search for vehicles by criteria
@@ -166,51 +165,41 @@ export const createAuctionResultsTool = () => {
       try {
         console.log(`Fetching auction results for ${make} ${model || ''} (${yearMin || 'any'}-${yearMax || 'any'})`);
         
-        // Initialize the scraper
-        const scraper = new BringATrailerResultsScraper();
+        // Ensure we have a valid base URL
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+        const apiUrl = new URL('/api/auction/results', baseUrl).toString();
         
-        // Scrape the results
-        const results = await scraper.scrape({
-          make,
-          model,
-          yearMin,
-          yearMax,
-          maxPages: maxPages || 2,
-          perPage: 50
+        // Use the API route instead of the scraper directly
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            make,
+            model,
+            yearMin,
+            yearMax,
+            maxPages: maxPages || 2
+          }),
         });
         
-        // Format the results for better readability
-        const formattedResults = results.map(item => ({
-          title: item.title,
-          year: item.year,
-          make: item.make,
-          model: item.model,
-          sold_price: item.sold_price ? `$${item.sold_price}` : 'Not sold',
-          bid_amount: item.bid_amount ? `$${item.bid_amount}` : 'No bids',
-          sold_date: item.sold_date,
-          status: item.status,
-          url: item.url,
-          mileage: item.mileage,
-          bidders: item.bidders,
-          watchers: item.watchers,
-          comments: item.comments,
-          country: item.country,
-          noreserve: item.noreserve ? 'No Reserve' : 'Reserve',
-          premium: item.premium ? 'Premium' : 'Standard',
-          image_url: item.image_url,
-          images: item.images
-        }));
+        if (!response.ok) {
+          throw new Error(`API request failed with status ${response.status}`);
+        }
+        
+        const data = await response.json();
         
         // Generate visualizations if requested
         let visualizations = {};
-        if (generateVisualizations && results.length > 0) {
+        if (generateVisualizations && data.results && data.results.length > 0) {
           console.log('Generating visualization specifications...');
           try {
             // Generate time series chart Vega-Lite specification (not SVG)
-            const timeSeriesChartSpec = await generatePriceTimeSeriesChart(results);
+            const timeSeriesChartSpec = await generatePriceTimeSeriesChart(data.results);
             
             // Generate price histogram Vega-Lite specification (not SVG)
-            const priceHistogramSpec = await generatePriceHistogram(results);
+            const priceHistogramSpec = await generatePriceHistogram(data.results);
             
             visualizations = {
               timeSeriesChart: timeSeriesChartSpec,
@@ -234,16 +223,10 @@ export const createAuctionResultsTool = () => {
             model: model || 'Any',
             yearRange: `${yearMin || 'Any'}-${yearMax || 'Any'}`
           },
-          summary: {
-            totalResults: results.length,
-            averageSoldPrice: calculateAverageSoldPrice(results),
-            highestSoldPrice: findHighestSoldPrice(results),
-            lowestSoldPrice: findLowestSoldPrice(results),
-            soldPercentage: calculateSoldPercentage(results),
-            averageMileage: calculateAverageMileage(results)
-          },
+          summary: data.summary,
           visualizations: generateVisualizations ? visualizations : undefined,
-          results: formattedResults
+          results: data.results,
+          source: data.source
         });
       } catch (error: unknown) {
         console.error('Error fetching auction results:', error);
@@ -256,48 +239,6 @@ export const createAuctionResultsTool = () => {
     },
   });
 };
-
-// Helper functions for the auction results tool
-function calculateAverageSoldPrice(results: BaTCompletedListing[]): string {
-  const soldItems = results.filter(item => item.status === 'sold' && item.sold_price);
-  if (soldItems.length === 0) return 'N/A';
-  
-  const total = soldItems.reduce((sum: number, item: BaTCompletedListing) => sum + parseInt(item.sold_price), 0);
-  return `$${Math.round(total / soldItems.length).toLocaleString()}`;
-}
-
-function findHighestSoldPrice(results: BaTCompletedListing[]): string {
-  const soldItems = results.filter(item => item.status === 'sold' && item.sold_price);
-  if (soldItems.length === 0) return 'N/A';
-  
-  const highest = Math.max(...soldItems.map(item => parseInt(item.sold_price)));
-  return `$${highest.toLocaleString()}`;
-}
-
-function findLowestSoldPrice(results: BaTCompletedListing[]): string {
-  const soldItems = results.filter(item => item.status === 'sold' && item.sold_price);
-  if (soldItems.length === 0) return 'N/A';
-  
-  const lowest = Math.min(...soldItems.map(item => parseInt(item.sold_price)));
-  return `$${lowest.toLocaleString()}`;
-}
-
-function calculateSoldPercentage(results: BaTCompletedListing[]): string {
-  if (results.length === 0) return 'N/A';
-  
-  const soldItems = results.filter(item => item.status === 'sold');
-  return `${Math.round((soldItems.length / results.length) * 100)}%`;
-}
-
-function calculateAverageMileage(results: BaTCompletedListing[]): string {
-  if (results.length === 0) return 'N/A';
-  
-  const Items = results.filter(item => item.mileage);
-  const totalMileage = Items.reduce((sum: number, item: BaTCompletedListing) => {
-    return sum + (item.mileage ? parseInt(String(item.mileage)) : 0);
-  }, 0);
-  return `${Math.round(totalMileage / Items.length).toLocaleString()} miles`;
-}
 
 // Tool to analyze current listings
 export const createListingsAnalysisTool = () => {
