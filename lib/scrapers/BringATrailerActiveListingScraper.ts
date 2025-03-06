@@ -118,19 +118,9 @@ export class BringATrailerActiveListingScraper extends BaseScraper {
       
       console.log(`Found ${auctionsData.auctions.length} auctions in the HTML`);
       
-      // Log a sample auction for debugging
-      if (auctionsData.auctions.length > 0) {
-        console.log('Sample auction data:', JSON.stringify(auctionsData.auctions[0], null, 2));
-      }
-      
       const listings: BaTActiveListing[] = auctionsData.auctions.map(auction => 
         this.convertAuctionToBaTListing(auction)
       );
-      
-      // Log a sample listing for debugging
-      if (listings.length > 0) {
-        console.log('Sample converted listing:', JSON.stringify(listings[0], null, 2));
-      }
       return listings;
     } catch (error) {
       console.error('Error scraping BaT:', error);
@@ -337,11 +327,6 @@ export class BringATrailerActiveListingScraper extends BaseScraper {
           if (bracketCount !== 0) continue;
           
           const jsonStr = html.substring(startIndex, endIndex);
-          
-          // Log a sample of the extracted JSON
-          if (auctions.length === 0) {
-            console.log(`Sample JSON string (first 200 chars): ${jsonStr.substring(0, 200)}...`);
-          }
           
           const auction = JSON.parse(jsonStr) as BaTAuction;
           

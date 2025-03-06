@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { BringATrailerActiveListingScraper } from '@/lib/scrapers/BringATrailerActiveListingScraper';
-import { BringATrailerResultsScraper } from '@/lib/scrapers/BringATrailerResultsScraper';
 import { fetchDetailsFromListingPage } from '@/lib/scrapers/utils/BATDetailsExtractor';
 
 // Define the response type for the Deal Finder API
@@ -34,9 +33,8 @@ export async function GET(request: NextRequest) {
 
     console.log(`Deal Finder API called with params: make=${make}, model=${model}, yearMin=${yearMin}, yearMax=${yearMax}`);
 
-    // Initialize scrapers
+    // Initialize scraper for active listings
     const activeListingScraper = new BringATrailerActiveListingScraper();
-    const historicalScraper = new BringATrailerResultsScraper();
 
     // Fetch active auctions - first get all listings, then filter them
     console.log('Fetching all active listings...');
@@ -70,12 +68,6 @@ export async function GET(request: NextRequest) {
     if (make || model) {
       console.log(`Filtering by make: "${make}" and model: "${model}"`);
       
-      // Log a few sample listings before filtering to see what we're working with
-      console.log('Sample listings before filtering:');
-      activeListings.slice(0, 3).forEach(listing => {
-        console.log(`- Title: "${listing.title}", Make: "${listing.make}", Model: "${listing.model}"`);
-      });
-      
       filteredListings = activeListings.filter(listing => {
         // More robust make matching
         const makeMatch = !make || 
@@ -83,7 +75,6 @@ export async function GET(request: NextRequest) {
           listing.make.toLowerCase().includes(make.toLowerCase()) || 
           listing.title.toLowerCase().includes(make.toLowerCase());
         
-        // More robust model matching
         const modelMatch = !model || 
           listing.model.toLowerCase() === model.toLowerCase() || 
           listing.model.toLowerCase().includes(model.toLowerCase()) || 
@@ -108,7 +99,7 @@ export async function GET(request: NextRequest) {
     // This gives us more results to work with
     const now = new Date();
     const endDate = new Date(now);
-    endDate.setDate(endDate.getDate() + 3); // Look for auctions ending in the next 7 days
+    endDate.setDate(endDate.getDate() + 3); // Look for auctions ending in the next 3 days
 
     const endingSoon = filteredListings.filter(listing => {
       if (!listing.endDate) {
@@ -145,54 +136,69 @@ export async function GET(request: NextRequest) {
       listing.mileage = mileage.mileage;
     });
     
-    // Only fetch historical data if we have active auctions ending soon
-    console.log(`Fetching historical data for ${make} ${model}...`);
-    const historicalResults = await historicalScraper.scrape({
-      make,
-      model,
-      yearMin,
-      yearMax,
-      maxPages: 2,
-      perPage: 50
-    });
-    console.log(`Fetched ${historicalResults.length} historical results`);
-
-    // Filter for sold listings only
-    const soldListings = historicalResults.filter(listing => listing.status === 'sold');
-    console.log(`Found ${soldListings.length} sold listings for comparison`);
-
     // Calculate deals by comparing active listings with historical data
     const deals = await Promise.all(
       endingSoon.map(async (activeListing) => {
-        // Find similar historical listings
-        const similarListings = soldListings.filter(historicalListing => {
-          // Match by make and model
-          const makeMatch = historicalListing.make?.toLowerCase() === activeListing.make.toLowerCase();
-          const modelMatch = historicalListing.model?.toLowerCase() === activeListing.model.toLowerCase();
-          
-          // Match by year (within 2 years)
-          const yearDiff = Math.abs(
-            parseInt(historicalListing.year?.toString() || '0') - 
-            parseInt(activeListing.year || '0')
-          );
-          const yearMatch = yearDiff <= 2;
-          
-          return makeMatch && modelMatch && yearMatch;
+        // Fetch historical data for this specific make/model/year range using the auction results API
+        const listingMake = activeListing.make;
+        // TODO fix to deal with 911 GT3, use the form input for now
+        const listingModel = model;
+        const listingYear = parseInt(activeListing.year);
+        
+        // Set year range to be within 2 years of the active listing's year
+        const histYearMin = listingYear - 2;
+        const histYearMax = listingYear + 2;
+        
+        console.log(`Fetching historical data for ${listingMake} ${listingModel} (${histYearMin}-${histYearMax})...`);
+        
+        // Call the auction results API
+        const resultsResponse = await fetch(new URL('/api/auction/results', process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000').toString(), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            make: listingMake,
+            model: listingModel,
+            yearMin: histYearMin,
+            yearMax: histYearMax,
+            maxPages: 10
+          }),
         });
+        
+        if (!resultsResponse.ok) {
+          console.error(`Failed to fetch historical data for ${listingMake} ${listingModel}: ${resultsResponse.status}`);
+          return null;
+        }
+        
+        const resultsData = await resultsResponse.json();
+        const historicalResults = resultsData.results || [];
+        
+        // Filter for sold listings only
+        const soldListings = historicalResults.filter((listing: any) => listing.status === 'sold');
+        console.log(`Found ${soldListings.length} sold listings for comparison with ${histYearMin}-${histYearMax} ${listingMake} ${listingModel}`);
 
         // If no similar listings found, skip this listing
-        if (similarListings.length === 0) {
+        if (soldListings.length === 0) {
           return null;
         }
 
         // Calculate average, median, min, and max prices
-        const prices = similarListings.map(listing => 
-          parseInt(listing.sold_price.replace(/[^0-9]/g, ''))
-        );
+        const prices = soldListings.map((listing: any) => {
+          // Extract numeric price from sold_price string (e.g., "$50,000" -> 50000)
+          const priceStr = listing.sold_price;
+          return typeof priceStr === 'string' 
+            ? parseInt(priceStr.replace(/[^0-9]/g, '')) 
+            : (typeof listing.price === 'number' ? listing.price : 0);
+        }).filter((price: number) => price > 0);
         
-        prices.sort((a, b) => a - b);
+        if (prices.length === 0) {
+          return null;
+        }
         
-        const averagePrice = prices.reduce((sum, price) => sum + price, 0) / prices.length;
+        prices.sort((a: number, b: number) => a - b);
+        
+        const averagePrice = prices.reduce((sum: number, price: number) => sum + price, 0) / prices.length;
         const medianPrice = prices.length % 2 === 0 
           ? (prices[prices.length / 2 - 1] + prices[prices.length / 2]) / 2
           : prices[Math.floor(prices.length / 2)];
@@ -219,13 +225,13 @@ export async function GET(request: NextRequest) {
         }
 
         // Check if ending soon (within 24 hours)
-        const endDate = new Date(activeListing.endDate);
-        const hoursRemaining = (endDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+        const auctionEndDate = new Date(activeListing.endDate);
+        const hoursRemaining = (auctionEndDate.getTime() - now.getTime()) / (1000 * 60 * 60);
         const endingSoon = hoursRemaining <= 24;
 
         // Get recent sales (last 5)
-        const recentSales = similarListings
-          .sort((a, b) => new Date(b.sold_date).getTime() - new Date(a.sold_date).getTime())
+        const recentSales = soldListings
+          .sort((a: any, b: any) => new Date(b.sold_date).getTime() - new Date(a.sold_date).getTime())
           .slice(0, 5);
 
         return {
