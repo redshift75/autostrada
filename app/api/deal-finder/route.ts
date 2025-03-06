@@ -226,7 +226,7 @@ export async function GET(request: NextRequest) {
         // Get recent sales (last 5)
         const recentSales = soldListings
           .sort((a: any, b: any) => new Date(b.sold_date).getTime() - new Date(a.sold_date).getTime())
-          .slice(0, 5);
+          .slice(0, 25);
 
         return {
           activeListing,

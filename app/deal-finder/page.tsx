@@ -979,7 +979,7 @@ export default function DealFinder() {
                         Recent Similar Sales
                       </h4>
                       <div className="bg-gray-50 dark:bg-gray-700 rounded-lg overflow-hidden">
-                        <div className="overflow-x-auto">
+                        <div className="overflow-y-auto overflow-x-auto" style={{ maxHeight: "300px" }}>
                           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                             <thead className="bg-gray-100 dark:bg-gray-600">
                               <tr>
