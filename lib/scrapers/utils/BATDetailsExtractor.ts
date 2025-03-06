@@ -63,24 +63,24 @@ export async function fetchDetailsFromListingPage(url: string): Promise<ListingD
       const essentialsSection = essentialsMatch[1];
       
       // Look for a list item that contains "miles" or "mileage"
-      const mileageItemRegex = /<li[^>]*>([\s\S]*?(?:\d+k\s*miles?|miles?|mileage)[\s\S]*?)<\/li>/i;
+      const mileageItemRegex = /<li[^>]*>([\s\S]*?(?:\d+k\s*miles?|miles?|mileage)[\s\S]*?)<\/li>/gi;
       const mileageItemMatch = essentialsSection.match(mileageItemRegex);
       
       // Look for transmission type in the essentials section
-      const transmissionRegex = /<li[^>]*>([\s\S]*?(?:Dual[-\s]Clutch|Double\s+Clutch|PDK|Automatic|Automated|manual|Manual|Transmission|transaxle|Sequential)[\s\S]*?)<\/li>/i;
+      const transmissionRegex = /<li[^>]*>([\s\S]*?(?:Dual[-\s]Clutch|Double\s+Clutch|PDK|Automatic|Automated|manual|Manual|Transmission|transaxle|Sequential)[\s\S]*?)<\/li>/gi;
       const transmissionMatch = essentialsSection.match(transmissionRegex);
 
-      if (transmissionMatch && transmissionMatch[1]) {
-        const transmissionItem = transmissionMatch[1];
-        
+      if (transmissionMatch && transmissionMatch[0]) {
+        const transmissionItem = transmissionMatch[0];
         // Check for automatic transmission indicators
-        if (/(?:Dual[-\s]Clutch|Double\s+Clutch|PDK|Automatic|Automated|DCT|Sequential)/i.test(transmissionItem)) {
+        if (/(?:Dual[-\s]Clutch|Double\s+Clutch|PDK|Automatic|Automated|DCT|Sequential)/gi.test(transmissionItem)) {
           result.transmission = 'automatic';
         } 
         // Check for manual transmission
         else if (/manual/i.test(transmissionItem)) {
           result.transmission = 'manual';
         }
+        console.log(`Found transmission in essentials: ${result.transmission} for ${url}`);
       }
       
       if (mileageItemMatch && mileageItemMatch[1]) {
@@ -130,8 +130,8 @@ export async function fetchDetailsFromListingPage(url: string): Promise<ListingD
     // If transmission wasn't found in the essentials section, try a broader search
     if (!result.transmission) {
       // Look for automatic transmission indicators
-      const automaticRegex = /(?:Dual[-\s]Clutch|Double\s+Clutch|PDK|Automatic|Automated|DCT|Sequential)/i;
-      const manualRegex = /\bmanual\b/i;
+      const automaticRegex = /(?:Dual[-\s]Clutch|Double\s+Clutch|PDK|Automatic|Automated|DCT|Sequential)/gi;
+      const manualRegex = /\bmanual\b/gi;
       
       if (automaticRegex.test(html)) {
         result.transmission = 'automatic';
