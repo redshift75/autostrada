@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAuctionResultsTool } from '../../../../lib/langchain/tools';
 import { supabase } from '../../../../lib/supabase/client';
+import { BringATrailerResultsScraper } from '../../../../lib/scrapers/BringATrailerResultsScraper';
 
 // Helper functions for calculating statistics from results
 function calculateAverageSoldPrice(results: any[]): string {
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
     const { data: supabaseResults, error: supabaseError } = await query;
     
     let results = [];
-    let parsedResult = null;
+    let parsedResult: any = null;
     
     // Check if we got results from Supabase
     if (!supabaseError && supabaseResults && supabaseResults.length > 0) {
@@ -128,37 +128,90 @@ export async function POST(request: NextRequest) {
     } else {
       if (supabaseError) {
         console.error('Error fetching from Supabase:', supabaseError);
-      } else {
-        console.log('No results found in Supabase, falling back to scraper');
       }
     }
     
     // If we don't have results from Supabase, use the scraper
     if (!parsedResult) {
-      console.log('Fetching data using BringATrailerResultsScraper...');
+      console.log('No results found in Supabase, scraping ', make, model, maxPages);
       
-      // Create the auction results tool
-      const auctionResultsTool = createAuctionResultsTool();
-      
-      // Fetch results
-      const result = await auctionResultsTool.invoke({
-        make,
-        model,
-        yearMin: yearMin || 2015,
-        yearMax: yearMax || 2023,
-        maxPages: maxPages || 2,
-        generateVisualizations: false // Don't generate visualizations here
-      });
-      
-      // Parse the result
-      parsedResult = JSON.parse(result);
-      
-      // Add source information
-      parsedResult.source = 'scraper';
+      try {
+        // Create a new instance of the scraper and use it directly
+        const scraper = new BringATrailerResultsScraper();
+        
+        // Scrape the results
+        const scrapedResults = await scraper.scrape({
+          make,
+          model,
+          yearMin,
+          yearMax,
+          maxPages: maxPages || 1
+        });
+        
+        console.log(`Scraped ${scrapedResults.length} results directly`);
+        
+        // Format the results to match the expected structure
+        results = scrapedResults.map(item => ({
+          title: item.title,
+          year: item.year,
+          make: item.make,
+          model: item.model,
+          sold_price: item.sold_price,
+          bid_amount: item.bid_amount,
+          sold_date: item.sold_date,
+          status: item.status,
+          url: item.url,
+          mileage: item.mileage,
+          bidders: item.bidders,
+          watchers: item.watchers,
+          comments: item.comments,
+          image_url: item.image_url
+        }));
+        
+        // Create a result object
+        parsedResult = {
+          query: {
+            make,
+            model: model || 'Any',
+            yearRange: `${yearMin || 'Any'}-${yearMax || 'Any'}`
+          },
+          summary: {
+            totalResults: scrapedResults.length,
+            averageSoldPrice: calculateAverageSoldPrice(scrapedResults),
+            highestSoldPrice: findHighestSoldPrice(scrapedResults),
+            lowestSoldPrice: findLowestSoldPrice(scrapedResults),
+            soldPercentage: calculateSoldPercentage(scrapedResults),
+            averageMileage: calculateAverageMileage(scrapedResults)
+          },
+          results: results,
+          source: 'scraper'
+        };
+      } catch (error) {
+        console.error('Error in direct scraper:', error);
+        
+        // Fallback to empty results if scraping fails
+        parsedResult = {
+          query: {
+            make,
+            model: model || 'Any',
+            yearRange: `${yearMin || 'Any'}-${yearMax || 'Any'}`
+          },
+          summary: {
+            totalResults: 0,
+            averageSoldPrice: 'N/A',
+            highestSoldPrice: 'N/A',
+            lowestSoldPrice: 'N/A',
+            soldPercentage: '0%',
+            averageMileage: 'N/A'
+          },
+          results: [],
+          source: 'scraper_fallback'
+        };
+      }
     }
     
     // Process results to add price field for filtering
-    const processedResults = (parsedResult.results || []).map((result: any) => {
+    const processedResults = (parsedResult?.results || []).map((result: any) => {
       const priceStr = result.status === 'sold' ? result.sold_price : result.bid_amount;
       const numericPrice = priceStr ? priceStr.replace(/[^0-9.]/g, '') : '0';
       return {
@@ -170,9 +223,16 @@ export async function POST(request: NextRequest) {
     // Create a response with the processed data
     const response = {
       message: 'Auction results fetched successfully',
-      summary: parsedResult.summary,
+      summary: parsedResult?.summary || {
+        totalResults: 0,
+        averageSoldPrice: 'N/A',
+        highestSoldPrice: 'N/A',
+        lowestSoldPrice: 'N/A',
+        soldPercentage: '0%',
+        averageMileage: 'N/A'
+      },
       results: processedResults,
-      source: parsedResult.source
+      source: parsedResult?.source || 'unknown'
     };
     
     return NextResponse.json(response);

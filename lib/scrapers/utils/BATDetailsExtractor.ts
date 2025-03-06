@@ -123,7 +123,7 @@ export async function fetchDetailsFromListingPage(url: string): Promise<ListingD
         mileage = mileage.replace(/,/g, '');
         result.mileage = parseInt(mileage);
       } else {
-        console.log(`No mileage found in listing page: ${url}`);
+        // console.log(`No mileage found in listing page: ${url}`);
       }
     }
     
@@ -135,10 +135,8 @@ export async function fetchDetailsFromListingPage(url: string): Promise<ListingD
       
       if (automaticRegex.test(html)) {
         result.transmission = 'automatic';
-        console.log(`Found automatic transmission from broader search for ${url}`);
       } else if (manualRegex.test(html)) {
         result.transmission = 'manual';
-        console.log(`Found manual transmission from broader search for ${url}`);
       } else {
         console.log(`No transmission type found in listing page for ${url}`);
       }
