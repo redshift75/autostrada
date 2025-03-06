@@ -9,6 +9,7 @@ declare global {
 }
 
 export async function POST(request: NextRequest) {
+  // Log the received context for debugging
   try {
     const { query, context } = await request.json();
     
@@ -18,9 +19,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    
-    // Log the received context for debugging
-    console.log('Received context:', JSON.stringify(context, null, 2));
     
     // Initialize the agent
     const agent = await initializeAgent();
@@ -49,9 +47,6 @@ export async function POST(request: NextRequest) {
     if (context?.auctionResults && Array.isArray(context.auctionResults) && context.auctionResults.length > 0) {
       // Store the auction results in the global context
       global.currentAuctionResults = context.auctionResults;
-      
-      // Log a sample auction result for debugging
-      console.log('Sample auction result:', JSON.stringify(context.auctionResults[0], null, 2));
       
       // Format the auction results data for the agent
       const auctionData = context.auctionResults.map((result: any, index: number) => {
@@ -103,25 +98,16 @@ export async function POST(request: NextRequest) {
           result.url ? `, URL: ${result.url}` : ''
         }, ${mileage}, ${bidders}, ${comments}, ${watchers}`;
         
-        // Log the formatted result for debugging
-        if (index === 0) {
-          console.log('Formatted auction result:', formattedResult);
-        }
-        
         return formattedResult;
       }).join('\n');
       
       // Enhance the query with the auction results context
       enhancedQuery = `The user is viewing the following car auction results:\n\n${auctionData}\n\nUser query: ${query}`;
-      
-      // Log the enhanced query for debugging
-      console.log('Enhanced query sample (first 200 chars):', enhancedQuery.substring(0, 200) + '...');
     } else {
       // Clear the global auction results if none are provided
       global.currentAuctionResults = [];
     }
     
-    // Process the query
     const result = await agent.invoke({
       input: enhancedQuery
     });

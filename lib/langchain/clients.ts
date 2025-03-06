@@ -3,6 +3,9 @@ import { SupabaseVectorStore } from "@langchain/community/vectorstores/supabase"
 import { OpenAIEmbeddings } from "@langchain/openai";
 import { createClient } from "@supabase/supabase-js";
 
+// Disable LangChain tracing to avoid rate limits
+process.env.LANGCHAIN_TRACING_V2 = "false";
+
 // Initialize OpenAI client
 export const initOpenAIClient = () => {
   const apiKey = process.env.OPENAI_API_KEY;

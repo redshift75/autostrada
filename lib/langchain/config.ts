@@ -122,7 +122,7 @@ export const createAgent = async (
   return AgentExecutor.fromAgentAndTools({
     agent,
     tools,
-    verbose: process.env.NODE_ENV === "development",
+    verbose: false,
   });
 };
 

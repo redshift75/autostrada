@@ -70,7 +70,7 @@ export async function initializeAgent() {
       listingsAnalysisTool,
       auctionResultsAnalysisTool,
     ],
-    verbose: true,
+    verbose: false,
   });
 
   return agentExecutor;
