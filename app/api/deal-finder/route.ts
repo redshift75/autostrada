@@ -20,6 +20,24 @@ type DealFinderResponse = {
   }>;
 };
 
+// Helper function to parse model names from listing titles
+function parseModel(modelString: string, make?: string): string {
+  if (!modelString) return '';
+  
+  // If make is provided, try to extract the model that follows it
+  if (make && modelString.toLowerCase().includes(make.toLowerCase())) {
+    // Remove the make and any leading/trailing whitespace
+    const afterMake = modelString.toLowerCase().split(make.toLowerCase())[1];
+    if (afterMake) {
+      // Clean up the model string - remove common separators and trim
+      return afterMake.replace(/^[^\w]+/, '').trim();
+    }
+  }
+  
+  // Fallback to just returning the trimmed model string
+  return modelString.trim();
+}
+
 export async function GET(request: NextRequest) {
   try {
     // Get query parameters
@@ -136,8 +154,9 @@ export async function GET(request: NextRequest) {
       endingSoon.map(async (activeListing) => {
         // Fetch historical data for this specific make/model/year range using the auction results API
         const listingMake = activeListing.make;
-        // TODO fix to deal with 911 GT3, use the form input for now
-        const listingModel = model;
+        console.log(`Listing make: ${listingMake}`);
+        // Extract model from the listing title using the listing's make
+        const listingModel = parseModel(activeListing.title, listingMake);
         const listingYear = parseInt(activeListing.year);
         
         // Set year range to be within 2 years of the active listing's year
