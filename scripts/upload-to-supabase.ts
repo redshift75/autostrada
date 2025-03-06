@@ -90,7 +90,7 @@ async function uploadCompletedAuctionsToSupabase() {
       }
       
       console.log(`Found ${listings.length} listings in ${file}`);
-      
+
       // Transform listings to database format
       const dbListings = listings.map(listing => ({
         listing_id: listing.id,
@@ -103,7 +103,7 @@ async function uploadCompletedAuctionsToSupabase() {
         bid_date: listing.bid_date ? new Date(listing.bid_date) : null,
         status: listing.status,
         year: listing.year,
-        make: listing.make,
+        make: listing.make ? listing.make.replace(/-/g, ' ') : null,
         model: listing.model,
         mileage: listing.mileage,
         source_file: file,
@@ -247,7 +247,7 @@ async function uploadActiveAuctionsToSupabase() {
         end_date: new Date(listing.endDate),
         status: listing.status || 'active',
         year: listing.year ? parseInt(listing.year) : null,
-        make: listing.make,
+        make: listing.make ? listing.make.replace(/-/g, ' ') : null,
         model: listing.model,
         location: listing.location,
         no_reserve: listing.no_reserve || false,
