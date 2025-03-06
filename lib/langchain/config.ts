@@ -145,7 +145,7 @@ export const createRunnableSequence = (
 
 // Default model configuration
 export const defaultModel = new ChatOpenAI({
-  modelName: "gpt-4o",
+  modelName: "gpt-4o-mini",
   temperature: 0.2,
   openAIApiKey: process.env.OPENAI_API_KEY,
 });
