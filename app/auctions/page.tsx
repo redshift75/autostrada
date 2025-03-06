@@ -978,7 +978,7 @@ function AuctionsContent() {
         )}
         
         {/* Add AI Agent for auction results */}
-        {!loading && results && results.length > 0 && (
+        {!loading && (
           <div className="mt-8">
             <AuctionAIAgent auctionResults={results} />
           </div>

@@ -27,15 +27,18 @@ type AuctionAIAgentProps = {
 export default function AuctionAIAgent({ auctionResults }: AuctionAIAgentProps) {
   // Define suggestions for the AI agent
   const suggestions = [
+    "what is the trend for mclaren sales?",
+    "What are the most expensive manual BMW cars?",
+    "What are the top 5 most expensive cars?",
     "What are the most popular models?",
-    "Is there a trend in prices over time?",
+    "Is there a trend in these results?",
     "Summarize these auction results for me"
   ];
 
   return (
     <AIAgent
-      title="Auction Results AI Assistant"
-      subtitle="Ask questions about the auction results"
+      title="Auction AI Assistant"
+      subtitle="Ask questions about auction results"
       initialSuggestions={suggestions}
       formatData={auctionFormatter.formatData}
       data={auctionResults}

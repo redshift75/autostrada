@@ -47,14 +47,6 @@ export async function POST(request: NextRequest) {
     // Parse the request body
     const body = await request.json();
     const { make, model, yearMin, yearMax, maxPages } = body;
-    
-    // Validate required fields
-    if (!make) {
-      return NextResponse.json(
-        { error: 'Make is required field' },
-        { status: 400 }
-      );
-    }
 
     // First, try to fetch results from Supabase
     console.log(`Checking Supabase for ${make} ${model} (${yearMin || 'any'}-${yearMax || 'any'})`);

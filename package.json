@@ -20,7 +20,9 @@
     "upload-to-supabase": "tsx -r dotenv/config ./scripts/upload-to-supabase.ts",
     "upload-completed": "tsx -r dotenv/config ./scripts/upload-to-supabase.ts --completed",
     "upload-active": "tsx -r dotenv/config ./scripts/upload-to-supabase.ts --active",
-    "test-supabase": "tsx -r dotenv/config ./scripts/test-supabase-connection.ts"
+    "test-supabase": "tsx -r dotenv/config ./scripts/test-supabase-connection.ts",
+    "test-db-query": "tsx -r dotenv/config ./scripts/test-database-query.ts",
+    "test-db-direct": "tsx -r dotenv/config ./scripts/test-db-direct.ts"
   },
   "dependencies": {
     "@langchain/community": "^0.3.32",

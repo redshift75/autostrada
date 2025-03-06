@@ -152,7 +152,7 @@ export const createMarketAnalysisTool = () => {
 export const createAuctionResultsTool = () => {
   return new DynamicStructuredTool({
     name: "fetch_auction_results",
-    description: "Fetch recent auction results from Bring a Trailer for a specific make and model",
+    description: "Fetch recent auction results from Bring a Trailer for a specific make and model. This tool queries the database for auction data including listing_id, url, title, image_url, sold_price, sold_date, bid_amount, bid_date, status, year, make, model, mileage, bidders, watchers, comments, and transmission. Use this tool to answer specific questions about auction results, price trends, vehicle specifications, and market statistics.",
     schema: z.object({
       make: z.string().describe("The manufacturer of the vehicle"),
       model: z.string().optional().describe("The model of the vehicle"),
@@ -160,8 +160,9 @@ export const createAuctionResultsTool = () => {
       yearMax: z.number().optional().describe("The maximum year to filter results"),
       maxPages: z.number().optional().describe("Maximum number of pages to fetch (default: 2)"),
       generateVisualizations: z.boolean().optional().describe("Whether to generate visualizations of the results (default: false)"),
+      maxResults: z.number().optional().describe("Maximum number of results to return (default: 100)"),
     }),
-    func: async ({ make, model, yearMin, yearMax, maxPages, generateVisualizations = false }) => {
+    func: async ({ make, model, yearMin, yearMax, maxPages, generateVisualizations = false, maxResults = 100 }) => {
       try {
         console.log(`Fetching auction results for ${make} ${model || ''} (${yearMin || 'any'}-${yearMax || 'any'})`);
         
@@ -188,6 +189,17 @@ export const createAuctionResultsTool = () => {
         }
         
         const data = await response.json();
+        
+        // Limit the number of results to prevent context length issues
+        if (data.results && data.results.length > maxResults) {
+          console.log(`Limiting results from ${data.results.length} to ${maxResults}`);
+          data.results = data.results.slice(0, maxResults);
+          
+          // Update the summary to reflect the limited results
+          if (data.summary) {
+            data.summary = `${data.summary} (showing ${maxResults} of ${data.results.length} results)`;
+          }
+        }
         
         // Generate visualizations if requested
         let visualizations = {};
@@ -804,28 +816,30 @@ function analyzeSummary(listings: any[]) {
 export const createAuctionResultsAnalysisTool = () => {
   return new DynamicStructuredTool({
     name: "analyze_auction_results",
-    description: "Analyze the current auction results being viewed by the user",
+    description: "Analyze auction results data that the user is currently viewing",
     schema: z.object({
       analysisType: z.enum([
         "price_comparison", 
         "best_deal", 
         "sold_percentage", 
-        "make_distribution",
-        "model_distribution",
-        "year_distribution",
-        "price_range",
-        "summary"
-      ]).describe("The type of analysis to perform on the auction results"),
+        "make_distribution", 
+        "model_distribution", 
+        "year_distribution", 
+        "price_range", 
+        "summary",
+        "database_query"
+      ]).describe("The type of analysis to perform"),
+      query: z.string().optional().describe("The specific database query to perform (for database_query analysis type)"),
       make: z.string().optional().describe("Filter by make"),
       model: z.string().optional().describe("Filter by model"),
       yearMin: z.number().optional().describe("Filter by minimum year"),
       yearMax: z.number().optional().describe("Filter by maximum year"),
-      priceMax: z.number().optional().describe("Maximum price to consider"),
-      soldOnly: z.boolean().optional().describe("Only consider sold items"),
     }),
-    func: async ({ analysisType, make, model, yearMin, yearMax, priceMax, soldOnly }) => {
+    func: async ({ analysisType, query, make, model, yearMin, yearMax }) => {
       try {
-        // Access the auction results from the global context
+        // This function will be called with the auction results context from the agent route
+        // We'll access the auction results from the global context that will be set in the agent route
+        
         // @ts-ignore - This will be set in the agent route
         const auctionResults = global.currentAuctionResults || [];
         
@@ -836,59 +850,39 @@ export const createAuctionResultsAnalysisTool = () => {
           });
         }
         
-        // Filter auction results based on criteria if provided
+        // Filter results based on criteria if provided
         let filteredResults = [...auctionResults];
         
         if (make) {
           filteredResults = filteredResults.filter(result => 
-            result.make?.toLowerCase().includes(make.toLowerCase()) || 
-            result.title.toLowerCase().includes(make.toLowerCase())
+            result.make && result.make.toLowerCase().includes(make.toLowerCase())
           );
         }
         
         if (model) {
           filteredResults = filteredResults.filter(result => 
-            result.model?.toLowerCase().includes(model.toLowerCase()) || 
-            result.title.toLowerCase().includes(model.toLowerCase())
+            result.model && result.model.toLowerCase().includes(model.toLowerCase())
           );
         }
         
         if (yearMin) {
-          filteredResults = filteredResults.filter(result => {
-            const year = result.title.match(/\b(19|20)\d{2}\b/)?.[0];
-            return year ? parseInt(year) >= yearMin : false;
-          });
+          filteredResults = filteredResults.filter(result => result.year >= yearMin);
         }
         
         if (yearMax) {
-          filteredResults = filteredResults.filter(result => {
-            const year = result.title.match(/\b(19|20)\d{2}\b/)?.[0];
-            return year ? parseInt(year) <= yearMax : false;
-          });
-        }
-        
-        if (priceMax) {
-          filteredResults = filteredResults.filter(result => {
-            const price = result.status === 'sold' 
-              ? parseFloat(result.sold_price.replace(/[^0-9.]/g, '')) 
-              : parseFloat(result.bid_amount.replace(/[^0-9.]/g, ''));
-            return price <= priceMax;
-          });
-        }
-        
-        if (soldOnly) {
-          filteredResults = filteredResults.filter(result => result.status === 'sold');
+          filteredResults = filteredResults.filter(result => result.year <= yearMax);
         }
         
         if (filteredResults.length === 0) {
           return JSON.stringify({
-            error: "No matching auction results",
-            message: "No auction results match the specified criteria."
+            error: "No auction results match the criteria",
+            message: "No auction results match the specified criteria. Please try different filters."
           });
         }
         
         // Perform the requested analysis
         let result;
+        
         switch (analysisType) {
           case "price_comparison":
             result = analyzeAuctionPriceComparison(filteredResults);
@@ -914,31 +908,22 @@ export const createAuctionResultsAnalysisTool = () => {
           case "summary":
             result = analyzeAuctionSummary(filteredResults);
             break;
+          case "database_query":
+            result = analyzeDatabaseQuery(filteredResults, query || "");
+            break;
           default:
             result = {
               error: "Invalid analysis type",
-              message: "The requested analysis type is not supported."
+              message: `The analysis type '${analysisType}' is not supported.`
             };
         }
         
-        return JSON.stringify({
-          analysisType,
-          filters: {
-            make: make || "Any",
-            model: model || "Any",
-            yearRange: `${yearMin || "Any"}-${yearMax || "Any"}`,
-            priceMax: priceMax || "Any",
-            soldOnly: soldOnly || false,
-          },
-          totalResults: filteredResults.length,
-          result
-        });
+        return JSON.stringify(result);
       } catch (error) {
         console.error("Error analyzing auction results:", error);
         return JSON.stringify({
-          error: "Analysis failed",
-          message: "An error occurred while analyzing the auction results.",
-          details: error instanceof Error ? error.message : "Unknown error"
+          error: "Failed to analyze auction results",
+          message: error instanceof Error ? error.message : "Unknown error"
         });
       }
     },
@@ -1475,5 +1460,168 @@ function analyzeAuctionSummary(results: any[]) {
         ? `The best deal appears to be a ${bestDealAnalysis.bestDeals[0].title} that sold for ${bestDealAnalysis.bestDeals[0].price}, which is ${bestDealAnalysis.bestDeals[0].percentBelow} below the average price for similar vehicles.`
         : ''
     }`
+  };
+}
+
+// Add this function to handle database queries
+function analyzeDatabaseQuery(results: any[], query: string) {
+  if (!results || results.length === 0) {
+    return {
+      analysis: "No auction results available for database query analysis."
+    };
+  }
+
+  // Process the query to determine what information is being requested
+  const queryLower = query.toLowerCase();
+  
+  // Average price query
+  if (queryLower.includes('average price') || queryLower.includes('avg price')) {
+    const soldResults = results.filter(result => result.status === 'sold');
+    if (soldResults.length === 0) {
+      return { analysis: "No sold items found to calculate average price." };
+    }
+    
+    const prices = soldResults.map(result => {
+      if (typeof result.price === 'number') {
+        return result.price;
+      }
+      if (result.sold_price) {
+        return parseInt(result.sold_price.toString().replace(/[^0-9]/g, ''));
+      }
+      return 0;
+    }).filter(price => price > 0);
+    
+    const averagePrice = prices.reduce((sum, price) => sum + price, 0) / prices.length;
+    return {
+      analysis: `The average price is $${Math.round(averagePrice).toLocaleString()} based on ${prices.length} sold items.`,
+      averagePrice: Math.round(averagePrice)
+    };
+  }
+  
+  // Highest/lowest price query
+  if (queryLower.includes('highest price') || queryLower.includes('most expensive')) {
+    const soldResults = results.filter(result => result.status === 'sold');
+    if (soldResults.length === 0) {
+      return { analysis: "No sold items found to determine highest price." };
+    }
+    
+    const pricesWithItems = soldResults.map(result => {
+      let price = 0;
+      if (typeof result.price === 'number') {
+        price = result.price;
+      } else if (result.sold_price) {
+        price = parseInt(result.sold_price.toString().replace(/[^0-9]/g, ''));
+      }
+      return { price, item: result };
+    }).filter(item => item.price > 0);
+    
+    if (pricesWithItems.length === 0) {
+      return { analysis: "Could not extract valid price information." };
+    }
+    
+    const highestPriceItem = pricesWithItems.sort((a, b) => b.price - a.price)[0];
+    return {
+      analysis: `The highest price is $${highestPriceItem.price.toLocaleString()} for ${highestPriceItem.item.title}. URL: ${highestPriceItem.item.url}`,
+      highestPrice: {
+        price: highestPriceItem.price,
+        title: highestPriceItem.item.title,
+        url: highestPriceItem.item.url,
+        year: highestPriceItem.item.year,
+        make: highestPriceItem.item.make,
+        model: highestPriceItem.item.model
+      }
+    };
+  }
+  
+  if (queryLower.includes('lowest price') || queryLower.includes('least expensive')) {
+    const soldResults = results.filter(result => result.status === 'sold');
+    if (soldResults.length === 0) {
+      return { analysis: "No sold items found to determine lowest price." };
+    }
+    
+    const pricesWithItems = soldResults.map(result => {
+      let price = 0;
+      if (typeof result.price === 'number') {
+        price = result.price;
+      } else if (result.sold_price) {
+        price = parseInt(result.sold_price.toString().replace(/[^0-9]/g, ''));
+      }
+      return { price, item: result };
+    }).filter(item => item.price > 0);
+    
+    if (pricesWithItems.length === 0) {
+      return { analysis: "Could not extract valid price information." };
+    }
+    
+    const lowestPriceItem = pricesWithItems.sort((a, b) => a.price - b.price)[0];
+    return {
+      analysis: `The lowest price is $${lowestPriceItem.price.toLocaleString()} for ${lowestPriceItem.item.title}. URL: ${lowestPriceItem.item.url}`,
+      lowestPrice: {
+        price: lowestPriceItem.price,
+        title: lowestPriceItem.item.title,
+        url: lowestPriceItem.item.url,
+        year: lowestPriceItem.item.year,
+        make: lowestPriceItem.item.make,
+        model: lowestPriceItem.item.model
+      }
+    };
+  }
+  
+  // Mileage query
+  if (queryLower.includes('mileage') || queryLower.includes('miles')) {
+    const itemsWithMileage = results.filter(result => result.mileage && result.mileage > 0);
+    if (itemsWithMileage.length === 0) {
+      return { analysis: "No items found with mileage information." };
+    }
+    
+    const averageMileage = itemsWithMileage.reduce((sum, item) => sum + item.mileage, 0) / itemsWithMileage.length;
+    const lowestMileageItem = [...itemsWithMileage].sort((a, b) => a.mileage - b.mileage)[0];
+    const highestMileageItem = [...itemsWithMileage].sort((a, b) => b.mileage - a.mileage)[0];
+    
+    return {
+      analysis: `The average mileage is ${Math.round(averageMileage).toLocaleString()} miles. The lowest mileage is ${lowestMileageItem.mileage.toLocaleString()} miles (${lowestMileageItem.title}) and the highest is ${highestMileageItem.mileage.toLocaleString()} miles (${highestMileageItem.title}).`,
+      mileageStats: {
+        average: Math.round(averageMileage),
+        lowest: {
+          mileage: lowestMileageItem.mileage,
+          title: lowestMileageItem.title,
+          url: lowestMileageItem.url
+        },
+        highest: {
+          mileage: highestMileageItem.mileage,
+          title: highestMileageItem.title,
+          url: highestMileageItem.url
+        }
+      }
+    };
+  }
+  
+  // Transmission query
+  if (queryLower.includes('transmission')) {
+    const itemsWithTransmission = results.filter(result => result.transmission);
+    if (itemsWithTransmission.length === 0) {
+      return { analysis: "No items found with transmission information." };
+    }
+    
+    const transmissionCount: Record<string, number> = {};
+    itemsWithTransmission.forEach(item => {
+      const transmission = item.transmission.toLowerCase();
+      transmissionCount[transmission] = (transmissionCount[transmission] || 0) + 1;
+    });
+    
+    const sortedTransmissions = Object.entries(transmissionCount)
+      .sort((a, b) => b[1] - a[1])
+      .map(([type, count]) => ({ type, count }));
+    
+    return {
+      analysis: `The most common transmission type is ${sortedTransmissions[0].type} with ${sortedTransmissions[0].count} vehicles.`,
+      transmissionDistribution: sortedTransmissions
+    };
+  }
+  
+  // Default response for other queries
+  return {
+    analysis: `Analyzed ${results.length} auction results. Please specify what information you're looking for about these results.`,
+    resultCount: results.length
   };
 } 
