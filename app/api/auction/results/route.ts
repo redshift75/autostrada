@@ -49,9 +49,9 @@ export async function POST(request: NextRequest) {
     const { make, model, yearMin, yearMax, maxPages } = body;
     
     // Validate required fields
-    if (!make || !model) {
+    if (!make) {
       return NextResponse.json(
-        { error: 'Make and model are required fields' },
+        { error: 'Make is required field' },
         { status: 400 }
       );
     }

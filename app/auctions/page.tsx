@@ -76,7 +76,6 @@ function AuctionsContent() {
   
   // Debounce timers
   const makeDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const modelDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   // State for auction results and loading status
   const [results, setResults] = useState<AuctionResult[]>([]);
@@ -151,7 +150,7 @@ function AuctionsContent() {
       const uniqueMakes = Array.from(new Set(data.map((item: CarMake) => item.Make)))
         .filter((make): make is string => !!make)
         .sort()
-        .slice(0, 5); // Limit to 5 results
+        .slice(0, 3); // Limit to 3 results
       
       console.log('Processed unique makes:', uniqueMakes);
       setMakeSuggestions(uniqueMakes);
@@ -182,9 +181,6 @@ function AuctionsContent() {
     return () => {
       if (makeDebounceTimerRef.current) {
         clearTimeout(makeDebounceTimerRef.current);
-      }
-      if (modelDebounceTimerRef.current) {
-        clearTimeout(modelDebounceTimerRef.current);
       }
     };
   }, []);
@@ -366,8 +362,8 @@ function AuctionsContent() {
     const yearMax = parseInt(yearMaxInputRef.current?.value || '2025');
     
     // Validate required fields
-    if (!make || !model) {
-      setError('Make and model are required fields');
+    if (!make) {
+      setError('Make is required field');
       return;
     }
     
@@ -643,7 +639,7 @@ function AuctionsContent() {
               
               <div className="flex flex-col relative">
                 <label htmlFor="model" className="mb-1 font-medium">
-                  Model <span className="text-red-500">*</span>
+                  Model
                 </label>
                 <input
                   type="text"
@@ -653,7 +649,6 @@ function AuctionsContent() {
                   defaultValue={formData.model}
                   onClick={(e) => e.stopPropagation()}
                   className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
-                  required
                   autoComplete="off"
                   placeholder={dbConnectionError 
                     ? "Enter model manually..." 
