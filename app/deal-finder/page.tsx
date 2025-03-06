@@ -72,7 +72,7 @@ export default function DealFinder() {
     model: '',
     yearMin: '',
     yearMax: '',
-    maxDeals: '10'
+    maxDeals: '5'
   });
 
   // Form refs for uncontrolled inputs
@@ -99,6 +99,52 @@ export default function DealFinder() {
     
     return () => clearInterval(timer);
   }, []);
+
+  // Fetch deals ending soonest when the page loads
+  useEffect(() => {
+    fetchEndingSoonDeals();
+  }, []);
+
+  // Function to fetch deals ending soonest
+  const fetchEndingSoonDeals = async () => {
+    setLoading(true);
+    setError(null);
+    setDeals([]);
+    // Set sort order to time ascending by default
+    setSortOrder('timeAsc');
+
+    try {
+      // Build query parameters - only include maxDeals
+      const params = new URLSearchParams();
+      params.append('maxDeals', formData.maxDeals);
+
+      // Fetch deals from the API
+      const response = await fetch(`/api/deal-finder?${params.toString()}`);
+      
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+
+      // Handle error message from API
+      if (data.message) {
+        setError(data.message);
+        return;
+      }
+      
+      if (data.deals && data.deals.length > 0) {
+        setDeals(data.deals);
+      } else {
+        setError('No deals found. Try different search parameters.');
+      }
+    } catch (error) {
+      console.error('Error fetching deals:', error);
+      setError('Failed to fetch deals. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Fetch make suggestions from Supabase with debounce
   const fetchMakeSuggestions = async (query: string) => {
@@ -240,9 +286,9 @@ export default function DealFinder() {
     const yearMax = yearMaxInputRef.current?.value || '';
     const maxDeals = formData.maxDeals; // Use the default value from formData
     
-    // Validate required fields
-    if (!make) {
-      setError('Make is a required field');
+    // If all fields are empty, fetch ending soon deals
+    if (!make && !model && !yearMin && !yearMax) {
+      fetchEndingSoonDeals();
       return;
     }
     
@@ -257,7 +303,6 @@ export default function DealFinder() {
     
     // Update form data state
     setFormData(submissionData);
-    
     setLoading(true);
     setError(null);
     setDeals([]);
@@ -814,7 +859,10 @@ export default function DealFinder() {
           <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden p-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                {deals.length} Deal{deals.length !== 1 ? 's' : ''} Found
+                {formData.make || formData.model || formData.yearMin || formData.yearMax ? 
+                  `${deals.length} Deal${deals.length !== 1 ? 's' : ''} Found` : 
+                  `Top ${deals.length} Auctions Ending Soon`
+                }
               </h2>
               
               <div className="mt-3 sm:mt-0">
@@ -833,6 +881,12 @@ export default function DealFinder() {
                 </select>
               </div>
             </div>
+            
+            {!formData.make && !formData.model && !formData.yearMin && !formData.yearMax && (
+              <div className="mb-6 text-gray-600 dark:text-gray-300">
+                <p>Showing the top auctions ending soonest across all makes and models. Use the search form above to find specific deals by make, model, and year range.</p>
+              </div>
+            )}
             
             <div className="space-y-8">
               {sortedDeals.map((deal, index) => (

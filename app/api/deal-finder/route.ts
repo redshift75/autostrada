@@ -101,7 +101,7 @@ export async function GET(request: NextRequest) {
     const endDate = new Date(now);
     endDate.setDate(endDate.getDate() + 3); // Look for auctions ending in the next 3 days
 
-    const endingSoon = filteredListings.filter(listing => {
+    let endingSoon = filteredListings.filter(listing => {
       if (!listing.endDate) {
         console.log(`Listing missing endDate: ${listing.title}`);
         return false;
@@ -112,8 +112,9 @@ export async function GET(request: NextRequest) {
       
       return auctionEndDate >= now && auctionEndDate <= endDate;
     });
-    
-    console.log(`Auctions ending within 3 days: ${endingSoon.length}`);
+
+    endingSoon = endingSoon.slice(0, maxDeals);
+    console.log(`Auctions ending soon : ${endingSoon.length}`);
     
     if (endingSoon.length === 0) {
       return NextResponse.json({ 
@@ -156,7 +157,7 @@ export async function GET(request: NextRequest) {
             model: listingModel,
             yearMin: histYearMin,
             yearMax: histYearMax,
-            maxPages: 10
+            maxPages: 1
           }),
         });
         

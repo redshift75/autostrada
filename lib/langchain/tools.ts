@@ -168,8 +168,7 @@ export const createAuctionResultsTool = () => {
         // Ensure we have a valid base URL
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
         const apiUrl = new URL('/api/auction/results', baseUrl).toString();
-        
-        // Use the API route instead of the scraper directly
+        console.log("In tool calling fetch: ", apiUrl);
         const response = await fetch(apiUrl, {
           method: 'POST',
           headers: {
