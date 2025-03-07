@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
         query = query.neq('status', 'sold');
       }
     }
-    
+    console.log("Query: ", query);
     // Execute the query
     const { data: supabaseResults, error: supabaseError } = await query;
     

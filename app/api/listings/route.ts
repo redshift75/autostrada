@@ -2,33 +2,58 @@ import { NextResponse } from 'next/server';
 import { generateListingPriceHistogram, generateScatterPlot } from '../../../lib/utils/visualization';
 import { Listing } from '@/components/listings/ListingCard';
 
-// Define the response type for Auto.dev API based on actual response
-type AutoDevListingsResponse = {
-  totalCount: number;
-  totalCountFormatted: string;
-  hitsCount: number;
-  records: Array<{
-    id: number;
+// Define the response type for MarketCheck API based on actual response
+type MarketCheckListingsResponse = {
+  num_found: number;
+  listings: Array<{
+    id: string;
     vin: string;
-    displayColor: string | null;
-    year: number;
-    make: string;
-    model: string;
-    price: string;
-    mileage: string;
-    city: string;
-    state: string;
-    primaryPhotoUrl: string;
-    trim: string;
-    bodyStyle: string;
-    dealerName: string;
-    mileageUnformatted: number;
-    priceUnformatted: number;
-    photoUrls: string[];
-    description?: string;
-    clickoffUrl: string;
-    createdAt: string;
-    updatedAt: string;
+    heading: string;
+    price?: number;
+    miles?: number;
+    msrp?: number;
+    vdp_url: string;
+    exterior_color?: string;
+    interior_color?: string;
+    seller_type?: string;
+    inventory_type?: string;
+    stock_no?: string;
+    last_seen_at_date?: string;
+    first_seen_at_date?: string;
+    source?: string;
+    media?: {
+      photo_links?: string[];
+      photo_links_cached?: string[];
+    };
+    dealer?: {
+      id?: number;
+      website?: string;
+      name?: string;
+      dealer_type?: string;
+      street?: string;
+      city?: string;
+      state?: string;
+      country?: string;
+      zip?: string;
+      phone?: string;
+    };
+    build?: {
+      year: number;
+      make: string;
+      model: string;
+      trim?: string;
+      body_type?: string;
+      vehicle_type?: string;
+      transmission?: string;
+      drivetrain?: string;
+      fuel_type?: string;
+      engine?: string;
+      engine_size?: number;
+      doors?: number;
+      cylinders?: number;
+      highway_mpg?: number;
+      city_mpg?: number;
+    };
   }>;
 };
 
@@ -68,28 +93,10 @@ type TransformedListing = {
   vin: string;
 };
 
-// Helper function to ensure URLs have proper protocol
-function ensureAbsoluteUrl(url: string | null): string | null {
-  if (!url) return null;
-  
-  // If the URL starts with '//', add https: to make it absolute
-  if (url.startsWith('//')) {
-    return `https:${url}`;
-  }
-   
-  // If the URL is relative (starts with '/'), add the base domain
-  if (url.startsWith('/') && !url.startsWith('//')) {
-    return `https://auto.dev${url}`;
-  }
-  
-  // If the URL already has a protocol, return it as is
-  return url;
-}
-
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { make, model, yearMin, yearMax, maxResults = 50 } = body;
+    const { make, model, yearMin, yearMax, maxResults = 100 } = body;
 
     // Validate required parameters
     if (!make) {
@@ -100,7 +107,7 @@ export async function POST(request: Request) {
     }
 
     // Get API key from environment variables
-    const apiKey = process.env.AUTO_DEV_API_KEY;
+    const apiKey = process.env.MARKETCHECK_API_KEY;
     const useMockData = !apiKey || process.env.USE_MOCK_DATA === 'true';
     
     let transformedListings: TransformedListing[] = [];
@@ -118,18 +125,25 @@ export async function POST(request: Request) {
     } else {
       // Build query parameters
       const params = new URLSearchParams();
+      params.append('api_key', apiKey);
       params.append('make', make);
-      params.append('model', model);
-      if (yearMin) params.append('year_min', yearMin.toString());
-      if (yearMax) params.append('year_max', yearMax.toString());
-      params.append('limit', maxResults.toString());
-
-      // Call Auto.dev API
+      if (model) params.append('model', model);
+      if (yearMin && yearMax && yearMin === yearMax) {
+        params.append('year', yearMin.toString());
+      } else {
+        if (yearMin) params.append('year_min', yearMin.toString());
+        if (yearMax) params.append('year_max', yearMax.toString());
+      }
+      params.append('include_relevant_links', 'true');
+      // Set a reasonable limit for results
+      params.append('rows', maxResults.toString());
+      
+      console.log("Params: ", params.toString());
+      // Call MarketCheck API
       const response = await fetch(
-        `https://auto.dev/api/listings?${params.toString()}`,
+        `https://mc-api.marketcheck.com/v2/search/car/active?${params.toString()}`,
         {
           headers: {
-            'X-API-Key': apiKey,
             'Content-Type': 'application/json',
           },
         }
@@ -137,21 +151,21 @@ export async function POST(request: Request) {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Auto.dev API error:', response.status, errorText);
+        console.error('MarketCheck API error:', response.status, errorText);
         return NextResponse.json(
           { error: `API error: ${response.status}` },
           { status: response.status }
         );
       }
 
-      const data = await response.json();
+      const data: MarketCheckListingsResponse = await response.json();
       
       // Check if data has the expected structure
-      if (!data) {
-        console.error('Empty API response');
+      if (!data || !data.listings) {
+        console.error('Empty API response or missing listings array');
         return NextResponse.json(
           { 
-            error: 'Empty API response',
+            error: 'Empty API response or missing listings array',
             results: [],
             pagination: { totalResults: 0, totalPages: 0, currentPage: 0 },
             summary: { totalResults: 0, averagePrice: 0, highestPrice: 0, lowestPrice: 0 },
@@ -161,129 +175,66 @@ export async function POST(request: Request) {
         );
       }
       
-      // Handle the actual API response format
-      if (data.records && Array.isArray(data.records)) {
-        // Using the actual response format
-        totalResults = data.totalCount || data.records.length;
+      // Handle the MarketCheck API response format
+      totalResults = data.num_found || data.listings.length;
+      
+      transformedListings = data.listings.map((listing) => {
+        // Get the primary image URL
+        const photoLinks = listing.media?.photo_links || [];
+        const primaryImageUrl = photoLinks.length > 0 ? photoLinks[0] : null;
+
+        // Get a secondary image for the large view if available
+        const secondaryImageUrl = photoLinks.length > 1 ? photoLinks[1] : null;
+                                 
+        // Extract year, make, model from build or from heading
+        const year = listing.build?.year || parseInt(listing.heading?.split(' ')[0] || '0');
+        const make = listing.build?.make || '';
+        const model = listing.build?.model || '';
+        const trim = listing.build?.trim || '';
         
-        transformedListings = data.records.map((record: any) => {
-          // Parse price from string to number
-          let priceValue = 0;
-          if (record.priceUnformatted) {
-            priceValue = record.priceUnformatted;
-          } else if (record.price && typeof record.price === 'string' && record.price !== 'accepting_offers') {
-            // Remove non-numeric characters and convert to number
-            priceValue = parseInt(record.price.replace(/[^0-9]/g, '')) || 0;
-          }
-          
-          // Parse mileage from string to number
-          let mileageValue = 0;
-          if (record.mileageUnformatted) {
-            mileageValue = record.mileageUnformatted;
-          } else if (record.mileage && typeof record.mileage === 'string') {
-            // Remove non-numeric characters and convert to number
-            mileageValue = parseInt(record.mileage.replace(/[^0-9]/g, '')) || 0;
-          }
-          
-          // Ensure image URLs have proper protocols
-          const primaryPhotoUrl = ensureAbsoluteUrl(record.primaryPhotoUrl);
-          const thumbnailUrl = ensureAbsoluteUrl(record.thumbnailUrl || record.primaryPhotoUrl || '');
-          const thumbnailUrlLarge = ensureAbsoluteUrl(record.thumbnailUrlLarge || record.primaryPhotoUrl || '');
-          
-          return {
-            title: `${record.year} ${record.make} ${record.model} ${record.trim || ''}`.trim(),
-            price: priceValue,
-            mileage: mileageValue,
-            exterior_color: record.displayColor || null,
-            interior_color: null,
-            drive_train: null,
-            transmission: null,
-            engine: null,
-            body_style: record.bodyStyle || null,
-            fuel_type: null,
-            mpg_city: null,
-            mpg_highway: null,
-            url: record.clickoffUrl || '',
-            image_url: primaryPhotoUrl,
-            images: record.photoUrls && record.photoUrls.length > 0 ? { 
-              small: { 
-                url: thumbnailUrl, 
-                width: 300, 
-                height: 200 
-              },
-              large: { 
-                url: thumbnailUrlLarge, 
-                width: 800, 
-                height: 600 
-              }
-            } : null,
-            dealer: {
-              name: record.dealerName || '',
-              address: null,
-              city: record.city || '',
-              state: record.state || '',
-              zip: null,
-              phone: null
+        return {
+          title: listing.heading || `${year} ${make} ${model} ${trim}`.trim(),
+          price: listing.price || 0,
+          mileage: listing.miles || 0,
+          exterior_color: listing.exterior_color || null,
+          interior_color: listing.interior_color || null,
+          drive_train: listing.build?.drivetrain || null,
+          transmission: listing.build?.transmission || null,
+          engine: listing.build?.engine || null,
+          body_style: listing.build?.body_type || null,
+          fuel_type: listing.build?.fuel_type || null,
+          mpg_city: listing.build?.city_mpg || null,
+          mpg_highway: listing.build?.highway_mpg || null,
+          url: listing.vdp_url || '',
+          image_url: primaryImageUrl,
+          images: primaryImageUrl ? { 
+            small: { 
+              url: primaryImageUrl, 
+              width: 300, 
+              height: 200 
             },
-            description: record.description || `${record.year} ${record.make} ${record.model} ${record.trim || ''}`,
-            listed_date: record.updatedAt || record.createdAt || new Date().toISOString(),
-            make: record.make,
-            model: record.model,
-            year: record.year,
-            vin: record.vin,
-          };
-        });
-      } else if (data.listings && Array.isArray(data.listings)) {
-        // Using the expected response format from the original code
-        totalResults = data.pagination?.totalResults || data.listings.length;
-        
-        transformedListings = data.listings.map((listing: any) => {
-          // Ensure image URLs have proper protocols
-          const imageUrls = listing.images && listing.images.length > 0 
-            ? listing.images.map((url: string) => ensureAbsoluteUrl(url))
-            : [];
-          
-          return {
-            title: `${listing.year} ${listing.make} ${listing.model} ${listing.trim || ''}`.trim(),
-            price: listing.price,
-            mileage: listing.mileage,
-            exterior_color: listing.exteriorColor,
-            interior_color: listing.interiorColor,
-            drive_train: listing.driveTrain,
-            transmission: listing.transmission,
-            engine: listing.engine,
-            body_style: listing.bodyStyle,
-            fuel_type: listing.fuelType,
-            mpg_city: listing.mpgCity,
-            mpg_highway: listing.mpgHighway,
-            url: listing.clickoffUrl,
-            image_url: imageUrls.length > 0 ? imageUrls[0] : null,
-            images: imageUrls.length > 0 ? { 
-              small: { url: imageUrls[0], width: 300, height: 200 },
-              large: imageUrls.length > 1 ? { url: imageUrls[1], width: 800, height: 600 } : { url: imageUrls[0], width: 800, height: 600 }
-            } : null,
-            dealer: listing.dealer,
-            description: listing.description,
-            listed_date: listing.listedDate,
-            make: listing.make,
-            model: listing.model,
-            year: listing.year,
-            vin: listing.vin,
-          };
-        });
-      } else {
-        console.error('Unexpected API response format:', data);
-        return NextResponse.json(
-          { 
-            error: 'Unexpected API response format',
-            results: [],
-            pagination: { totalResults: 0, totalPages: 0, currentPage: 0 },
-            summary: { totalResults: 0, averagePrice: 0, highestPrice: 0, lowestPrice: 0 },
-            visualizations: null
+            large: { 
+              url: secondaryImageUrl || primaryImageUrl, 
+              width: 800, 
+              height: 600 
+            }
+          } : null,
+          dealer: {
+            name: listing.dealer?.name || '',
+            address: listing.dealer?.street || null,
+            city: listing.dealer?.city || '',
+            state: listing.dealer?.state || '',
+            zip: listing.dealer?.zip || null,
+            phone: listing.dealer?.phone || null
           },
-          { status: 200 }
-        );
-      }
+          description: listing.heading || `${year} ${make} ${model} ${trim}`,
+          listed_date: listing.first_seen_at_date || new Date().toISOString(),
+          make: make,
+          model: model,
+          year: year,
+          vin: listing.vin || '',
+        };
+      });
     }
 
     // Calculate summary statistics

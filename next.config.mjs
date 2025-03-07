@@ -4,16 +4,14 @@
 const nextConfig = {
   images: {
     remotePatterns: [
-      { hostname: 'auto.dev' },
-      { hostname: 'production-assets2.auto.dev' },
-      { hostname: 'vehicle-photos-published.vauto.com' },
-      { hostname: 'cdn.max.auto' },
-      { hostname: 'pictures.dealer.com' },
-      { hostname: 'images.dealersync.com' },
-      { hostname: 'content.homenetiol.com' },
-      { hostname: 'placehold.co' },
-      { hostname: 'via.placeholder.com' },
-      { hostname: 'bringatrailer.com' }
+      {
+        protocol: "https",
+        hostname: "**",
+      },
+      {
+        protocol: "http",
+        hostname: "**",
+      },
     ],
   },
   eslint: {

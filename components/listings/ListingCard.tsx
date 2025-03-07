@@ -57,31 +57,6 @@ function ensureAbsoluteUrl(url: string | null): string | null {
   return url;
 }
 
-// List of allowed image domains from next.config.js
-const ALLOWED_DOMAINS = [
-  'auto.dev',
-  'production-assets2.auto.dev',
-  'vehicle-photos-published.vauto.com',
-  'cdn.max.auto',
-  'pictures.dealer.com',
-  'images.dealersync.com',
-  'content.homenetiol.com',
-  'via.placeholder.com',
-  'placehold.co'
-];
-
-// Check if an image URL is from an allowed domain
-function isAllowedImageDomain(url: string | null): boolean {
-  if (!url) return false;
-  
-  try {
-    const hostname = new URL(url).hostname;
-    return ALLOWED_DOMAINS.some(domain => hostname.includes(domain));
-  } catch (e) {
-    return false;
-  }
-}
-
 // Get a fallback image URL
 function getFallbackImageUrl(make: string, model: string): string {
   return `https://placehold.co/600x400/png?text=${encodeURIComponent(`${make} ${model}`)}`;
@@ -114,19 +89,15 @@ export default function ListingCard({ listing }: ListingCardProps) {
   
   // Determine which image URL to use
   const fallbackImageUrl = getFallbackImageUrl(listing.make, listing.model);
-  const isImageAllowed = isAllowedImageDomain(processedImageUrl);
-  
+ 
   // Use fallback image if original image is not from an allowed domain or if there was an error
-  const imageUrl = (!imageError && isImageAllowed && processedImageUrl) 
-    ? processedImageUrl 
-    : fallbackImageUrl;
-  
+  const imageUrl = processedImageUrl;
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
       <div className="relative h-48 bg-gray-200">
         {imageUrl ? (
           <>
-            {isImageAllowed ? (
               <Image
                 src={imageUrl}
                 alt={listing.title}
@@ -135,16 +106,7 @@ export default function ListingCard({ listing }: ListingCardProps) {
                 className="object-cover"
                 onError={() => setImageError(true)}
               />
-            ) : (
-              // For non-allowed domains, use a regular img tag as fallback
-              <div className="h-full w-full relative">
-                <img
-                  src={fallbackImageUrl}
-                  alt={listing.title}
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-              </div>
-            )}
+            )
           </>
         ) : (
           <div className="flex items-center justify-center h-full bg-gray-200 dark:bg-gray-700">

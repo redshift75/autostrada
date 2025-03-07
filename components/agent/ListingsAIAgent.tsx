@@ -9,10 +9,9 @@ type ListingsAIAgentProps = {
 export default function ListingsAIAgent({ listings }: ListingsAIAgentProps) {
   // Define suggestions for the AI agent
   const suggestions = [
-    "Which car has the lowest mileage?",
-    "What's the average price of these listings?",
+    "How do the best value cars compare to recent auction results?",
     "Which listing offers the best value?",
-    "Is there a low mileage car that's particularly good value?",
+    "Is there a low mileage car that's particularly well priced?",
     "Summarize these listings for me"
   ];
 
