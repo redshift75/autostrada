@@ -1,7 +1,7 @@
 /**
- * Base Scraper Class
+ * Base BAT Scraper Class
  * 
- * This abstract class provides common functionality for all scrapers, including:
+ * This abstract class provides common functionality for all BAT scrapers, including:
  * - Rate limiting and request throttling
  * - Error handling and retry mechanisms
  * - Logging utilities
@@ -93,7 +93,7 @@ const DEFAULT_CONFIG: ScraperConfig = {
   logLevel: 'info'
 };
 
-export abstract class BaseScraper {
+export abstract class BaseBATScraper {
   protected config: ScraperConfig;
   protected lastRequestTime: number = 0;
   protected requestCount: number = 0;
@@ -419,5 +419,39 @@ export abstract class BaseScraper {
    */
   public async cleanup(): Promise<void> {
     // Override in subclasses if needed
+  }
+  
+  /**
+   * Fetches HTML content from a URL with caching and rate limiting
+   * @param url The URL to fetch
+   * @param options Optional fetch options
+   * @returns The HTML content as a string
+   */
+  protected async fetchHtml(url: string, options: RequestInit = {}): Promise<string> {
+    try {
+      // Set default headers if not provided
+      const headers = new Headers(options.headers || {});
+      
+      if (!headers.has('User-Agent') && this.config.userAgents && this.config.userAgents.length > 0) {
+        const randomUserAgent = this.config.userAgents[Math.floor(Math.random() * this.config.userAgents.length)];
+        headers.set('User-Agent', randomUserAgent);
+      }
+      
+      // Update options with the headers
+      const fetchOptions = {
+        ...options,
+        headers
+      };
+      
+      // Use the fetch method which handles caching and rate limiting
+      const response = await this.fetch(url, fetchOptions);
+      
+      // Get the HTML text from the response
+      const html = await response.text();
+      return html;
+    } catch (error) {
+      this.log('error', `Error fetching HTML from ${url}: ${error instanceof Error ? error.message : String(error)}`);
+      throw error;
+    }
   }
 } 

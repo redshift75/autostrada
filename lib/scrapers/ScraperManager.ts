@@ -5,9 +5,8 @@
  * for scraping data from multiple sources.
  */
 
-import { BaseScraper, ScraperConfig } from './BaseScraper';
+import { BaseBATScraper, ScraperConfig } from './BaseBATScraper';
 import { BringATrailerResultsScraper, BaTResultsScraperParams as BaTScraperParams } from './BringATrailerResultsScraper';
-import { BaTCompletedListing as BaTListing } from './BringATrailerResultsScraper';
 import { ListingSource } from '../standardization/listingData';
 
 // Types for scraper manager configuration
@@ -28,7 +27,7 @@ export interface SearchParams {
 }
 
 export class ScraperManager {
-  private scrapers: Map<ListingSource, BaseScraper> = new Map();
+  private scrapers: Map<ListingSource, BaseBATScraper> = new Map();
   private config: ScraperManagerConfig;
   
   constructor(config: ScraperManagerConfig = {}) {
@@ -55,14 +54,14 @@ export class ScraperManager {
   /**
    * Register a scraper for a specific source
    */
-  public registerScraper(source: ListingSource, scraper: BaseScraper): void {
+  public registerScraper(source: ListingSource, scraper: BaseBATScraper): void {
     this.scrapers.set(source, scraper);
   }
   
   /**
    * Get a scraper for a specific source
    */
-  public getScraper(source: ListingSource): BaseScraper | undefined {
+  public getScraper(source: ListingSource): BaseBATScraper | undefined {
     return this.scrapers.get(source);
   }
   

@@ -1,7 +1,8 @@
 import axios from 'axios';
 import '../server-only';
-import { BaseScraper } from './BaseScraper';
+import { BaseBATScraper } from './BaseBATScraper';
 import { extractMileageFromTitle, fetchDetailsFromListingPage } from './utils/BATDetailsExtractor';
+import { parseTitle } from './utils/BaTScraperUtils';
 
 // Import Node.js modules conditionally
 let fs: any;
@@ -67,7 +68,7 @@ export interface BaTResultsScraperParams {
   modelSuggestions?: string[]; // List of model suggestions for the specified make
 }
 
-export class BringATrailerResultsScraper extends BaseScraper {
+export class BringATrailerResultsScraper extends BaseBATScraper {
   private apiBaseUrl = 'https://bringatrailer.com/wp-json/bringatrailer/1.0/data/listings-filter';
   private debugDir: string;
 
@@ -263,8 +264,8 @@ export class BringATrailerResultsScraper extends BaseScraper {
           let itemModel: string | undefined = undefined;
           
           if (item.title) {
-            // Use the improved parseTitle method to extract year, make, and model
-            const titleInfo = this.parseTitle(item.title, make, modelSuggestions);
+            // Use the shared parseTitle method to extract year, make, and model
+            const titleInfo = parseTitle(item.title, make, modelSuggestions);
             itemYear = titleInfo.year;
             itemMake = titleInfo.make;
             itemModel = titleInfo.model;
@@ -373,89 +374,6 @@ export class BringATrailerResultsScraper extends BaseScraper {
       console.error('Error extracting listings from API data:', error);
       return [];
     }
-  }
-
-  private parseTitle(title: string, make: string = 'Porsche', modelSuggestions: string[] = []): { year?: number; make?: string; model?: string } {
-    // Look for a 4-digit year anywhere in the title
-    const yearMatch = title.match(/\b(19\d{2}|20\d{2})\b/);
-    const year = yearMatch ? parseInt(yearMatch[1], 10) : undefined;
-    
-    // If no year found, return early
-    if (!year) {
-      return { year: undefined, make: undefined, model: undefined };
-    }
-    
-    // Look for the make in the title
-    const makeIndex = title.toLowerCase().indexOf(make.toLowerCase());
-    if (makeIndex !== -1) {
-      // Extract the text after the make
-      const afterMake = title.substring(makeIndex + make.length).trim();
-      
-      // If we have model suggestions, try to find the best match
-      if (modelSuggestions.length > 0) {
-        // Sort model suggestions by length (descending) to prioritize longer matches
-        const sortedSuggestions = [...modelSuggestions].sort((a, b) => b.length - a.length);
-        
-        // Try to find a model suggestion in the text after the make
-        for (const modelSuggestion of sortedSuggestions) {
-          if (afterMake.includes(modelSuggestion) || modelSuggestion.includes(afterMake)) {
-            return { year, make, model: modelSuggestion };
-          } 
-        }
-      }
-      
-      const parts = afterMake.split(/\s+/);
-      
-      // The model is typically the next word or two after the make
-      let model: string | undefined;
-      
-      if (parts.length > 0) {
-        // For Porsche, handle common models with special logic
-        if (make === 'Porsche') {
-          // Check for common Porsche models
-          if (parts[0] === '911' || parts[0] === '356' || parts[0] === '944' || 
-              parts[0] === '928' || parts[0] === '968' || parts[0] === '914' || 
-              parts[0] === '718' || parts[0] === 'Cayenne' || parts[0] === 'Macan' || 
-              parts[0] === 'Panamera' || parts[0] === 'Cayman' || parts[0] === 'Boxster' || 
-              parts[0] === 'Taycan') {
-            
-            // For 911, often include the variant (Carrera, Turbo, etc.)
-            if (parts[0] === '911' && parts.length > 1) {
-              if (['Carrera', 'Turbo', 'GT3', 'GT2', 'Targa'].includes(parts[1])) {
-                // Include the variant in the model
-                model = parts[0] + ' ' + parts[1];
-                
-                // Sometimes there's more specificity (Carrera 4, Turbo S, etc.)
-                if (parts.length > 2 && ['4', 'S', 'RS', '4S'].includes(parts[2])) {
-                  model += ' ' + parts[2];
-                }
-              } else {
-                model = parts[0];
-              }
-            } else {
-              // For other models, just use the first word
-              model = parts[0];
-              
-              // Add S, Turbo, etc. if present
-              if (parts.length > 1 && ['S', 'Turbo', 'GTS', 'GT4'].includes(parts[1])) {
-                model += ' ' + parts[1];
-              }
-            }
-          } else {
-            // If not a recognized Porsche model, just use the first word
-            model = parts[0];
-          }
-        } else {
-          // For other makes, just use the first word as the model
-          model = parts[0];
-        }
-      }
-      
-      return { year, make, model };
-    }
-    
-    // If we couldn't find the make in the title, just return the year
-    return { year, make: undefined, model: undefined };
   }
 
   private filterListings(listings: BaTCompletedListing[], params: BaTResultsScraperParams): BaTCompletedListing[] {

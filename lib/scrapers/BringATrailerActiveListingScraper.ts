@@ -1,9 +1,17 @@
-import { BaseScraper } from './BaseScraper';
+import { BaseBATScraper } from './BaseBATScraper';
 import * as fs from 'fs';
 import * as path from 'path';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { fetchDetailsFromListingPage } from './utils/BATDetailsExtractor';
+import { 
+  parseBidAmount, 
+  extractMakeFromTitle, 
+  extractModelFromTitle,
+  filterListingsByMake,
+  filterListingsByModel,
+  filterListingsByYear
+} from './utils/BaTScraperUtils';
 
 // Define our own BaTListing interface
 export interface BaTActiveListing {
@@ -63,7 +71,7 @@ export interface BaTActiveScraperParams {
   yearMax?: number;
 }
 
-export class BringATrailerActiveListingScraper extends BaseScraper {
+export class BringATrailerActiveListingScraper extends BaseBATScraper {
   private baseUrl = 'https://bringatrailer.com';
   private searchUrl = 'https://bringatrailer.com/auctions/';
   private static debuggedAuction = false;
@@ -75,29 +83,6 @@ export class BringATrailerActiveListingScraper extends BaseScraper {
       cacheEnabled: true,
       cacheTTL: 3600000 // 1 hour
     });
-  }
-
-  /**
-   * Fetches HTML content from a URL with caching
-   * @param url The URL to fetch
-   * @returns The HTML content as a string
-   */
-  private async fetchHtml(url: string): Promise<string> {
-    try {
-      // Use the fetch method from BaseScraper which handles caching and rate limiting
-      const response = await this.fetch(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
-      });
-      
-      // Get the HTML text from the response
-      const html = await response.text();
-      return html;
-    } catch (error) {
-      console.error(`Error fetching HTML from ${url}:`, error);
-      throw error;
-    }
   }
 
   async scrape(): Promise<BaTActiveListing[]> {
@@ -149,7 +134,7 @@ export class BringATrailerActiveListingScraper extends BaseScraper {
         const makeLower = params.make.toLowerCase();
         console.log(`Filtering by make: ${params.make}`);
         
-        filteredListings = this.filterListingsByMake(filteredListings, makeLower);
+        filteredListings = filterListingsByMake(filteredListings, makeLower);
         console.log(`After make filtering: ${filteredListings.length} listings`);
       }
       
@@ -158,31 +143,13 @@ export class BringATrailerActiveListingScraper extends BaseScraper {
         const modelLower = params.model.toLowerCase();
         console.log(`Filtering by model: ${params.model}`);
         
-        filteredListings = filteredListings.filter(listing => {
-          // Check if the extracted model matches the requested model
-          const modelMatches = listing.model.toLowerCase() === modelLower ||
-                              listing.model.toLowerCase().includes(modelLower) ||
-                              modelLower.includes(listing.model.toLowerCase());
-                              
-          // Also check if model appears in title as a fallback
-          const titleContainsModel = listing.title.toLowerCase().includes(modelLower);
-          
-          return modelMatches || titleContainsModel;
-        });
+        filteredListings = filterListingsByModel(filteredListings, modelLower);
         console.log(`After model filtering: ${filteredListings.length} listings`);
       }
       
       // Filter by year range if provided
       if (params.yearMin || params.yearMax) {
-        filteredListings = filteredListings.filter(listing => {
-          const year = parseInt(listing.year);
-          if (isNaN(year)) return false;
-          
-          if (params.yearMin && year < params.yearMin) return false;
-          if (params.yearMax && year > params.yearMax) return false;
-          
-          return true;
-        });
+        filteredListings = filterListingsByYear(filteredListings, params.yearMin, params.yearMax);
         console.log(`After year filtering: ${filteredListings.length} listings`);
       }
       
@@ -204,39 +171,6 @@ export class BringATrailerActiveListingScraper extends BaseScraper {
     }
   }
   
-  /**
-   * Filter listings by make
-   * @param listings The listings to filter
-   * @param makeLower The make to filter by (lowercase)
-   * @returns Filtered listings
-   */
-  private filterListingsByMake(listings: BaTActiveListing[], makeLower: string): BaTActiveListing[] {
-    // First try exact match on make field
-    const exactMatches = listings.filter(listing => 
-      listing.make.toLowerCase() === makeLower
-    );
-    
-    if (exactMatches.length > 0) {
-      console.log(`Found ${exactMatches.length} exact make matches for "${makeLower}"`);
-      return exactMatches;
-    }
-    
-    // If no exact matches, try partial matches
-    const partialMatches = listings.filter(listing => {
-      // Check if the extracted make contains or is contained by the requested make
-      const makeMatches = listing.make.toLowerCase().includes(makeLower) ||
-                         makeLower.includes(listing.make.toLowerCase());
-                         
-      // Also check if make appears in title as a fallback
-      const titleContainsMake = listing.title.toLowerCase().includes(makeLower);
-      
-      return makeMatches || titleContainsMake;
-    });
-    
-    console.log(`Found ${partialMatches.length} partial make matches for "${makeLower}"`);
-    return partialMatches;
-  }
-
   private async extractAuctionsData(html: string): Promise<BaTAuctionsData | null> {
     try {
       // The auction data appears to be directly embedded in the HTML as a JSON array
@@ -365,7 +299,7 @@ export class BringATrailerActiveListingScraper extends BaseScraper {
           
           // Improved bid extraction
           const currentBidText = $el.find('.auction-price').text().trim();
-          const currentBid = this.parseBidAmount(currentBidText);
+          const currentBid = parseBidAmount(currentBidText);
           
           const thumbnailUrl = $el.find('img').attr('src') || '';
           const country = $el.find('.auction-location').text().trim();
@@ -416,30 +350,6 @@ export class BringATrailerActiveListingScraper extends BaseScraper {
     }
   }
 
-  /**
-   * Parse a bid amount from a string
-   * @param bidText The bid text to parse
-   * @returns The bid amount as a number
-   */
-  private parseBidAmount(bidText: string): number {
-    if (!bidText) return 0;
-    
-    // Check for "No Reserve" or other non-price text
-    if (/no reserve|reserve not met|bid|comment|watching/i.test(bidText) && !/\d/.test(bidText)) {
-      return 0;
-    }
-    
-    // Handle "Bid to" or other prefixes
-    const cleanText = bidText.replace(/^(Bid to|Current Bid:|Price:|Sold for:)\s*/i, '');
-    
-    // Remove currency symbols and commas
-    const numericText = cleanText.replace(/[$,€£¥]/g, '');
-    
-    // Parse the number
-    const amount = parseInt(numericText.trim());
-    return isNaN(amount) ? 0 : amount;
-  }
-
   private convertAuctionToBaTListing(auction: BaTAuction): BaTActiveListing {
     // Extract location from country
     const location = auction.country || '';
@@ -457,9 +367,9 @@ export class BringATrailerActiveListingScraper extends BaseScraper {
       soldPrice = auction.current_bid;
     }
     
-    // Extract make and model
-    const make = this.extractMakeFromTitle(auction.title);
-    const model = this.extractModelFromTitle(auction.title, make);
+    // Extract make and model using shared utility functions
+    const make = extractMakeFromTitle(auction.title);
+    const model = extractModelFromTitle(auction.title, make);
     
     // Create the listing object
     const listing: BaTActiveListing = {
@@ -481,67 +391,5 @@ export class BringATrailerActiveListingScraper extends BaseScraper {
       sold_price: soldPrice > 0 ? soldPrice : undefined,
     };
     return listing;
-  }
-  
-  private extractMakeFromTitle(title: string): string {
-    // Common car makes to look for in the title
-    const commonMakes = [
-      'Porsche', 'Ferrari', 'Mercedes-Benz', 'Mercedes', 'BMW', 'Audi', 'Volkswagen', 'VW',
-      'Toyota', 'Honda', 'Nissan', 'Mazda', 'Subaru', 'Lexus', 'Acura', 'Infiniti',
-      'Ford', 'Chevrolet', 'Chevy', 'Dodge', 'Jeep', 'Cadillac', 'Lincoln', 'Buick',
-      'Jaguar', 'Land Rover', 'Range Rover', 'Aston Martin', 'Bentley', 'Rolls-Royce',
-      'Lamborghini', 'Maserati', 'Alfa Romeo', 'Fiat', 'Lancia', 'Bugatti'
-    ];
-    
-    // Convert title to lowercase for case-insensitive matching
-    const titleLower = title.toLowerCase();
-    
-    // Check if any of the common makes are in the title (case-insensitive)
-    for (const make of commonMakes) {
-      if (titleLower.includes(make.toLowerCase())) {
-        return make; // Return the properly capitalized make
-      }
-    }
-    
-    // If no common make is found, try to extract the make from the year pattern
-    // e.g., "1995 Porsche 911" -> "Porsche"
-    const yearMakePattern = /\d{4}\s+([A-Za-z-]+)/;
-    const match = title.match(yearMakePattern);
-    
-    if (match && match[1]) {
-      // Check if the extracted make is one of our common makes
-      const extractedMake = match[1];
-      const matchedCommonMake = commonMakes.find(make => 
-        make.toLowerCase() === extractedMake.toLowerCase()
-      );
-      
-      return matchedCommonMake || extractedMake;
-    }
-    
-    return '';
-  }
-  
-  private extractModelFromTitle(title: string, make: string): string {
-    if (!make) return '';
-    
-    // Try to extract the model after the make
-    const modelPattern = new RegExp(`${make}\\s+([A-Za-z0-9-]+)`, 'i'); // Case-insensitive
-    const match = title.match(modelPattern);
-    
-    if (match && match[1]) {
-      return match[1];
-    }
-    
-    // If no model found after make, try to find common model patterns
-    // For BMW, look for M followed by a number
-    if (make.toLowerCase() === 'bmw') {
-      const bmwModelPattern = /\bM[1-8](?:\s|$|\b)/i;
-      const bmwMatch = title.match(bmwModelPattern);
-      if (bmwMatch) {
-        return bmwMatch[0].trim();
-      }
-    }
-    
-    return '';
   }
 } 
