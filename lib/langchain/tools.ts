@@ -1,6 +1,5 @@
 import { DynamicStructuredTool } from "@langchain/core/tools";
 import { z } from "zod";
-import { generatePriceTimeSeriesChart, generatePriceHistogram } from "../utils/visualization";
 
 // Tool to search for vehicles by criteria
 export const createVehicleSearchTool = () => {
@@ -159,12 +158,11 @@ export const createAuctionResultsTool = () => {
       yearMin: z.number().optional().describe("The minimum year to filter results"),
       yearMax: z.number().optional().describe("The maximum year to filter results"),
       maxPages: z.number().optional().describe("Maximum number of pages to fetch (default: 2)"),
-      generateVisualizations: z.boolean().optional().describe("Whether to generate visualizations of the results (default: false)"),
       maxResults: z.number().optional().describe("Maximum number of results to return (default: 100)"),
       sortBy: z.enum(["price_high_to_low", "price_low_to_high", "date_newest_first", "date_oldest_first", "mileage_lowest_first", "mileage_highest_first"]).optional().describe("How to sort the results before limiting them (default: date_newest_first)"),
       status: z.enum(["sold", "unsold", "all"]).optional().describe("Filter results by sold status (default: all)"),
     }),
-    func: async ({ make, model, yearMin, yearMax, maxPages, generateVisualizations = false, maxResults = 100, sortBy = "date_newest_first", status = "all" }) => {
+    func: async ({ make, model, yearMin, yearMax, maxPages, maxResults = 100, sortBy = "date_newest_first", status = "all" }) => {
       try {
         console.log(`Fetching auction results for ${make} ${model || ''} (${yearMin || 'any'}-${yearMax || 'any'}), status: ${status}`);
         
@@ -252,33 +250,7 @@ export const createAuctionResultsTool = () => {
             data.summary = `${data.summary} (showing ${maxResults} of ${data.results.length} results, sorted by ${sortBy})`;
           }
         }
-        
-        // Generate visualizations if requested
-        let visualizations = {};
-        if (generateVisualizations && data.results && data.results.length > 0) {
-          console.log('Generating visualization specifications...');
-          try {
-            // Generate time series chart Vega-Lite specification (not SVG)
-            const timeSeriesChartSpec = await generatePriceTimeSeriesChart(data.results);
-            
-            // Generate price histogram Vega-Lite specification (not SVG)
-            const priceHistogramSpec = await generatePriceHistogram(data.results);
-            
-            visualizations = {
-              timeSeriesChart: timeSeriesChartSpec,
-              priceHistogram: priceHistogramSpec
-            };
-            
-            console.log('Visualization specifications generated successfully');
-          } catch (error) {
-            console.error('Error generating visualizations:', error);
-            visualizations = {
-              error: 'Failed to generate visualizations',
-              details: error instanceof Error ? error.message : 'Unknown error'
-            };
-          }
-        }
-        
+         
         // Return a summary, visualizations (if generated), and the results
         return JSON.stringify({
           query: {
@@ -289,7 +261,6 @@ export const createAuctionResultsTool = () => {
             status
           },
           summary: data.summary,
-          visualizations: generateVisualizations ? visualizations : undefined,
           results: data.results,
           source: data.source
         });

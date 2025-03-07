@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { generateListingPriceHistogram, generateScatterPlot } from '../../../lib/utils/visualization';
-import { Listing } from '@/components/listings/ListingCard';
+import { generateHistogram, generateScatterPlot } from '../../../lib/utils/visualization';
 
 // Define the response type for MarketCheck API based on actual response
 type MarketCheckListingsResponse = {
@@ -304,11 +303,15 @@ function generateVisualizations(listings: TransformedListing[]) {
     return null;
   }
 
-  // Create price histogram using the refactored function
-  const priceHistogram = generateListingPriceHistogram(priceData as unknown as Listing[], {
+  // Create price histogram using the new generateHistogram function
+  const priceHistogram = generateHistogram(priceData, {
+    field: 'price',
     description: 'Listing Price Distribution',
     xAxisTitle: 'Price ($)',
-    yAxisTitle: 'Number of Listings'
+    yAxisTitle: 'Number of Vehicles',
+    filter: (listing) => listing.price > 0,
+    additionalFields: ['title', 'url', 'year', 'make', 'model'],
+    interactive: true
   });
 
   // Create price vs. mileage scatter plot using the refactored function

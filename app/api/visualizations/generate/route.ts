@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateVegaLiteSpec } from '../../../../lib/utils/visualization';
-import { generatePriceTimeSeriesChart, generatePriceHistogram } from '../../../../lib/utils/visualization';
+import { generatePriceTimeSeriesChart, generateHistogram } from '../../../../lib/utils/visualization';
 import fs from 'fs';
 import path from 'path';
 
@@ -26,8 +26,22 @@ export async function POST(request: NextRequest) {
       // Generate time series chart Vega-Lite specification
       const timeSeriesChartSpec = await generatePriceTimeSeriesChart(results);
       
-      // Generate price histogram Vega-Lite specification
-      const priceHistogramSpec = await generatePriceHistogram(results);
+      // Generate price histogram Vega-Lite specification using the new generateHistogram function
+      const priceHistogramSpec = generateHistogram(results, {
+        field: 'sold_price',
+        description: 'Auction Price Distribution',
+        xAxisTitle: 'Price Range ($)',
+        yAxisTitle: 'Number of Vehicles',
+        filter: (item) => Boolean(item.status === 'sold' && item.sold_price),
+        transform: (item) => ({
+          sold_price: typeof item.sold_price === 'number' 
+            ? item.sold_price 
+            : parseInt(item.sold_price?.replace(/[^0-9]/g, '') || '0'),
+          title: item.title,
+          url: item.url
+        }),
+        interactive: true
+      });
       
       // Create a result object with visualizations
       parsedResult = {

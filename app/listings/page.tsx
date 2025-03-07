@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import ListingCard, { Listing } from '@/components/listings/ListingCard';
 import ListingsAIAgent from '@/components/agent/ListingsAIAgent';
-import { generateListingPriceHistogram, generateListingMileageHistogram } from '@/lib/utils/visualization';
+import { generateHistogram } from '@/lib/utils/visualization';
 import type { TopLevelSpec } from 'vega-lite';
 import VegaChart from '@/components/shared/VegaChart';
 
@@ -417,7 +417,15 @@ function ListingsContent() {
         console.log('Valid mileage listings:', validMileageListings.length);
         
         if (validPriceListings.length > 0) {
-          const priceHistogramSpec = generateListingPriceHistogram(validPriceListings);
+          const priceHistogramSpec = generateHistogram(validPriceListings, {
+            field: 'price',
+            description: 'Listing Price Distribution',
+            xAxisTitle: 'Price Range ($)',
+            yAxisTitle: 'Number of Vehicles',
+            filter: (listing) => listing.price > 0,
+            additionalFields: ['title', 'url', 'year', 'make', 'model'],
+            interactive: true
+          });
           console.log('Price histogram spec generated:', priceHistogramSpec);
           setPriceHistogram(priceHistogramSpec);
         } else {
@@ -426,7 +434,15 @@ function ListingsContent() {
         }
         
         if (validMileageListings.length > 0) {
-          const mileageHistogramSpec = generateListingMileageHistogram(validMileageListings);
+          const mileageHistogramSpec = generateHistogram(validMileageListings, {
+            field: 'mileage',
+            description: 'Listing Mileage Distribution',
+            xAxisTitle: 'Mileage Range',
+            yAxisTitle: 'Number of Vehicles',
+            filter: (listing) => listing.mileage > 0,
+            additionalFields: ['title', 'url', 'year', 'make', 'model'],
+            interactive: true
+          });
           console.log('Mileage histogram spec generated:', mileageHistogramSpec);
           setMileageHistogram(mileageHistogramSpec);
         } else {

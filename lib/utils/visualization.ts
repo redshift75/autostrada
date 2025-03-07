@@ -153,16 +153,15 @@ export async function generatePriceTimeSeriesChart(
 }
 
 /**
- * Generic function to generate a histogram specification
+ * Generates a histogram specification for any numeric data
  * @param data The data to visualize
- * @param field The field to create histogram for
- * @param config Chart configuration options
+ * @param options Configuration options for the histogram
  * @returns The Vega-Lite specification for client-side rendering
  */
-export function generateHistogram(
-  data: any[],
-  field: string,
-  config: {
+export function generateHistogram<T extends Record<string, any>>(
+  data: T[],
+  options: {
+    field: string;
     description?: string;
     title?: string;
     xAxisTitle?: string;
@@ -172,24 +171,85 @@ export function generateHistogram(
     interactive?: boolean;
     width?: number | 'container';
     height?: number;
-  } = {}
+    filter?: (item: T) => boolean;
+    transform?: (item: T) => any;
+    additionalFields?: string[];
+    tooltipFields?: Array<{
+      field?: string;
+      aggregate?: 'count' | 'sum' | 'mean' | 'average' | 'median' | 'q1' | 'q3' | 'min' | 'max' | 'stdev' | 'stdevp' | 'variance' | 'variancep' | 'distinct' | 'argmin' | 'argmax';
+      bin?: { maxbins: number };
+      type: FieldType;
+      title?: string;
+      format?: string;
+    }>;
+  }
 ): vegaLite.TopLevelSpec {
   try {
+    const {
+      field,
+      filter,
+      transform,
+      additionalFields = [],
+      maxBins = 20,
+      interactive = false,
+      valueFormat,
+      width = 800,
+      height = 400
+    } = options;
+
+    // Filter and transform data if needed
+    let filteredData = [...data]; // Create a copy to avoid modifying the original
+    if (filter) {
+      filteredData = filteredData.filter(filter);
+    }
+    
+    // Process the data for visualization
+    let processedData: any[] = filteredData;
+    if (transform) {
+      processedData = filteredData.map(item => transform(item));
+    } else if (additionalFields.length > 0) {
+      // If no transform function but additionalFields are specified, create a default transform
+      processedData = filteredData.map(item => {
+        const result: Record<string, any> = { [field]: item[field] };
+        
+        // Add any additional fields specified
+        additionalFields.forEach(fieldName => {
+          if (fieldName in item) {
+            result[fieldName] = item[fieldName];
+          }
+        });
+        
+        return result;
+      });
+    }
+
     // Create mark configuration
-    const mark = config.interactive 
+    const mark = interactive 
       ? {
           type: 'bar' as MarkType,
           cursor: 'pointer' as CursorType
         }
       : 'bar';
 
+    // Default tooltip fields if not provided
+    const tooltipFields = options.tooltipFields || [
+      { aggregate: 'count', type: 'quantitative', title: 'Count' },
+      { 
+        field, 
+        bin: { maxbins: maxBins }, 
+        type: 'quantitative', 
+        title: `${field.charAt(0).toUpperCase() + field.slice(1)} Range`, 
+        format: valueFormat || (field.toLowerCase() === 'price' ? '$,.0f' : ',.0f') 
+      }
+    ];
+
     // Create a Vega-Lite specification
     const spec: vegaLite.TopLevelSpec = {
       $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
-      description: config.description || `${field.charAt(0).toUpperCase() + field.slice(1)} Distribution`,
-      width: config.width || 800,
-      height: config.height || 400,
-      data: { values: data },
+      description: options.description || `${field.charAt(0).toUpperCase() + field.slice(1)} Distribution`,
+      width,
+      height,
+      data: { values: processedData },
       autosize: {
         type: "fit",
         contains: "padding",
@@ -198,31 +258,22 @@ export function generateHistogram(
       mark,
       encoding: {
         x: {
-          bin: { maxbins: config.maxBins || 20 },
+          bin: { maxbins: maxBins },
           field,
           type: 'quantitative',
-          title: config.xAxisTitle || `${field.charAt(0).toUpperCase() + field.slice(1)} Range${field.toLowerCase() === 'price' ? ' ($)' : ''}`
+          title: options.xAxisTitle || `${field.charAt(0).toUpperCase() + field.slice(1)} Range${field.toLowerCase() === 'price' ? ' ($)' : ''}`
         },
         y: {
           aggregate: 'count',
           type: 'quantitative',
-          title: config.yAxisTitle || 'Number of Items'
+          title: options.yAxisTitle || 'Number of Items'
         },
-        tooltip: [
-          { aggregate: 'count', type: 'quantitative', title: 'Count' },
-          { 
-            field, 
-            bin: { maxbins: config.maxBins || 20 }, 
-            type: 'quantitative', 
-            title: `${field.charAt(0).toUpperCase() + field.slice(1)} Range`, 
-            format: config.valueFormat || (field.toLowerCase() === 'price' ? '$,.0f' : ',.0f') 
-          }
-        ]
+        tooltip: tooltipFields as any // Type assertion needed due to vega-lite type limitations
       }
     };
 
     // Add selection configuration for interactive histograms
-    if (config.interactive) {
+    if (interactive) {
       (spec as any).selection = {
         barSelection: {
           type: "single",
@@ -236,146 +287,9 @@ export function generateHistogram(
 
     return spec;
   } catch (error) {
-    console.error(`Error generating ${field} histogram:`, error);
+    console.error(`Error generating ${options.field} histogram:`, error);
     throw error;
   }
-}
-
-/**
- * Generates a histogram specification for auction prices
- * @param listings The auction listings to visualize
- * @param config Optional chart configuration
- * @returns The Vega-Lite specification for client-side rendering
- */
-export function generatePriceHistogram(
-  listings: BaTCompletedListing[],
-  config?: Partial<{
-    description: string;
-    xAxisTitle: string;
-    yAxisTitle: string;
-    maxBins: number;
-    interactive: boolean;
-    width: number | 'container';
-    height: number;
-  }>
-): vegaLite.TopLevelSpec {
-  // Filter for sold listings with valid prices
-  const soldListings = listings.filter(
-    listing => listing.status === 'sold' && listing.sold_price
-  );
-
-  // Prepare data for visualization
-  const data = soldListings.map(listing => {
-    // Parse the price - handle both string and number types
-    let parsedPrice = 0;
-    if (typeof listing.sold_price === 'number') {
-      parsedPrice = listing.sold_price;
-    } else if (typeof listing.sold_price === 'string') {
-      parsedPrice = parseInt(listing.sold_price.replace(/[^0-9]/g, '') || '0');
-    }
-    
-    return {
-      price: parsedPrice,
-      title: listing.title,
-      url: listing.url
-    };
-  });
-
-  return generateHistogram(data, 'price', {
-    description: config?.description || 'Auction Price Distribution',
-    xAxisTitle: config?.xAxisTitle || 'Price Range ($)',
-    yAxisTitle: config?.yAxisTitle || 'Number of Vehicles',
-    maxBins: config?.maxBins || 20,
-    interactive: config?.interactive || false,
-    width: config?.width,
-    height: config?.height
-  });
-}
-
-/**
- * Generates a histogram specification for listing prices
- * @param listings The car listings to visualize
- * @param config Optional chart configuration
- * @returns The Vega-Lite specification for client-side rendering
- */
-export function generateListingPriceHistogram(
-  listings: Listing[],
-  config?: Partial<{
-    description: string;
-    xAxisTitle: string;
-    yAxisTitle: string;
-    maxBins: number;
-    width: number | 'container';
-    height: number;
-  }>
-): vegaLite.TopLevelSpec {
-  // Filter for listings with valid prices
-  const validListings = listings.filter(
-    listing => listing.price > 0
-  );
-
-  // Prepare data for visualization
-  const data = validListings.map(listing => ({
-    price: listing.price,
-    title: listing.title,
-    url: listing.url,
-    year: listing.year,
-    make: listing.make,
-    model: listing.model
-  }));
-
-  return generateHistogram(data, 'price', {
-    description: config?.description || 'Listing Price Distribution',
-    xAxisTitle: config?.xAxisTitle || 'Price Range ($)',
-    yAxisTitle: config?.yAxisTitle || 'Number of Vehicles',
-    maxBins: config?.maxBins || 20,
-    interactive: true,
-    width: config?.width,
-    height: config?.height
-  });
-}
-
-/**
- * Generates a histogram specification for listing mileages
- * @param listings The car listings to visualize
- * @param config Optional chart configuration
- * @returns The Vega-Lite specification for client-side rendering
- */
-export function generateListingMileageHistogram(
-  listings: Listing[],
-  config?: Partial<{
-    description: string;
-    xAxisTitle: string;
-    yAxisTitle: string;
-    maxBins: number;
-    width: number | 'container';
-    height: number;
-  }>
-): vegaLite.TopLevelSpec {
-  // Filter for listings with valid mileage
-  const validListings = listings.filter(
-    listing => listing.mileage > 0
-  );
-
-  // Prepare data for visualization
-  const data = validListings.map(listing => ({
-    mileage: listing.mileage,
-    title: listing.title,
-    url: listing.url,
-    year: listing.year,
-    make: listing.make,
-    model: listing.model
-  }));
-
-  return generateHistogram(data, 'mileage', {
-    description: config?.description || 'Listing Mileage Distribution',
-    xAxisTitle: config?.xAxisTitle || 'Mileage Range',
-    yAxisTitle: config?.yAxisTitle || 'Number of Vehicles',
-    maxBins: config?.maxBins || 20,
-    interactive: true,
-    width: config?.width,
-    height: config?.height
-  });
 }
 
 /**
