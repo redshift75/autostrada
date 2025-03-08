@@ -685,7 +685,7 @@ function AuctionsContent() {
                   defaultValue={formData.yearMax}
                   className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
                   placeholder="e.g. 2025"
-                  min="1900"
+                  min="1950"
                   max="2025"
                 />
               </div>
