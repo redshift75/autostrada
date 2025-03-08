@@ -8,7 +8,7 @@ type MarketCheckListingsResponse = {
     id: string;
     vin: string;
     heading: string;
-    price?: number;
+    price?: number | null;
     miles?: number;
     msrp?: number;
     vdp_url: string;
@@ -60,7 +60,7 @@ type MarketCheckListingsResponse = {
 // Define a type for the transformed listing item
 type TransformedListing = {
   title: string;
-  price: number;
+  price: number | null;
   mileage: number;
   exterior_color: string | null;
   interior_color: string | null;
@@ -112,7 +112,6 @@ export async function POST(request: Request) {
     const useMockData = !apiKey || process.env.USE_MOCK_DATA === 'true';
     
     let transformedListings: TransformedListing[] = [];
-    let totalResults = 0;
     
     if (useMockData) {
       console.log('Mock data generation has been removed');
@@ -185,10 +184,8 @@ export async function POST(request: Request) {
         );
       }
       
-      // Handle the MarketCheck API response format
-      totalResults = data.num_found || data.listings.length;
-      
-      transformedListings = data.listings.map((listing) => {
+      // First map all listings to the transformed format
+      const allTransformedListings = data.listings.map((listing) => {
         // Get the primary image URL
         const photoLinks = listing.media?.photo_links || [];
         const primaryImageUrl = photoLinks.length > 0 ? photoLinks[0] : null;
@@ -204,7 +201,7 @@ export async function POST(request: Request) {
         
         return {
           title: listing.heading || `${year} ${make} ${model} ${trim}`.trim(),
-          price: listing.price || 0,
+          price: listing.price || null,
           mileage: listing.miles || 0,
           exterior_color: listing.exterior_color || null,
           interior_color: listing.interior_color || null,
@@ -246,35 +243,51 @@ export async function POST(request: Request) {
           vin: listing.vin || '',
         };
       });
+
+      // Filter out listings with null or undefined prices
+      transformedListings = allTransformedListings.filter(listing => 
+        listing.price !== null && listing.price !== undefined
+      );
+
+      // Update totalResults to reflect the filtered count
+      const filteredTotalResults = transformedListings.length;
+
+      // Calculate summary statistics directly from transformedListings
+      // All prices are guaranteed to be valid numbers at this point
+      const prices = transformedListings.map(item => item.price as number);
+      
+      const averagePrice = prices.length > 0 
+        ? Math.round(prices.reduce((sum, price) => sum + price, 0) / prices.length) 
+        : 0;
+      
+      const highestPrice = prices.length > 0 
+        ? Math.max(...prices) 
+        : 0;
+      
+      const lowestPrice = prices.length > 0 
+        ? Math.min(...prices) 
+        : 0;
+
+      // Transform data to match the format expected by the frontend
+      const transformedData = {
+        results: transformedListings,
+        pagination: { 
+          totalResults: filteredTotalResults, 
+          totalPages: Math.ceil(filteredTotalResults / maxResults), 
+          currentPage: 1 
+        },
+        summary: {
+          totalResults: filteredTotalResults,
+          averagePrice,
+          highestPrice,
+          lowestPrice,
+        },
+        // Generate visualizations data
+        visualizations: generateVisualizations(transformedListings),
+      };
+
+      return NextResponse.json(transformedData);
     }
-
-    // Calculate summary statistics
-    const validPrices = transformedListings.filter(item => item.price > 0).map(item => item.price);
-    const averagePrice = validPrices.length > 0 
-      ? Math.round(validPrices.reduce((sum, price) => sum + price, 0) / validPrices.length) 
-      : 0;
-    const highestPrice = validPrices.length > 0 ? Math.max(...validPrices) : 0;
-    const lowestPrice = validPrices.length > 0 ? Math.min(...validPrices) : 0;
-
-    // Transform data to match the format expected by the frontend
-    const transformedData = {
-      results: transformedListings,
-      pagination: { 
-        totalResults: totalResults, 
-        totalPages: Math.ceil(totalResults / maxResults), 
-        currentPage: 1 
-      },
-      summary: {
-        totalResults: totalResults,
-        averagePrice,
-        highestPrice,
-        lowestPrice,
-      },
-      // Generate visualizations data
-      visualizations: generateVisualizations(transformedListings),
-    };
-
-    return NextResponse.json(transformedData);
   } catch (error) {
     console.error('Error processing listings request:', error);
     // Return a graceful error response with empty data structure
@@ -299,7 +312,7 @@ function generateVisualizations(listings: TransformedListing[]) {
 
   // Prepare data for visualizations
   const priceData = listings
-    .filter(listing => listing.price > 0) // Filter out listings with no price
+    .filter(listing => listing.price !== null) // Filter out listings with no price
     .map(listing => ({
       price: listing.price,
       make: listing.make,
@@ -321,7 +334,7 @@ function generateVisualizations(listings: TransformedListing[]) {
     description: 'Listing Price Distribution',
     xAxisTitle: 'Price ($)',
     yAxisTitle: 'Number of Vehicles',
-    filter: (listing) => listing.price > 0,
+    filter: (listing) => listing.price !== null,
     additionalFields: ['title', 'url', 'year', 'make', 'model'],
     interactive: true
   });
