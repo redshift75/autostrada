@@ -97,7 +97,7 @@ type TransformedListing = {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { make, model, yearMin, yearMax, maxResults = 100 } = body;
+    const { make, model, yearMin, yearMax, transmission, maxResults = 100 } = body;
 
     // Validate required parameters
     if (!make) {
@@ -130,13 +130,23 @@ export async function POST(request: Request) {
       params.append('make', make);
       // Use version instead of model for MarketCheck API
       if (model) params.append('version', model);
+
       if (yearMin && yearMax && yearMin === yearMax) {
         params.append('year', yearMin.toString());
-      } else {
-        if (yearMin) params.append('year_min', yearMin.toString());
-        if (yearMax) params.append('year_max', yearMax.toString());
+      } else if (yearMin && yearMax) {
+        // Create a comma-separated list of years between yearMin and yearMax
+        const years = [];
+        for (let year = parseInt(yearMin); year <= parseInt(yearMax); year++) {
+          years.push(year);
+        }
+        params.append('year', years.join(','));
+        console.log("Years: ", years.join(','));
       }
-      params.append('include_relevant_links', 'true');
+      // Add transmission filter if specified
+      if (transmission) {
+        params.append('transmission', transmission);
+      }
+      params.append('include_relevant_links', 'false');
       // Set a reasonable limit for results
       params.append('rows', maxResults.toString());
       

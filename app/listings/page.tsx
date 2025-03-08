@@ -75,6 +75,7 @@ function ListingsContent() {
   const [model, setModel] = useState(searchParams.get('model') || '');
   const [yearMin, setYearMin] = useState(searchParams.get('yearMin') || '');
   const [yearMax, setYearMax] = useState(searchParams.get('yearMax') || '');
+  const [transmission, setTransmission] = useState(searchParams.get('transmission') || 'Any');
   
   // Notification state
   const [notification, setNotification] = useState<string | null>(null);
@@ -89,6 +90,7 @@ function ListingsContent() {
   const debouncedMake = useDebounce(make, 300);
   const debouncedYearMin = useDebounce(yearMin, 300);
   const debouncedYearMax = useDebounce(yearMax, 300);
+  const debouncedTransmission = useDebounce(transmission, 300);
   
   // Results state
   const [results, setResults] = useState<Listing[]>([]);
@@ -215,7 +217,7 @@ function ListingsContent() {
   };
   
   // Handle input changes with debounce for suggestions
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     
     if (name === 'make') {
@@ -231,6 +233,8 @@ function ListingsContent() {
       setYearMin(value);
     } else if (name === 'yearMax') {
       setYearMax(value);
+    } else if (name === 'transmission') {
+      setTransmission(value);
     }
   };
   
@@ -291,6 +295,7 @@ function ListingsContent() {
           model: model || undefined,
           yearMin: yearMin ? parseInt(yearMin) : undefined,
           yearMax: yearMax ? parseInt(yearMax) : undefined,
+          transmission: transmission !== 'Any' ? transmission : undefined,
           maxResults: 100,
         }),
       });
@@ -317,6 +322,7 @@ function ListingsContent() {
       if (model) params.set('model', model);
       if (yearMin) params.set('yearMin', yearMin);
       if (yearMax) params.set('yearMax', yearMax);
+      if (transmission && transmission !== 'Any') params.set('transmission', transmission);
       
       router.push(`/listings?${params.toString()}`);
     } catch (err) {
@@ -327,11 +333,11 @@ function ListingsContent() {
     } finally {
       setLoading(false);
     }
-  }, [make, model, yearMin, yearMax, router]);
+  }, [make, model, yearMin, yearMax, transmission, router]);
 
   // Load results if URL has search params on initial load
   useEffect(() => {
-    if (isInitialLoad.current && searchParams.has('make')) {
+    if (isInitialLoad.current && (searchParams.has('make') || searchParams.has('transmission'))) {
       handleSearch();
       isInitialLoad.current = false;
     }
@@ -624,37 +630,56 @@ function ListingsContent() {
           </div>
           
           <div className="flex flex-col">
-            <label htmlFor="yearMin" className="mb-1 font-medium">
-              Year (Min)
+            <label htmlFor="transmission" className="mb-1 font-medium">
+              Transmission
             </label>
-            <input
-              id="yearMin"
-              type="number"
-              name="yearMin"
-              value={yearMin}
+            <select
+              id="transmission"
+              name="transmission"
+              value={transmission}
               onChange={handleInputChange}
-              className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
-              placeholder="e.g. 2015"
-              min="1900"
-              max="2024"
-            />
+              className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600 w-32 text-sm"
+            >
+              <option value="Any">Any</option>
+              <option value="Automatic">Automatic</option>
+              <option value="Manual">Manual</option>
+            </select>
           </div>
           
-          <div className="flex flex-col">
-            <label htmlFor="yearMax" className="mb-1 font-medium">
-              Year (Max)
-            </label>
-            <input
-              id="yearMax"
-              type="number"
-              name="yearMax"
-              value={yearMax}
-              onChange={handleInputChange}
-              className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
-              placeholder="e.g. 2025"
-              min="1900"
-              max="2025"
-            />
+          <div className="flex gap-4">
+            <div className="flex flex-col flex-1">
+              <label htmlFor="yearMin" className="mb-1 font-medium">
+                Year (Min)
+              </label>
+              <input
+                id="yearMin"
+                type="number"
+                name="yearMin"
+                value={yearMin}
+                onChange={handleInputChange}
+                className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
+                placeholder="Min"
+                min="1900"
+                max="2024"
+              />
+            </div>
+            
+            <div className="flex flex-col flex-1">
+              <label htmlFor="yearMax" className="mb-1 font-medium">
+                Year (Max)
+              </label>
+              <input
+                id="yearMax"
+                type="number"
+                name="yearMax"
+                value={yearMax}
+                onChange={handleInputChange}
+                className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
+                placeholder="Max"
+                min="1900"
+                max="2025"
+              />
+            </div>
           </div>
           
           <div className="md:col-span-2 lg:col-span-4 flex justify-end">
