@@ -140,17 +140,15 @@ export async function POST(request: Request) {
           years.push(year);
         }
         params.append('year', years.join(','));
-        console.log("Years: ", years.join(','));
       }
       // Add transmission filter if specified
       if (transmission) {
         params.append('transmission', transmission);
       }
-      params.append('include_relevant_links', 'false');
+
       // Set a reasonable limit for results
       params.append('rows', maxResults.toString());
       
-      console.log("Params: ", params.toString());
       // Call MarketCheck API
       const response = await fetch(
         `https://mc-api.marketcheck.com/v2/search/car/active?${params.toString()}`,
