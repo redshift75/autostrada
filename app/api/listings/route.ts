@@ -41,6 +41,7 @@ type MarketCheckListingsResponse = {
       make: string;
       model: string;
       trim?: string;
+      version?: string;
       body_type?: string;
       vehicle_type?: string;
       transmission?: string;
@@ -88,6 +89,7 @@ type TransformedListing = {
   listed_date: string;
   make: string;
   model: string;
+  version: string;
   year: number;
   vin: string;
 };
@@ -126,7 +128,8 @@ export async function POST(request: Request) {
       const params = new URLSearchParams();
       params.append('api_key', apiKey);
       params.append('make', make);
-      if (model) params.append('model', model);
+      // Use version instead of model for MarketCheck API
+      if (model) params.append('version', model);
       if (yearMin && yearMax && yearMin === yearMax) {
         params.append('year', yearMin.toString());
       } else {
@@ -230,6 +233,7 @@ export async function POST(request: Request) {
           listed_date: listing.first_seen_at_date || new Date().toISOString(),
           make: make,
           model: model,
+          version: listing.build?.version || '',
           year: year,
           vin: listing.vin || '',
         };
