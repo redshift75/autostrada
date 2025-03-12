@@ -125,7 +125,7 @@ export default function VegaChart({ spec, className, onSignalClick }: VegaChartP
           }
 
           vegaEmbed(containerRef.current!, histogramSpec as any, {
-            actions: { export: true, source: false, compiled: false, editor: false },
+            actions: false, // Disable all actions including export dropdown
             renderer: 'svg',
             mode: 'vega-lite'
           }).then((result: any) => {
@@ -240,7 +240,7 @@ export default function VegaChart({ spec, className, onSignalClick }: VegaChartP
           }
           
           vegaEmbed(containerRef.current!, responsiveSpec as any, {
-            actions: { export: true, source: false, compiled: false, editor: false },
+            actions: false, // Disable all actions including export dropdown
             renderer: 'svg',
             mode: 'vega-lite'
           }).then((result: any) => {
