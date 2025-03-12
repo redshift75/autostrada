@@ -8,7 +8,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { BringATrailerResultsScraper } from '../lib/scrapers/BringATrailerResultsScraper';
-import { BringATrailerActiveListingScraper } from '../lib/scrapers/BringATrailerActiveListingScraper';
+import { BringATrailerActiveListingScraper } from '../lib/scrapers/BringATrailerActiveScraper';
 import minimist from 'minimist';
 import { createClient } from '@supabase/supabase-js';
 

@@ -483,3 +483,79 @@ The CSV file contains two columns:
 ## Note
 
 This script is for educational purposes only. Please respect the website's terms of service and robots.txt file when scraping websites.
+
+## Scrapers
+
+The platform includes scrapers for various auction and listing sites to gather data on classic car sales and listings.
+
+### Available Scrapers
+
+- **Bring a Trailer (BaT)**
+  - Active Listings: `BringATrailerActiveListingScraper`
+  - Completed Auctions: `BringATrailerResultsScraper`
+
+- **Cars & Bids**
+  - Active Listings: `CarsAndBidsActiveScraper` (Playwright-based)
+
+### Running Scrapers
+
+You can run the scrapers using the following npm scripts:
+
+```bash
+# Test all scrapers
+npm run test-scrapers
+
+# Test only active listings scrapers
+npm run test-scrapers:active
+
+# Test only completed auctions scrapers
+npm run test-scrapers:completed
+
+# Test Cars & Bids scraper specifically
+npm run test-cars-and-bids
+
+# Test Cars & Bids scraper with debug mode enabled
+npm run test-cars-and-bids -- --debug=true
+```
+
+### Scraper Parameters
+
+Most scrapers accept the following parameters:
+
+- `make`: Filter by vehicle make (e.g., "Porsche")
+- `model`: Filter by vehicle model (e.g., "911")
+- `yearMin`: Filter by minimum year
+- `yearMax`: Filter by maximum year
+- `debug`: Enable debug mode (for Playwright-based scrapers)
+
+Example:
+
+```bash
+npm run test-cars-and-bids -- --make=Porsche --model=911 --yearMin=1980 --yearMax=1990 --debug=true
+```
+
+### Playwright-based Scraping
+
+Some websites have strong anti-scraping measures that block traditional HTTP requests. For these sites, we use Playwright to automate a real browser, which helps bypass these protections.
+
+The Cars & Bids scraper uses Playwright to:
+
+1. Launch a headless Chrome browser
+2. Navigate to the Cars & Bids auctions page
+3. Wait for the content to load
+4. Extract the HTML content
+5. Parse the listings using Cheerio
+
+When debug mode is enabled:
+- Screenshots are saved to the `debug` directory
+- HTML content is saved for inspection
+- The browser runs in non-headless mode so you can see what's happening
+
+### Notes on Web Scraping
+
+Always respect the website's terms of service and robots.txt file when scraping. Some websites have anti-scraping measures in place that may block automated access. In these cases, you may need to:
+
+1. Use a browser automation tool like Puppeteer or Playwright (as implemented for Cars & Bids)
+2. Implement more sophisticated browser fingerprinting avoidance
+3. Use a proxy rotation service
+4. Check if the website offers an official API

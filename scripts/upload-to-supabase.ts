@@ -9,7 +9,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { createClient } from '@supabase/supabase-js';
 import { BaTCompletedListing } from '../lib/scrapers/BringATrailerResultsScraper';
-import { BaTActiveListing } from '../lib/scrapers/BringATrailerActiveListingScraper';
+import { BaTActiveListing } from '../lib/scrapers/BringATrailerActiveScraper';
 import dotenv from 'dotenv';
 
 // Load environment variables

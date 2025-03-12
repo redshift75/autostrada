@@ -21,16 +21,40 @@ if (typeof window === 'undefined') {
   // Use regular imports instead of node: protocol
   setTimeout = global.setTimeout;
   
-  import('crypto').then(module => { createHash = module.createHash }).catch(() => {
-    // Provide a fallback or no-op implementation
+  try {
+    const crypto = require('crypto');
+    createHash = crypto.createHash;
+  } catch (error) {
+    // Provide a fallback implementation
     createHash = (algorithm: string) => ({
       update: (data: string) => ({
-        digest: (encoding: string) => 'mock-hash'
+        digest: (encoding: string) => {
+          // Simple hash function for fallback
+          let hash = 0;
+          for (let i = 0; i < data.length; i++) {
+            const char = data.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // Convert to 32bit integer
+          }
+          return hash.toString(16);
+        }
       })
     });
-  });
+  }
   
-  import('fs/promises').then(module => { fs = module }).catch(() => {
+  try {
+    path = require('path');
+  } catch (error) {
+    // Provide a fallback implementation
+    path = {
+      join: (...parts: string[]) => parts.filter(Boolean).join('/'),
+      dirname: (p: string) => p.split('/').slice(0, -1).join('/')
+    };
+  }
+  
+  try {
+    fs = require('fs/promises');
+  } catch (error) {
     // Provide a fallback or no-op implementation
     fs = {
       readFile: async () => '',
@@ -38,15 +62,7 @@ if (typeof window === 'undefined') {
       mkdir: async () => {},
       access: async () => { throw new Error('File not found'); }
     };
-  });
-  
-  import('path').then(module => { path = module }).catch(() => {
-    // Provide a fallback or no-op implementation
-    path = {
-      join: (...parts: string[]) => parts.join('/'),
-      dirname: (p: string) => p.split('/').slice(0, -1).join('/')
-    };
-  });
+  }
 }
 
 // Types for scraper configuration
@@ -134,230 +150,247 @@ export abstract class BaseBATScraper {
    * Fetch a URL with rate limiting, retries, and caching
    */
   protected async fetch(url: string, options: RequestInit = {}): Promise<Response> {
-    const cacheKey = this.getCacheKey(url, options);
-    
-    // Check cache first if enabled
-    if (this.config.cacheEnabled) {
-      const cachedResponse = await this.getCachedResponse(cacheKey);
-      if (cachedResponse) {
-        this.log('debug', `Cache hit for ${url}`);
-        return cachedResponse;
-      }
-    }
-    
     // Apply rate limiting
     await this.applyRateLimiting();
     
-    // Set up headers with random user agent
-    const headers = new Headers(options.headers || {});
+    // Generate a cache key for this request
+    const cacheKey = this.getCacheKey(url, options);
     
+    // Try to get a cached response
+    const cachedResponse = await this.getCachedResponse(cacheKey);
+    if (cachedResponse) {
+      this.log('debug', `Using cached response for ${url}`);
+      return cachedResponse;
+    }
+    
+    // Set up headers with a random user agent if available
+    const headers = new Headers(options.headers || {});
     if (!headers.has('User-Agent') && this.config.userAgents && this.config.userAgents.length > 0) {
       const randomUserAgent = this.config.userAgents[Math.floor(Math.random() * this.config.userAgents.length)];
       headers.set('User-Agent', randomUserAgent);
+      this.log('debug', `Using User-Agent: ${randomUserAgent}`);
     }
     
-    // Update options with the new headers
-    options = {
+    // Update options with headers
+    const fetchOptions: RequestInit = {
       ...options,
       headers
     };
     
-    // Attempt the request with retries
+    // Retry logic
     let retries = 0;
-    let lastError: Error | null = null;
+    const maxRetries = this.config.maxRetries || 3;
+    let retryDelay = this.config.retryDelay || 1000;
+    const retryMultiplier = this.config.retryMultiplier || 2;
     
-    while (retries <= (this.config.maxRetries || 0)) {
+    while (true) {
       try {
-        this.log('debug', `Fetching ${url} (attempt ${retries + 1})`);
+        const response = await fetch(url, fetchOptions);
         
-        const response = await fetch(url, options);
-        this.lastRequestTime = Date.now();
-        
-        // Check if the response is successful
-        if (!response.ok) {
-          throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
-        }
-        
-        // Clone the response before caching it
-        const responseClone = response.clone();
-        
-        // Cache the response if caching is enabled
-        if (this.config.cacheEnabled) {
-          this.cacheResponse(cacheKey, responseClone).catch(err => {
-            this.log('error', `Failed to cache response: ${err.message}`);
-          });
+        // Cache successful responses
+        if (response.ok && this.config.cacheEnabled) {
+          await this.cacheResponse(cacheKey, response.clone());
+        } else if (!response.ok) {
+          this.log('warn', `Request failed: HTTP error ${response.status}: ${response.statusText}`);
         }
         
         return response;
       } catch (error) {
-        lastError = error instanceof Error ? error : new Error(String(error));
-        this.log('warn', `Request failed: ${lastError.message}`);
-        
-        // If we've reached max retries, throw the error
-        if (retries >= (this.config.maxRetries || 0)) {
-          break;
+        if (retries >= maxRetries) {
+          this.log('error', `Failed after ${maxRetries} retries: ${error}`);
+          throw error;
         }
         
-        // Calculate delay with exponential backoff
-        const delay = (this.config.retryDelay || 1000) * Math.pow(this.config.retryMultiplier || 2, retries);
-        this.log('info', `Retrying in ${delay}ms...`);
+        retries++;
+        this.log('info', `Retrying in ${retryDelay}ms...`);
         
         // Wait before retrying
-        await new Promise(resolve => setTimeout(resolve, delay));
-        retries++;
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+        
+        // Increase delay for next retry
+        retryDelay *= retryMultiplier;
       }
     }
-    
-    // If we get here, all retries failed
-    throw lastError || new Error('Request failed after multiple retries');
   }
   
   /**
-   * Apply rate limiting based on configuration
+   * Apply rate limiting to avoid overloading the server
    */
   protected async applyRateLimiting(): Promise<void> {
     const now = Date.now();
     
     // Reset request count if we're in a new minute
-    if (now - this.requestCountResetTime > 60000) {
+    if (now - this.requestCountResetTime >= 60000) {
       this.requestCount = 0;
       this.requestCountResetTime = now;
     }
     
-    // Check if we've exceeded the requests per minute
-    if (this.requestCount >= (this.config.requestsPerMinute || 30)) {
+    // Check if we've exceeded the requests per minute limit
+    const requestsPerMinute = this.config.requestsPerMinute || 30;
+    if (this.requestCount >= requestsPerMinute) {
       const timeToNextMinute = 60000 - (now - this.requestCountResetTime);
-      this.log('debug', `Rate limit reached. Waiting ${timeToNextMinute}ms`);
+      this.log('debug', `Rate limit reached. Waiting ${timeToNextMinute}ms before next request`);
       await new Promise(resolve => setTimeout(resolve, timeToNextMinute));
+      
+      // Reset after waiting
       this.requestCount = 0;
       this.requestCountResetTime = Date.now();
-      return;
     }
     
-    // Ensure minimum interval between requests
+    // Apply minimum interval between requests
+    const minInterval = this.config.minRequestInterval || 1000;
     const timeSinceLastRequest = now - this.lastRequestTime;
-    if (timeSinceLastRequest < (this.config.minRequestInterval || 0)) {
-      const waitTime = (this.config.minRequestInterval || 0) - timeSinceLastRequest;
-      this.log('debug', `Throttling request. Waiting ${waitTime}ms`);
+    
+    if (timeSinceLastRequest < minInterval) {
+      const waitTime = minInterval - timeSinceLastRequest;
+      this.log('debug', `Waiting ${waitTime}ms between requests`);
       await new Promise(resolve => setTimeout(resolve, waitTime));
     }
     
-    // Increment request count
+    // Update request count and last request time
     this.requestCount++;
+    this.lastRequestTime = Date.now();
   }
   
   /**
    * Generate a cache key for a request
    */
   protected getCacheKey(url: string, options: RequestInit): string {
-    const hash = createHash('md5');
-    hash.update(url);
-    
-    // Include relevant parts of options in the cache key
-    if (options.method) {
-      hash.update(options.method);
+    try {
+      // Create a string representation of the request
+      const requestStr = JSON.stringify({
+        url,
+        method: options.method || 'GET',
+        headers: options.headers || {},
+        body: options.body || ''
+      });
+      
+      // Generate a hash of the request string
+      if (typeof createHash === 'function') {
+        return createHash('md5').update(requestStr).digest('hex');
+      } else {
+        // Fallback to a simple hash function
+        let hash = 0;
+        for (let i = 0; i < requestStr.length; i++) {
+          const char = requestStr.charCodeAt(i);
+          hash = ((hash << 5) - hash) + char;
+          hash = hash & hash; // Convert to 32bit integer
+        }
+        return hash.toString(16);
+      }
+    } catch (error) {
+      // If hashing fails, use a timestamp-based key
+      return `${url.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}`;
     }
-    
-    if (options.body) {
-      hash.update(String(options.body));
-    }
-    
-    return hash.digest('hex');
   }
   
   /**
-   * Get a cached response if it exists and is not expired
+   * Get a cached response for a request
    */
   protected async getCachedResponse(cacheKey: string): Promise<Response | null> {
-    if (!this.config.cacheEnabled || !this.config.cacheDir) {
+    if (!this.config.cacheEnabled) {
       return null;
     }
     
-    const cacheFilePath = path.join(this.config.cacheDir, `${cacheKey}.json`);
-    
     try {
-      // Check if cache file exists
-      await fs.access(cacheFilePath);
+      // Ensure cache directory exists
+      await this.ensureCacheDir();
       
-      // Read cache file
-      const cacheData = JSON.parse(await fs.readFile(cacheFilePath, 'utf-8'));
+      // Get the cache file path
+      const cacheDir = this.config.cacheDir || '/tmp/cache';
+      const cacheFilePath = path && path.join ? path.join(cacheDir, `${cacheKey}.json`) : `${cacheDir}/${cacheKey}.json`;
       
-      // Check if cache is expired
-      if (Date.now() - cacheData.timestamp > (this.config.cacheTTL || 0)) {
-        this.log('debug', `Cache expired for key ${cacheKey}`);
+      // Check if the cache file exists
+      try {
+        await fs.access(cacheFilePath);
+      } catch (error) {
+        // Cache file doesn't exist
         return null;
       }
       
-      // Reconstruct response from cache
+      // Read the cache file
+      const cacheData = JSON.parse(await fs.readFile(cacheFilePath, 'utf-8'));
+      
+      // Check if the cache is expired
+      const now = Date.now();
+      if (cacheData.expiresAt && cacheData.expiresAt < now) {
+        // Cache is expired
+        return null;
+      }
+      
+      // Create a Response object from the cached data
       return new Response(cacheData.body, {
         status: cacheData.status,
         statusText: cacheData.statusText,
         headers: cacheData.headers
       });
     } catch (error) {
-      // If file doesn't exist or can't be read, return null
+      this.log('warn', `Error getting cached response: ${error}`);
       return null;
     }
   }
   
   /**
-   * Cache a response
+   * Cache a response for future use
    */
   protected async cacheResponse(cacheKey: string, response: Response): Promise<void> {
-    if (!this.config.cacheEnabled || !this.config.cacheDir) {
+    if (!this.config.cacheEnabled) {
       return;
-    }
-    
-    // Clone the response to avoid consuming it
-    const responseClone = response.clone();
-    
-    // Extract data to cache
-    const body = await responseClone.text();
-    const headers = Object.fromEntries(responseClone.headers.entries());
-    
-    const cacheData = {
-      timestamp: Date.now(),
-      url: responseClone.url,
-      status: responseClone.status,
-      statusText: responseClone.statusText,
-      headers,
-      body
-    };
-    
-    // Write to cache file
-    const cacheFilePath = path.join(this.config.cacheDir, `${cacheKey}.json`);
-    await fs.writeFile(cacheFilePath, JSON.stringify(cacheData), 'utf-8');
-  }
-  
-  /**
-   * Ensure cache directory exists
-   */
-  protected async ensureCacheDir(): Promise<void> {
-    if (!this.config.cacheDir) {
-      return;
-    }
-    
-    // Ensure fs is available
-    if (typeof fs === 'undefined') {
-      try {
-        fs = await import('fs/promises');
-      } catch (error: any) {
-        this.log('error', `Failed to import fs module: ${error.message}`);
-        return;
-      }
     }
     
     try {
-      await fs.access(this.config.cacheDir);
+      // Ensure cache directory exists
+      await this.ensureCacheDir();
+      
+      // Clone the response since it can only be read once
+      const clonedResponse = response.clone();
+      
+      // Get the response body as text
+      const body = await clonedResponse.text();
+      
+      // Create the cache data object
+      const cacheData = {
+        body,
+        status: clonedResponse.status,
+        statusText: clonedResponse.statusText,
+        headers: Object.fromEntries(clonedResponse.headers.entries()),
+        expiresAt: Date.now() + (this.config.cacheTTL || 24 * 60 * 60 * 1000) // Default to 24 hours
+      };
+      
+      // Get the cache file path
+      const cacheDir = this.config.cacheDir || '/tmp/cache';
+      const cacheFilePath = path && path.join ? path.join(cacheDir, `${cacheKey}.json`) : `${cacheDir}/${cacheKey}.json`;
+      
+      // Write the cache file
+      await fs.writeFile(cacheFilePath, JSON.stringify(cacheData));
+      
+      this.log('debug', `Cached response for key ${cacheKey}`);
     } catch (error) {
-      // Directory doesn't exist, create it
+      this.log('warn', `Error caching response: ${error}`);
+    }
+  }
+  
+  /**
+   * Ensure the cache directory exists
+   */
+  protected async ensureCacheDir(): Promise<void> {
+    if (!this.config.cacheEnabled) {
+      return;
+    }
+    
+    try {
+      const cacheDir = this.config.cacheDir || '/tmp/cache';
+      
+      // Check if the directory exists
       try {
-        await fs.mkdir(this.config.cacheDir, { recursive: true });
-      } catch (mkdirError: any) {
-        this.log('error', `Failed to create cache directory: ${mkdirError.message}`);
-        // Set cacheEnabled to false to prevent further attempts
-        this.config.cacheEnabled = false;
+        await fs.access(cacheDir);
+      } catch (error) {
+        // Directory doesn't exist, create it
+        await fs.mkdir(cacheDir, { recursive: true });
+        this.log('debug', `Created cache directory: ${cacheDir}`);
       }
+    } catch (error) {
+      this.log('warn', `Error ensuring cache directory: ${error}`);
     }
   }
   
@@ -422,35 +455,19 @@ export abstract class BaseBATScraper {
   }
   
   /**
-   * Fetches HTML content from a URL with caching and rate limiting
-   * @param url The URL to fetch
-   * @param options Optional fetch options
-   * @returns The HTML content as a string
+   * Fetch HTML content from a URL
    */
   protected async fetchHtml(url: string, options: RequestInit = {}): Promise<string> {
     try {
-      // Set default headers if not provided
-      const headers = new Headers(options.headers || {});
+      const response = await this.fetch(url, options);
       
-      if (!headers.has('User-Agent') && this.config.userAgents && this.config.userAgents.length > 0) {
-        const randomUserAgent = this.config.userAgents[Math.floor(Math.random() * this.config.userAgents.length)];
-        headers.set('User-Agent', randomUserAgent);
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
       }
       
-      // Update options with the headers
-      const fetchOptions = {
-        ...options,
-        headers
-      };
-      
-      // Use the fetch method which handles caching and rate limiting
-      const response = await this.fetch(url, fetchOptions);
-      
-      // Get the HTML text from the response
-      const html = await response.text();
-      return html;
+      return await response.text();
     } catch (error) {
-      this.log('error', `Error fetching HTML from ${url}: ${error instanceof Error ? error.message : String(error)}`);
+      this.log('error', `Error fetching HTML from ${url}: ${error}`);
       throw error;
     }
   }

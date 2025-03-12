@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { BringATrailerActiveListingScraper } from '@/lib/scrapers/BringATrailerActiveListingScraper';
+import { BringATrailerActiveListingScraper } from '@/lib/scrapers/BringATrailerActiveScraper';
 import { fetchDetailsFromListingPage } from '@/lib/scrapers/utils/BATDetailsExtractor';
 
 // Define the response type for the Deal Finder API

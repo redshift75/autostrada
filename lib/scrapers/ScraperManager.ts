@@ -7,6 +7,7 @@
 
 import { BaseBATScraper, ScraperConfig } from './BaseBATScraper';
 import { BringATrailerResultsScraper, BaTResultsScraperParams as BaTScraperParams } from './BringATrailerResultsScraper';
+import { CarsAndBidsActiveScraper, CarsAndBidsScraperParams } from './CarsAndBidsActiveScraper';
 import { ListingSource } from '../standardization/listingData';
 
 // Types for scraper manager configuration
@@ -24,6 +25,7 @@ export interface SearchParams {
   yearTo?: number;
   limit?: number;
   sources?: ListingSource[];
+  debug?: boolean;
 }
 
 export class ScraperManager {
@@ -43,6 +45,12 @@ export class ScraperManager {
     this.registerScraper(
       ListingSource.BRING_A_TRAILER,
       new BringATrailerResultsScraper()
+    );
+    
+    // Initialize Cars & Bids scraper
+    this.registerScraper(
+      ListingSource.CARS_AND_BIDS,
+      new CarsAndBidsActiveScraper()
     );
     
     // Add more scrapers here as they are implemented
@@ -128,6 +136,17 @@ export class ScraperManager {
           yearMax: params.yearTo
         };
         return batParams;
+      
+      case ListingSource.CARS_AND_BIDS:
+        // Convert to Cars & Bids-specific params
+        const carsAndBidsParams: CarsAndBidsScraperParams = {
+          make: params.make,
+          model: params.model,
+          yearMin: params.yearFrom,
+          yearMax: params.yearTo,
+          debug: params.debug
+        };
+        return carsAndBidsParams;
       
       // Add more cases for other sources as they are implemented
       
