@@ -127,8 +127,8 @@ export async function POST(request: Request) {
       const params = new URLSearchParams();
       params.append('api_key', apiKey);
       params.append('make', make);
-      // Use version instead of model for MarketCheck API
-      if (model) params.append('version', model);
+
+      if (model) params.append('model', model);
 
       if (yearMin && yearMax && yearMin === yearMax) {
         params.append('year', yearMin.toString());
