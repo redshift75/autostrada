@@ -49,7 +49,7 @@ export async function GET(request: Request) {
       if (query) {
         supabaseQuery.ilike(field, `%${query}%`);
       }
-}
+    }
 
     // Searching for models given make
     else {
@@ -81,7 +81,7 @@ export async function GET(request: Request) {
         ? `Found ${data.length} makes matching "${query}"`
         : `Found ${data.length} models matching "${query}"${make ? ` for make: "${make}"` : ''}`
     );
-    
+
     return NextResponse.json(data);
   } catch (error) {
     console.error('Error in cars API route:', error);
