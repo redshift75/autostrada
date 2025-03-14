@@ -27,7 +27,7 @@ export async function GET(request: Request) {
     const query = searchParams.get('query');
     const make = searchParams.get('make');
     const type = searchParams.get('type'); // 'makes' or 'models'
-
+    console.log(query, make, type);
     if (!query) {
       return NextResponse.json([]);
     }
@@ -42,21 +42,25 @@ export async function GET(request: Request) {
         : `Querying models with: "${query}"${make ? ` for make: "${make}"` : ''}`
     );
 
-    // Start building the query
+    // Build the query for make search
     let supabaseQuery = supabase
-      .from('allcars')
+      .from('all_makes')
       .select(field)
       .ilike(field, `%${query}%`);
 
-    // If searching for models and make is provided, filter by make as well
+    // If searching for models use make to filter
     if (!isSearchingMakes && make) {
-      supabaseQuery = supabaseQuery.eq('Make', make);
+      supabaseQuery = supabase
+      .from('allcars')
+      .select(field)
+      .eq('Make', make)
+      .ilike(field, `%${query}%`)
+      .limit(10);
     }
 
     // Execute the query
     const { data, error } = await supabaseQuery
-      .order(field)
-      .limit(10);
+      .order(field);
 
     if (error) {
       console.error(`Error fetching ${isSearchingMakes ? 'makes' : 'models'}:`, error);
