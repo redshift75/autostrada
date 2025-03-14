@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
   try {
     // Parse the request body
     const body = await request.json();
-    const { make, model, yearMin, yearMax, maxPages, sortBy, sortOrder, status } = body;
+    const { make, model, yearMin, yearMax, maxPages, sortBy, sortOrder, status, forceScrape = false } = body;
 
     // First, try to fetch results from Supabase
     console.log(`Checking Supabase for ${make} ${model} (${yearMin || 'any'}-${yearMax || 'any'})`);
@@ -54,101 +54,103 @@ export async function POST(request: NextRequest) {
     // Determine sort field and direction
     const sortField = sortBy || 'sold_date';
     const ascending = sortOrder === 'asc';
-    
-    let query = supabase
-      .from('bat_completed_auctions')
-      .select('*')
-      .ilike('make', `%${make}%`);
-      
-    // Apply sorting based on parameters
-    if (sortField === 'sold_date') {
-      query = query.order('sold_date', { ascending });
-    } else if (sortField === 'mileage') {
-      query = query.order('mileage', { ascending });
-    } else if (sortField === 'price_sold') {
-      query = query.order('sold_price', { ascending });
-    } else {
-      // Default sort
-      query = query.order('sold_date', { ascending: false });
-    }
-    
-    // Add model filter if provided
-    if (model && model !== 'Any') {
-      query = query.ilike('title', `%${model}%`);
-    }
-    
-    // Add year range filters if provided
-    if (yearMin) {
-      query = query.gte('year', yearMin);
-    }
-    
-    if (yearMax) {
-      query = query.lte('year', yearMax);
-    }
-    
-    // Add status filter if provided
-    if (status) {
-      if (status === 'sold') {
-        query = query.eq('status', 'sold');
-      } else if (status === 'unsold') {
-        query = query.neq('status', 'sold');
-      }
-    }
-    console.log("Query: ", query);
-    // Execute the query
-    const { data: supabaseResults, error: supabaseError } = await query;
-    
     let results = [];
     let parsedResult: any = null;
-    
-    // Check if we got results from Supabase
-    if (!supabaseError && supabaseResults && supabaseResults.length > 0) {
-      console.log(`Found ${supabaseResults.length} results in Supabase database`);
+
+    // If forceScrape is false, try to fetch results from Supabase
+    if (!forceScrape) {
+      let query = supabase
+        .from('bat_completed_auctions')
+        .select('*')
+        .ilike('make', `%${make}%`);
+        
+      // Apply sorting based on parameters
+      if (sortField === 'sold_date') {
+        query = query.order('sold_date', { ascending });
+      } else if (sortField === 'mileage') {
+        query = query.order('mileage', { ascending });
+      } else if (sortField === 'price_sold') {
+        query = query.order('sold_price', { ascending });
+      } else {
+        // Default sort
+        query = query.order('sold_date', { ascending: false });
+      }
       
-      // Format the results to match the expected structure
-      results = supabaseResults.map(item => ({
-        title: item.title,
-        year: item.year,
-        make: item.make,
-        model: item.model,
-        sold_price: item.sold_price ? `$${item.sold_price}` : 'Not sold',
-        bid_amount: item.bid_amount ? `$${item.bid_amount}` : 'No bids',
-        sold_date: item.sold_date,
-        status: item.status,
-        url: item.url,
-        mileage: item.mileage,
-        bidders: item.bidders,
-        watchers: item.watchers,
-        comments: item.comments,
-        image_url: item.image_url
-      }));
+      // Add model filter if provided
+      if (model && model !== 'Any') {
+        query = query.ilike('title', `%${model}%`);
+      }
       
-      // Create a result object
-      parsedResult = {
-        query: {
-          make,
-          model: model || 'Any',
-          yearRange: `${yearMin || 'Any'}-${yearMax || 'Any'}`
-        },
-        summary: {
-          totalResults: supabaseResults.length,
-          averageSoldPrice: calculateAverageSoldPrice(supabaseResults),
-          highestSoldPrice: findHighestSoldPrice(supabaseResults),
-          lowestSoldPrice: findLowestSoldPrice(supabaseResults),
-          soldPercentage: calculateSoldPercentage(supabaseResults),
-          averageMileage: calculateAverageMileage(supabaseResults)
-        },
-        results: results,
-        source: 'supabase'
-      };
-    } else {
-      if (supabaseError) {
-        console.error('Error fetching from Supabase:', supabaseError);
+      // Add year range filters if provided
+      if (yearMin) {
+        query = query.gte('year', yearMin);
+      }
+      
+      if (yearMax) {
+        query = query.lte('year', yearMax);
+      }
+      
+      // Add status filter if provided
+      if (status) {
+        if (status === 'sold') {
+          query = query.eq('status', 'sold');
+        } else if (status === 'unsold') {
+          query = query.neq('status', 'sold');
+        }
+      }
+      console.log("Query: ", query);
+      // Execute the query
+      const { data: supabaseResults, error: supabaseError } = await query;
+      
+      // Check if we got results from Supabase
+      if (!supabaseError && supabaseResults && supabaseResults.length > 0) {
+        console.log(`Found ${supabaseResults.length} results in Supabase database`);
+        
+        // Format the results to match the expected structure
+        results = supabaseResults.map(item => ({
+          title: item.title,
+          year: item.year,
+          make: item.make,
+          model: item.model,
+          sold_price: item.sold_price ? `$${item.sold_price}` : 'Not sold',
+          bid_amount: item.bid_amount ? `$${item.bid_amount}` : 'No bids',
+          sold_date: item.sold_date,
+          status: item.status,
+          url: item.url,
+          mileage: item.mileage,
+          bidders: item.bidders,
+          watchers: item.watchers,
+          comments: item.comments,
+          image_url: item.image_url
+        }));
+        
+        // Create a result object
+        parsedResult = {
+          query: {
+            make,
+            model: model || 'Any',
+            yearRange: `${yearMin || 'Any'}-${yearMax || 'Any'}`
+          },
+          summary: {
+            totalResults: supabaseResults.length,
+            averageSoldPrice: calculateAverageSoldPrice(supabaseResults),
+            highestSoldPrice: findHighestSoldPrice(supabaseResults),
+            lowestSoldPrice: findLowestSoldPrice(supabaseResults),
+            soldPercentage: calculateSoldPercentage(supabaseResults),
+            averageMileage: calculateAverageMileage(supabaseResults)
+          },
+          results: results,
+          source: 'supabase'
+        };
+      } else {
+        if (supabaseError) {
+          console.error('Error fetching from Supabase:', supabaseError);
+        }
       }
     }
     
     // If we don't have results from Supabase, use the scraper
-    if (!parsedResult) {
+    if (!parsedResult || forceScrape) {
       console.log('No results found in Supabase, scraping ', make, model, maxPages);
       
       try {
