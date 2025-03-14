@@ -18,10 +18,8 @@ export async function GET(request: NextRequest) {
     console.log(`Cron job triggered for scraping ${make ? make : 'all makes'}`);
     
     // Get all makes from Supabase
-    console.log(`Fetching from ${process.env.NEXT_PUBLIC_APP_URL}/api/cars?type=makes`)
     const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/cars?type=makes`);
     const data = await response.json()
-    console.log('Received make suggestions data:', data);
     const makes = Array.from(new Set(data.map((item: CarMake) => item.Make)))
 
     if (!response.ok) {
@@ -31,9 +29,7 @@ export async function GET(request: NextRequest) {
 
     // If a specific make is provided, only scrape that one
     const makesToScrape = make ? [make] : makes;
-    
-    console.log(`Will scrape the following makes: ${makesToScrape.join(', ')}`);
-    
+
     // Process each make sequentially to avoid overwhelming the server
     const results = [];
     
