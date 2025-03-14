@@ -23,7 +23,7 @@ import minimist from 'minimist';
 
 // Parse command line arguments
 const argv = minimist(process.argv.slice(2));
-const mode = argv.mode || 'basic'; // basic, viz, agent, agent-viz
+const mode = argv.mode || 'basic'; // basic, agent
 const make = argv.make || 'Porsche';
 const model = argv.model || '911';
 const yearMin = argv.yearMin || 2015;
@@ -95,97 +95,6 @@ async function testBasicAuctionTool() {
   });
 }
 
-// Test auction results with visualizations
-async function testAuctionVisualization() {
-  console.log('Testing auction results with visualizations...');
-  const auctionResultsTool = createAuctionResultsTool();
-  
-  console.log(`Testing auction results for ${make} ${model} with visualizations...`);
-  const result = await auctionResultsTool.invoke({
-    make,
-    model,
-    yearMin,
-    yearMax,
-    maxPages,
-    generateVisualizations: true
-  });
-  
-  // Parse the result
-  const parsedResult = JSON.parse(result);
-  
-  console.log('\nQuery:', parsedResult.query);
-  console.log('\nSummary:');
-  console.log('- Total Results:', parsedResult.summary.totalResults);
-  console.log('- Average Sold Price:', parsedResult.summary.averageSoldPrice);
-  console.log('- Highest Sold Price:', parsedResult.summary.highestSoldPrice);
-  console.log('- Lowest Sold Price:', parsedResult.summary.lowestSoldPrice);
-  console.log('- Sold Percentage:', parsedResult.summary.soldPercentage);
-  
-  // Check if visualizations were generated
-  if (parsedResult.visualizations) {
-    console.log('\nVisualizations:');
-    
-    if (parsedResult.visualizations.timeSeriesChart) {
-      console.log('- Time Series Chart:', parsedResult.visualizations.timeSeriesChart);
-      console.log('  File exists:', fs.existsSync(parsedResult.visualizations.timeSeriesChart));
-    }
-    
-    if (parsedResult.visualizations.priceHistogram) {
-      console.log('- Price Histogram:', parsedResult.visualizations.priceHistogram);
-      console.log('  File exists:', fs.existsSync(parsedResult.visualizations.priceHistogram));
-    }
-    
-    // Create an HTML file to view the visualizations
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Auction Results Visualizations</title>
-        <style>
-          body { font-family: Arial, sans-serif; margin: 20px; }
-          h1 { color: #333; }
-          .visualization { margin-bottom: 30px; }
-          .visualization h2 { color: #555; }
-          img { max-width: 100%; border: 1px solid #ddd; }
-        </style>
-      </head>
-      <body>
-        <h1>Auction Results for ${parsedResult.query.make} ${parsedResult.query.model}</h1>
-        
-        <div class="summary">
-          <h2>Summary</h2>
-          <p>Total Results: ${parsedResult.summary.totalResults}</p>
-          <p>Average Sold Price: ${parsedResult.summary.averageSoldPrice}</p>
-          <p>Highest Sold Price: ${parsedResult.summary.highestSoldPrice}</p>
-          <p>Lowest Sold Price: ${parsedResult.summary.lowestSoldPrice}</p>
-          <p>Sold Percentage: ${parsedResult.summary.soldPercentage}</p>
-        </div>
-        
-        ${parsedResult.visualizations.timeSeriesChart ? `
-        <div class="visualization">
-          <h2>Price Trends Over Time</h2>
-          <img src="/${parsedResult.visualizations.timeSeriesChart.replace('public/', '')}" alt="Price Trends">
-        </div>
-        ` : ''}
-        
-        ${parsedResult.visualizations.priceHistogram ? `
-        <div class="visualization">
-          <h2>Price Distribution</h2>
-          <img src="/${parsedResult.visualizations.priceHistogram.replace('public/', '')}" alt="Price Distribution">
-        </div>
-        ` : ''}
-      </body>
-      </html>
-    `;
-    
-    const htmlPath = path.join('public', 'auction_visualizations.html');
-    fs.writeFileSync(htmlPath, htmlContent);
-    console.log(`\nHTML viewer created at: ${htmlPath}`);
-    console.log(`View at: http://localhost:3000/auction_visualizations.html`);
-  } else {
-    console.log('\nNo visualizations were generated.');
-  }
-}
 
 // Test simple agent with auction tool
 async function testSimpleAgent() {
@@ -238,83 +147,6 @@ async function testSimpleAgent() {
   console.log(result.output);
 }
 
-// Test agent with auction tool and visualizations
-async function testAgentWithVisualizations() {
-  console.log('Testing agent with auction tool and visualizations...');
-  
-  // Initialize the agent
-  const agent = await initializeAgent();
-  
-  // Test query with visualization request
-  const vizQuery = `Generate visualizations of auction results for ${make} ${model} models from ${yearMin} to ${yearMax} and tell me about the average selling price and price trends.`;
-  console.log(`\nTesting query: "${vizQuery}"`);
-  
-  // Invoke the agent
-  const result = await agent.invoke({
-    input: vizQuery
-  });
-  
-  // Display the result
-  console.log('\nAgent response:');
-  console.log(result.output);
-  
-  // Fix image paths in the agent response if needed
-  let fixedOutput = result.output;
-  if (fixedOutput.includes('sandbox:/public/')) {
-    fixedOutput = fixedOutput.replace(/sandbox:\/public\//g, '/');
-  }
-  
-  // Extract visualization paths from the response
-  const visualizationPaths = extractVisualizationPaths(fixedOutput);
-  
-  // First convert Markdown images to HTML img tags (do this before links to avoid conflicts)
-  fixedOutput = convertMarkdownImagesToHtml(fixedOutput);
-  
-  // Then convert Markdown links to HTML links
-  fixedOutput = convertMarkdownLinksToHtml(fixedOutput);
-  
-  // Create a simple HTML file with the fixed output
-  const htmlContent = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>Agent Response with Visualizations</title>
-      <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        h1 { color: #333; }
-        img { max-width: 100%; border: 1px solid #ddd; margin: 20px 0; }
-        a { color: #0066cc; text-decoration: none; }
-        a:hover { text-decoration: underline; }
-        .visualization { margin-bottom: 30px; }
-      </style>
-    </head>
-    <body>
-      <h1>Agent Response with Visualizations</h1>
-      <div>${fixedOutput.replace(/\n/g, '<br>')}</div>
-      
-      <!-- Directly embed the visualizations -->
-      <div class="visualizations">
-        <h2>Visualizations</h2>
-        <div class="visualization">
-          <h3>Price Trends Over Time</h3>
-          <img src="${visualizationPaths.timeSeriesChart}" alt="Price Trends">
-        </div>
-        
-        <div class="visualization">
-          <h3>Price Distribution</h3>
-          <img src="${visualizationPaths.priceHistogram}" alt="Price Distribution">
-        </div>
-      </div>
-    </body>
-    </html>
-  `;
-  
-  const htmlPath = path.join('public', 'agent_response.html');
-  fs.writeFileSync(htmlPath, htmlContent);
-  console.log(`\nHTML viewer created at: ${htmlPath}`);
-  console.log(`View at: http://localhost:3000/agent_response.html`);
-}
-
 // Main function to run the selected test mode
 async function runTest() {
   try {
@@ -336,18 +168,12 @@ async function runTest() {
       case 'basic':
         await testBasicAuctionTool();
         break;
-      case 'viz':
-        await testAuctionVisualization();
-        break;
       case 'agent':
         await testSimpleAgent();
         break;
-      case 'agent-viz':
-        await testAgentWithVisualizations();
-        break;
       default:
         console.error(`Unknown mode: ${mode}`);
-        console.log('Available modes: basic, viz, agent, agent-viz');
+        console.log('Available modes: basic, agent');
         process.exit(1);
     }
     

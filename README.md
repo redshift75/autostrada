@@ -167,7 +167,7 @@ To scrape only completed auction results:
 
 ```bash
 npm run test-scrapers:completed -- --make="BMW" --recency='7D' --maxPages=10
-npx ts-node scripts/test-scrapers.ts --makesFile "scripts/sample-makes.txt"
+npm run test-scrapers:completed -- --makesFile='results/bat_makes.csv' --recency='7D'
 
 | Argument | Description | Default |
 |----------|-------------|---------|
@@ -189,7 +189,7 @@ npm run test-scrapers:active
 
 The results will be saved to the `results` directory as JSON files.
 
-### Data Analysis and Visualization
+### Data Analysis
 
 #### Testing Auction Analysis Tools
 
@@ -197,12 +197,6 @@ To test the basic auction analysis tool:
 
 ```bash
 npm run test-auction-tools
-```
-
-To test auction analysis with visualizations:
-
-```bash
-npm run test-auction-tools:viz
 ```
 
 To test the AI agent with auction data:
@@ -222,16 +216,6 @@ You can customize the analysis by adding parameters:
 ```bash
 npm run test-auction-tools -- --make=Ferrari --model=Testarossa --yearMin=1990 --yearMax=2000 --maxPages=3 --query="What's the price trend for Ferrari Testarossa models from the 1990s?"
 ```
-
-#### Serving Visualizations
-
-To serve the generated visualizations locally:
-
-```bash
-npm run serve-visualizations
-```
-
-This will start a local server at http://localhost:3000 where you can view the generated visualizations.
 
 ### Database Operations
 
@@ -480,6 +464,122 @@ The CSV file contains two columns:
 - ID: A sequential number for each make
 - Make: The name of the car make
 
-## Note
+# Database Query Functionality
 
-This script is for educational purposes only. Please respect the website's terms of service and robots.txt file when scraping websites.
+This section explains how to use the agent's database query functionality to look up results in the Supabase database.
+
+## Overview
+
+The agent has been enhanced to query the Supabase database using the existing `createAuctionResultsTool`. This allows the agent to answer questions about auction results, price trends, vehicle specifications, and market statistics.
+
+## How It Works
+
+1. The agent uses the `fetch_auction_results` tool to query the database for auction data.
+2. The tool returns data with the following fields:
+   - listing_id
+   - url
+   - title
+   - image_url
+   - sold_price
+   - sold_date
+   - bid_amount
+   - bid_date
+   - status
+   - year
+   - make
+   - model
+   - mileage
+   - bidders
+   - watchers
+   - comments
+   - transmission
+
+3. The agent then analyzes this data to answer specific questions.
+
+## Example Queries
+
+Here are some example queries you can ask the agent:
+
+- "What's the average price of Porsche 911s from 2015 to 2020?"
+- "What's the highest price ever paid for a Ferrari? Please sort by price from highest to lowest and limit to 20 results."
+- "Show me the lowest mileage BMW M3s. Sort by mileage from lowest to highest and limit to 10 results."
+- "What are the most common transmission types for Corvettes? Sort by newest first and limit to 15 results."
+- "How many Mercedes-Benz vehicles were sold in the last year? Sort by date with newest first."
+
+## Parameters
+
+When querying the database, you can use the following parameters:
+
+- `make`: The manufacturer of the vehicle
+- `model`: The model of the vehicle
+- `yearMin`: The minimum year to filter results
+- `yearMax`: The maximum year to filter results
+- `maxResults`: Maximum number of results to return (default: 100)
+- `generateVisualizations`: Whether to generate visualizations of the results (default: false)
+- `sortBy`: How to sort the results before limiting them (default: date_newest_first)
+  - `price_high_to_low`: Sort by price from highest to lowest
+  - `price_low_to_high`: Sort by price from lowest to highest
+  - `date_newest_first`: Sort by date with newest first
+  - `date_oldest_first`: Sort by date with oldest first
+  - `mileage_lowest_first`: Sort by mileage from lowest to highest
+  - `mileage_highest_first`: Sort by mileage from highest to lowest
+
+## Handling Large Result Sets
+
+For queries that might return a large number of results, use the `maxResults` parameter to limit the number of results returned. This is especially important for broad queries like "all Ferrari models" or "all vehicles from the 1960s". A good default value is 50-100 results.
+
+Example:
+```
+"What's the highest price ever paid for a Ferrari? Please sort by price from highest to lowest and limit to 20 results."
+```
+
+## Sorting Results
+
+When asking for specific information like highest prices, lowest mileage, or most recent sales, you should specify how to sort the results. The agent will automatically choose an appropriate sorting method based on your query, but you can also explicitly specify it.
+
+Examples:
+- For highest prices: "Sort by price from highest to lowest"
+- For lowest mileage: "Sort by mileage from lowest to highest"
+- For newest listings: "Sort by date with newest first"
+
+## Testing
+
+You can test the database query functionality using the following scripts:
+
+1. **Agent Test**: Tests the agent's ability to query the database
+   ```
+   npm run test-db-query
+   ```
+
+2. **Direct Database Test**: Tests direct database queries without going through the agent
+   ```
+   npm run test-db-direct
+   ```
+
+Note: These scripts use `npx tsx` to run the TypeScript files directly. If you encounter any issues with the `tsx` command not being found, make sure you have the `tsx` package installed in your project.
+
+## Implementation Details
+
+The database query functionality is implemented in the following files:
+
+- `lib/langchain/tools.ts`: Contains the `createAuctionResultsTool` and `analyzeDatabaseQuery` functions
+- `lib/langchain/config.ts`: Contains the agent prompt with instructions for database queries
+- `scripts/test-database-query.ts`: Test script for the agent's database query functionality
+- `scripts/test-db-direct.ts`: Test script for direct database queries
+
+## Troubleshooting
+
+If you encounter context length issues with large result sets, try:
+
+1. Using the `maxResults` parameter to limit the number of results
+2. Narrowing your query with more specific make, model, or year parameters
+3. Using the direct database test script to verify the data exists in the database
+
+If you encounter issues with running the scripts:
+
+1. Make sure you have the `tsx` package installed in your project
+2. Try running the scripts with `npx tsx` directly:
+   ```
+   npx tsx -r dotenv/config ./scripts/test-db-direct.ts
+   ```
+3. Check that your environment variables are properly set in your `.env` file 

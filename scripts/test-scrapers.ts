@@ -131,9 +131,10 @@ async function testResultsScraper(currentMake: string = make) {
       
       if (filteredListings.length > 0) {
         // Save filtered results to file
-        const makeForFilename = currentMake ? currentMake.toLowerCase() : 'all';
-        const modelForFilename = model ? model.toLowerCase() : 'all';
-        const filteredFile = path.join(resultsDir, `${makeForFilename}_${modelForFilename ? modelForFilename + '_' : ''}filter_completed_results.json`);
+        const makeForFilename = currentMake ? currentMake.toLowerCase() : 'allmakes';
+        const modelForFilename = model ? model.toLowerCase() : 'allmodels';
+        const recencyForFilename = recency ? recency.toLowerCase() : 'alldates';
+        const filteredFile = path.join(resultsDir, `${makeForFilename}_${modelForFilename ? modelForFilename  : ''}_${recencyForFilename ? recencyForFilename : ''}_completed_results.json`);
         fs.writeFileSync(filteredFile, JSON.stringify(filteredListings, null, 2));
         console.log(`Saved ${filteredListings.length} completed ${currentMake} ${model || ''} auctions to ${filteredFile}`);
       }
@@ -262,8 +263,8 @@ async function runTest() {
           
           // Add a pause between processing different makes to avoid rate limiting
           if (makes.indexOf(currentMake) < makes.length - 1) {
-            console.log(`Pausing for ${longPauseDelay/1000} seconds before processing next make...`);
-            await new Promise(resolve => setTimeout(resolve, longPauseDelay));
+            console.log(`Pausing before processing next make...`);
+            await new Promise(resolve => setTimeout(resolve, longPauseDelay/10));
           }
         }
       }

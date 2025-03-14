@@ -147,7 +147,7 @@ export const createMarketAnalysisTool = () => {
   });
 };
 
-// Tool to fetch real-time auction results from Bring a Trailer
+// Tool to fetch auction results from Bring a Trailer
 export const createAuctionResultsTool = () => {
   return new DynamicStructuredTool({
     name: "fetch_auction_results",
@@ -251,7 +251,7 @@ export const createAuctionResultsTool = () => {
           }
         }
          
-        // Return a summary, visualizations (if generated), and the results
+        // Return a summary, and the results
         return JSON.stringify({
           query: {
             make,
