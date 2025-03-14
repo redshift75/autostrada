@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { BringATrailerResultsScraper } from '../../../lib/scrapers/BringATrailerResultsScraper';
 import { supabase } from '../../../lib/supabase/client';
 
+export const runtime = 'edge';
+
 type CarMake = {
     Make: string;
   };
-
+  
 // This endpoint is designed to be called by a cron job to trigger scraping of BAT auction results
 export async function GET(request: NextRequest) {
   try {
