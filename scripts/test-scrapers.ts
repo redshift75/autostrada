@@ -218,9 +218,9 @@ async function fetchModelSuggestions(make: string): Promise<string[]> {
     // Query Supabase for models matching the make
     const { data, error } = await supabase
       .from('allcars')
-      .select('Model')
-      .eq('Make', make)
-      .order('Model');
+      .select('model')
+      .eq('make', make)
+      .order('model');
     
     if (error) {
       console.error('Error fetching model suggestions:', error);
@@ -233,7 +233,7 @@ async function fetchModelSuggestions(make: string): Promise<string[]> {
     }
     
     // Extract model names from the data
-    const models = data.map(item => item.Model);
+    const models = data.map(item => item.model);
     console.log(`Found ${models.length} models for ${make}`);
     
     return models;

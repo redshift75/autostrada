@@ -14,11 +14,11 @@ import { validateVegaLiteSpec } from '@/lib/utils/visualization';
 
 // Define types for car data from Supabase
 type CarMake = {
-  Make: string;
+  make: string;
 };
 
 type CarModel = {
-  Model: string;
+  model: string;
 };
 
 // Define types for auction results
@@ -147,7 +147,7 @@ function AuctionsContent() {
       }
       
       // Get unique makes using Set to remove duplicates
-      const uniqueMakes = Array.from(new Set(data.map((item: CarMake) => item.Make)))
+      const uniqueMakes = Array.from(new Set(data.map((item: CarMake) => item.make)))
         .filter((make): make is string => !!make)
         .sort()
         .slice(0, 3); // Limit to 3 results

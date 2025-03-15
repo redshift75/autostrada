@@ -30,7 +30,7 @@ export async function GET(request: Request) {
 
     // Determine if we're searching for makes or models
     const isSearchingMakes = type === 'makes';
-    const field = isSearchingMakes ? 'Make' : 'Model';
+    const field = isSearchingMakes ? 'make' : 'model';
 
     console.log(
       isSearchingMakes
@@ -41,7 +41,7 @@ export async function GET(request: Request) {
     let supabaseQuery = null;
 
     if (isSearchingMakes) {
-      // Build the query for make search and no make provided get all
+      // Build the query for make search and if no make provided get all
       supabaseQuery = supabase
         .from('all_makes')
         .select(field);
@@ -56,7 +56,7 @@ export async function GET(request: Request) {
         supabaseQuery = supabase
         .from('allcars')
         .select(field)
-        .eq('Make', make)
+        .eq('make', make)
         .ilike(field, `%${query}%`)
         .limit(10);
     }

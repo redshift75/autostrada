@@ -39,11 +39,11 @@ type SearchResponse = {
 
 // Define types for car data from Supabase
 type CarMake = {
-  Make: string;
+  make: string;
 };
 
 type CarModel = {
-  Model: string;
+  model: string;
 };
 
 // Debounce function to delay search execution
@@ -593,7 +593,7 @@ function ListingsContent() {
         return;
       }
       
-      const uniqueMakes = Array.from(new Set(data.map((item: CarMake) => item.Make)))
+      const uniqueMakes = Array.from(new Set(data.map((item: CarMake) => item.make)))
         .filter((make): make is string => !!make)
         .sort();
       

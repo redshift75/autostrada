@@ -52,11 +52,11 @@ type Deal = {
 
 // Define types for car data from Supabase
 type CarMake = {
-  Make: string;
+  make: string;
 };
 
 type CarModel = {
-  Model: string;
+  model: string;
 };
 
 export default function DealFinder() {
@@ -184,7 +184,7 @@ export default function DealFinder() {
       }
       
       // Get unique makes using Set to remove duplicates
-      const uniqueMakes = Array.from(new Set(data.map((item: CarMake) => item.Make)))
+      const uniqueMakes = Array.from(new Set(data.map((item: CarMake) => item.make)))
         .filter((make): make is string => !!make)
         .sort()
         .slice(0, 5); // Limit to 5 results
