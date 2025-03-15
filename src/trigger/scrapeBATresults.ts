@@ -9,7 +9,7 @@ type CarMake = {
 export const batScheduledTask = schedules.task({
   id: "Scrape BAT Results",
   // Every day at 1:00 AM
-  cron: "* 1 * * *",
+  cron: "0 18 * * *",
   // Set an optional maxDuration to prevent tasks from running indefinitely
   maxDuration: 1200, // Stop executing after 300 secs (5 mins) of compute
   run: async (payload, { ctx }) => {
