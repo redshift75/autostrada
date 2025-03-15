@@ -77,6 +77,7 @@ function ListingsContent() {
   const [yearMin, setYearMin] = useState(searchParams.get('yearMin') || '');
   const [yearMax, setYearMax] = useState(searchParams.get('yearMax') || '');
   const [transmission, setTransmission] = useState(searchParams.get('transmission') || 'Any');
+  const [makeOptions, setMakeOptions] = useState<string[]>([]);
   
   // Notification state
   const [notification, setNotification] = useState<string | null>(null);
@@ -119,13 +120,8 @@ function ListingsContent() {
   const [mileageHistogram, setMileageHistogram] = useState<TopLevelSpec | null>(null);
   
   // State for suggestions
-  const [makeSuggestions, setMakeSuggestions] = useState<string[]>([]);
-  const [showMakeSuggestions, setShowMakeSuggestions] = useState(false);
   const [modelOptions, setModelOptions] = useState<string[]>([]);
   const [trimOptions, setTrimOptions] = useState<string[]>([]);
-
-  // Debounce timers
-  const makeDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Show notification for a short time
   const showNotification = (message: string) => {
@@ -151,73 +147,6 @@ function ListingsContent() {
       }
     };
   }, []);
-
-  // Fetch make suggestions from Supabase with debounce
-  const fetchMakeSuggestions = async (query: string) => {
-    if (!query || query.length < 2) {
-      setMakeSuggestions([]);
-      return;
-    }
-    
-    try {
-      console.log('Fetching make suggestions for query:', query);
-      const response = await fetch(`/api/cars?type=makes&query=${encodeURIComponent(query)}`);
-      
-      if (response.status === 503) {
-        // Database connection error
-        setDbConnectionError(true);
-        setMakeSuggestions([]);
-        return;
-      }
-      
-      if (!response.ok) {
-        console.error('Make suggestions API error:', response.status, response.statusText);
-        // Don't throw error, just log it and return empty array
-        setMakeSuggestions([]);
-        return;
-      }
-      
-      // Reset connection error state if we got a successful response
-      setDbConnectionError(false);
-      
-      const data = await response.json();
-      console.log('Received make suggestions data:', data);
-      
-      if (!data || !Array.isArray(data)) {
-        console.error('Invalid make suggestions data format:', data);
-        setMakeSuggestions([]);
-        return;
-      }
-      
-      // Get unique makes using Set to remove duplicates
-      const uniqueMakes = Array.from(new Set(data.map((item: CarMake) => item.Make)))
-        .filter((make): make is string => !!make)
-        .sort()
-        .slice(0, 5); // Limit to 5 results
-      
-      console.log('Processed unique makes:', uniqueMakes);
-      setMakeSuggestions(uniqueMakes);
-      setShowMakeSuggestions(uniqueMakes.length > 0);
-    } catch (error) {
-      console.error('Error fetching make suggestions:', error);
-      // Don't show error to user, just silently fail
-      setMakeSuggestions([]);
-      setShowMakeSuggestions(false);
-    }
-  };
-  
-  // Debounced version of fetchMakeSuggestions
-  const debouncedFetchMakeSuggestions = (query: string) => {
-    // Clear any existing timer
-    if (makeDebounceTimerRef.current) {
-      clearTimeout(makeDebounceTimerRef.current);
-    }
-    
-    // Set a new timer
-    makeDebounceTimerRef.current = setTimeout(() => {
-      fetchMakeSuggestions(query);
-    }, 300); // 300ms delay
-  };
 
   // Fetch model options from MarketCheck API
   const fetchModelOptions = async () => {
@@ -331,13 +260,12 @@ function ListingsContent() {
     }
   }, [make, model]);
 
-  // Handle input changes with debounce for suggestions
+  // Handle input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     
     if (name === 'make') {
       setMake(value);
-      debouncedFetchMakeSuggestions(value);
       // Clear model and trim when make changes
       if (model) {
         setModel('');
@@ -365,35 +293,6 @@ function ListingsContent() {
     }
   };
   
-  // Handle suggestion selection
-  const handleSuggestionClick = (name: string, value: string) => {
-    if (name === 'make') {
-      setMake(value);
-      setShowMakeSuggestions(false);
-    }
-  };
-  
-  // Close suggestions when clicking outside
-  useEffect(() => {
-    const handleClickOutside = () => {
-      setShowMakeSuggestions(false);
-    };
-    
-    document.addEventListener('click', handleClickOutside);
-    return () => {
-      document.removeEventListener('click', handleClickOutside);
-    };
-  }, []);
-  
-  // Clean up timers on unmount
-  useEffect(() => {
-    return () => {
-      if (makeDebounceTimerRef.current) {
-        clearTimeout(makeDebounceTimerRef.current);
-      }
-    };
-  }, []);
-
   // Define handleSearch as a useCallback to prevent unnecessary re-creation
   const handleSearch = useCallback(async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -665,6 +564,52 @@ function ListingsContent() {
     console.log('Mileage histogram state changed:', mileageHistogram ? 'available' : 'null');
   }, [mileageHistogram]);
 
+  // Add fetchMakeOptions function after other fetch functions
+  const fetchMakeOptions = async () => {
+    try {
+      console.log('Fetching all makes');
+      const response = await fetch('/api/cars?type=makes');
+      
+      if (response.status === 503) {
+        setDbConnectionError(true);
+        setMakeOptions([]);
+        return;
+      }
+      
+      if (!response.ok) {
+        console.error('Make options API error:', response.status, response.statusText);
+        setMakeOptions([]);
+        return;
+      }
+      
+      setDbConnectionError(false);
+      
+      const data = await response.json();
+      console.log('Received make options data:', data);
+      
+      if (!data || !Array.isArray(data)) {
+        console.error('Invalid make options data format:', data);
+        setMakeOptions([]);
+        return;
+      }
+      
+      const uniqueMakes = Array.from(new Set(data.map((item: CarMake) => item.Make)))
+        .filter((make): make is string => !!make)
+        .sort();
+      
+      console.log('Processed unique makes:', uniqueMakes);
+      setMakeOptions(uniqueMakes);
+    } catch (error) {
+      console.error('Error fetching make options:', error);
+      setMakeOptions([]);
+    }
+  };
+
+  // Add useEffect to fetch makes on component mount
+  useEffect(() => {
+    fetchMakeOptions();
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="container mx-auto px-4 py-8">
@@ -704,37 +649,21 @@ function ListingsContent() {
             <label htmlFor="make" className="mb-1 font-medium">
               Make <span className="text-red-500">*</span>
             </label>
-            <input
+            <select
               id="make"
-              type="text"
               name="make"
               value={make}
               onChange={handleInputChange}
-              onFocus={() => make.length >= 2 && debouncedFetchMakeSuggestions(make)}
-              onClick={(e) => e.stopPropagation()}
               className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
-              placeholder={dbConnectionError ? "Enter car make manually..." : "Start typing to see suggestions..."}
               required
-              autoComplete="off"
-            />
-            {showMakeSuggestions && makeSuggestions.length > 0 && (
-              <div className="absolute z-10 w-full mt-1 top-full bg-white dark:bg-gray-700 shadow-lg rounded-md border border-gray-200 dark:border-gray-600 max-h-60 overflow-y-auto">
-                <div className="py-1">
-                  {makeSuggestions.map((suggestion, index) => (
-                    <div
-                      key={index}
-                      className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer transition-colors duration-150"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleSuggestionClick('make', suggestion);
-                      }}
-                    >
-                      {suggestion}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            >
+              <option value="">Select make...</option>
+              {makeOptions.map((option, index) => (
+                <option key={index} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
           </div>
           
           <div className="flex flex-col relative">

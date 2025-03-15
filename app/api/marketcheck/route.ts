@@ -45,7 +45,7 @@ export async function GET(request: Request) {
     }
 
     // Call MarketCheck API
-    console.log(`MC API: ${params.toString()}`);
+
     const response = await fetch(
       `https://mc-api.marketcheck.com/v2/search/car/auto-complete?${params.toString()}`,
       {
