@@ -1066,7 +1066,7 @@ export default function DealFinder() {
                                     {formatPrice(sale.sold_price)}
                                   </td>
                                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                                    {sale.sold_date}
+                                    {new Date(sale.sold_date).toLocaleDateString()}
                                   </td>
                                 </tr>
                               ))}
