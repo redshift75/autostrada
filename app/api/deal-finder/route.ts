@@ -18,6 +18,7 @@ type DealFinderResponse = {
     dealScore: number; // 1-10 score, higher is better deal
     endingSoon: boolean; // Whether the auction is ending within 24 hours
   }>;
+  uniqueMakes: string[];
 };
 
 // Helper function to parse model names from listing titles
@@ -55,15 +56,23 @@ export async function GET(request: NextRequest) {
     const activeListingScraper = new BringATrailerActiveListingScraper();
 
     // Fetch active auctions - first get all listings, then filter them
-    console.log('Fetching all active listings...');
+    console.log('Fetching active listings...');
     const activeListings = await activeListingScraper.scrape();
     console.log(`Fetched ${activeListings.length} active listings`);
+
+    // Extract unique makes from active listings
+    const uniqueMakes = Array.from(new Set(activeListings
+      .map(listing => listing.make)
+      .filter(make => make) // Remove empty or undefined makes
+      .sort()
+    ));
 
     if (debug) {
       // Return more detailed debug information
       return NextResponse.json({ 
         activeListings: activeListings.slice(0, 5),
         totalActiveListings: activeListings.length,
+        uniqueMakes,
         searchParams: {
           make,
           model,
@@ -279,7 +288,10 @@ export async function GET(request: NextRequest) {
 
     console.log(`Found ${validDeals.length} valid deals`);
 
-    return NextResponse.json({ deals: validDeals });
+    return NextResponse.json({ 
+      deals: validDeals,
+      activeListings: activeListings
+    });
   } catch (error) {
     console.error('Error finding deals:', error);
     return NextResponse.json(

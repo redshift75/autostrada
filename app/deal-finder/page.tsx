@@ -65,6 +65,9 @@ export default function DealFinder() {
   const [error, setError] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<'timeAsc' | 'timeDesc' | 'dealScore'>('timeAsc');
   const [currentTime, setCurrentTime] = useState<number>(Date.now());
+  const [availableMakes, setAvailableMakes] = useState<string[]>([]);
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
+  const [activeListings, setActiveListings] = useState<any[]>([]);
   
   // Form state - only updated on form submission
   const [formData, setFormData] = useState({
@@ -76,17 +79,10 @@ export default function DealFinder() {
   });
 
   // Form refs for uncontrolled inputs
-  const makeInputRef = useRef<HTMLInputElement>(null);
-  const modelInputRef = useRef<HTMLInputElement>(null);
+  const makeSelectRef = useRef<HTMLSelectElement>(null);
+  const modelInputRef = useRef<HTMLSelectElement>(null);
   const yearMinInputRef = useRef<HTMLInputElement>(null);
   const yearMaxInputRef = useRef<HTMLInputElement>(null);
-
-  // State for suggestions - kept separate from form state
-  const [makeSuggestions, setMakeSuggestions] = useState<string[]>([]);
-  const [showMakeSuggestions, setShowMakeSuggestions] = useState(false);
-  
-  // Debounce timers
-  const makeDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   // State for database connection status
   const [dbConnectionError, setDbConnectionError] = useState(false);
@@ -105,7 +101,33 @@ export default function DealFinder() {
     fetchEndingSoonDeals();
   }, []);
 
-  // Function to fetch deals ending soonest
+  // Update models when make changes
+  const handleMakeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedMake = e.target.value;
+    
+    // Clear model when make changes
+    if (modelInputRef.current) {
+      modelInputRef.current.value = '';
+    }
+
+    // If no make is selected, clear models
+    if (!selectedMake) {
+      setAvailableModels([]);
+      return;
+    }
+
+    // Extract unique models for the selected make from activeListings
+    const models = Array.from(new Set(
+      activeListings
+        .filter(listing => listing.make === selectedMake)
+        .map(listing => listing.model as string)
+        .filter((model): model is string => Boolean(model))
+    )).sort();
+
+    setAvailableModels(models);
+  };
+
+  // Update fetchEndingSoonDeals to store activeListings
   const fetchEndingSoonDeals = async () => {
     setLoading(true);
     setError(null);
@@ -134,6 +156,16 @@ export default function DealFinder() {
       }
       
       if (data.deals && data.deals.length > 0) {
+        // Store activeListings
+        setActiveListings(data.activeListings);
+        
+        // Extract unique makes from activeListings
+        const uniqueMakes = Array.from(new Set(data.activeListings
+          .map((listing: any) => listing.make as string)
+          .filter((make: string | undefined): make is string => Boolean(make)) // Type guard to ensure non-null strings
+          .sort()
+        )) as string[];
+        setAvailableMakes(uniqueMakes);
         setDeals(data.deals);
       } else {
         setError('No deals found. Try different search parameters.');
@@ -145,116 +177,6 @@ export default function DealFinder() {
       setLoading(false);
     }
   };
-
-  // Fetch make suggestions from Supabase with debounce
-  const fetchMakeSuggestions = async (query: string) => {
-    if (!query || query.length < 2) {
-      setMakeSuggestions([]);
-      return;
-    }
-    
-    try {
-      console.log('Fetching make suggestions for query:', query);
-      const response = await fetch(`/api/cars?type=makes&query=${encodeURIComponent(query)}`);
-      
-      if (response.status === 503) {
-        // Database connection error
-        setDbConnectionError(true);
-        setMakeSuggestions([]);
-        return;
-      }
-      
-      if (!response.ok) {
-        console.error('Make suggestions API error:', response.status, response.statusText);
-        // Don't throw error, just log it and return empty array
-        setMakeSuggestions([]);
-        return;
-      }
-      
-      // Reset connection error state if we got a successful response
-      setDbConnectionError(false);
-      
-      const data = await response.json();
-      console.log('Received make suggestions data:', data);
-      
-      if (!data || !Array.isArray(data)) {
-        console.error('Invalid make suggestions data format:', data);
-        setMakeSuggestions([]);
-        return;
-      }
-      
-      // Get unique makes using Set to remove duplicates
-      const uniqueMakes = Array.from(new Set(data.map((item: CarMake) => item.make)))
-        .filter((make): make is string => !!make)
-        .sort()
-        .slice(0, 5); // Limit to 5 results
-      
-      console.log('Processed unique makes:', uniqueMakes);
-      
-      // Only update the suggestions, not the form state
-      setMakeSuggestions(uniqueMakes);
-      setShowMakeSuggestions(uniqueMakes.length > 0);
-    } catch (error) {
-      console.error('Error fetching make suggestions:', error);
-      // Don't show error to user, just silently fail
-      setMakeSuggestions([]);
-      setShowMakeSuggestions(false);
-    }
-  };
-  
-  // Debounced version of fetchMakeSuggestions
-  const debouncedFetchMakeSuggestions = (query: string) => {
-    // Clear any existing timer
-    if (makeDebounceTimerRef.current) {
-      clearTimeout(makeDebounceTimerRef.current);
-    }
-    
-    // Set a new timer
-    makeDebounceTimerRef.current = setTimeout(() => {
-      fetchMakeSuggestions(query);
-    }, 300); // 300ms delay
-  };
-
-  // Handle suggestion selection
-  const handleSuggestionClick = (name: string, value: string) => {
-    if (name === 'make') {
-      if (makeInputRef.current) {
-        makeInputRef.current.value = value;
-      }
-      
-      // Clear model when make changes
-      if (modelInputRef.current) {
-        modelInputRef.current.value = '';
-      }
-      
-      setShowMakeSuggestions(false);
-    } else if (name === 'model') {
-      if (modelInputRef.current) {
-        modelInputRef.current.value = value;
-      }
-    }
-  };
-
-  // Close suggestions when clicking outside
-  useEffect(() => {
-    const handleClickOutside = () => {
-      setShowMakeSuggestions(false);
-    };
-    
-    document.addEventListener('click', handleClickOutside);
-    return () => {
-      document.removeEventListener('click', handleClickOutside);
-    };
-  }, []);
-
-  // Clean up timers on unmount
-  useEffect(() => {
-    return () => {
-      if (makeDebounceTimerRef.current) {
-        clearTimeout(makeDebounceTimerRef.current);
-      }
-    };
-  }, []);
 
   // Handle sort change
   const handleSortChange = (newSortOrder: 'timeAsc' | 'timeDesc' | 'dealScore') => {
@@ -280,7 +202,7 @@ export default function DealFinder() {
     e.preventDefault();
     
     // Get values from refs
-    const make = makeInputRef.current?.value || '';
+    const make = makeSelectRef.current?.value || '';
     const model = modelInputRef.current?.value || '';
     const yearMin = yearMinInputRef.current?.value || '';
     const yearMax = yearMaxInputRef.current?.value || '';
@@ -710,7 +632,7 @@ export default function DealFinder() {
         {dbConnectionError && (
           <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-6">
             <p className="font-medium">Database connection unavailable</p>
-            <p className="text-sm">Autocomplete suggestions are not available. You can still enter make and model manually.</p>
+            <p className="text-sm">Some features may be limited. Please try again later.</p>
           </div>
         )}
 
@@ -718,72 +640,47 @@ export default function DealFinder() {
           <h2 className="text-xl font-semibold mb-4">Find Deals</h2>
           <form onSubmit={handleSubmit}>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-              <div className="flex flex-col relative">
+              <div className="flex flex-col">
                 <label htmlFor="make" className="mb-1 font-medium">
                   Make <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="text"
+                <select
                   id="make"
                   name="make"
-                  ref={makeInputRef}
+                  ref={makeSelectRef}
                   defaultValue={formData.make}
-                  onChange={(e) => {
-                    // Only fetch suggestions, don't update form state
-                    if (e.target.value.length >= 2) {
-                      debouncedFetchMakeSuggestions(e.target.value);
-                    } else {
-                      // Clear suggestions if input is too short
-                      setMakeSuggestions([]);
-                      setShowMakeSuggestions(false);
-                    }
-                  }}
-                  onFocus={(e) => {
-                    // Only fetch suggestions on focus if input has enough characters
-                    if (e.target.value.length >= 2) {
-                      debouncedFetchMakeSuggestions(e.target.value);
-                    }
-                  }}
-                  onClick={(e) => e.stopPropagation()}
+                  onChange={handleMakeChange}
                   className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
-                  placeholder={dbConnectionError ? "Enter car make manually..." : "Start typing to see suggestions..."}
-                  autoComplete="off"
                   required
-                />
-                {showMakeSuggestions && makeSuggestions.length > 0 && (
-                  <div className="absolute z-10 w-full mt-1 top-full bg-white dark:bg-gray-700 shadow-lg rounded-md border border-gray-200 dark:border-gray-600 max-h-60 overflow-y-auto">
-                    <div className="py-1">
-                      {makeSuggestions.map((make, index) => (
-                        <div
-                          key={index}
-                          className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer transition-colors duration-150"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSuggestionClick('make', make);
-                          }}
-                        >
-                          {make}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                >
+                  <option value="">Select a make</option>
+                  {availableMakes.map((make) => (
+                    <option key={make} value={make}>
+                      {make}
+                    </option>
+                  ))}
+                </select>
               </div>
               
               <div className="flex flex-col">
                 <label htmlFor="model" className="mb-1 font-medium">
                   Model
                 </label>
-                <input
-                  type="text"
+                <select
                   id="model"
                   name="model"
                   ref={modelInputRef}
                   defaultValue={formData.model}
                   className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
-                  placeholder={makeInputRef.current?.value ? `Enter ${makeInputRef.current.value} model...` : "First select a make..."}
-                  autoComplete="off"
-                />
+                  disabled={!makeSelectRef.current?.value}
+                >
+                  <option value="">Select model...</option>
+                  {availableModels.map((model) => (
+                    <option key={model} value={model}>
+                      {model}
+                    </option>
+                  ))}
+                </select>
               </div>
               
               <div className="flex flex-col">

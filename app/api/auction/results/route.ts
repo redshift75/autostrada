@@ -47,10 +47,7 @@ export async function POST(request: NextRequest) {
     // Parse the request body
     const body = await request.json();
     const { make, model, yearMin, yearMax, maxPages, sortBy, sortOrder, status, forceScrape = false } = body;
-
-    // First, try to fetch results from Supabase
-    console.log(`Checking Supabase for ${make} ${model} (${yearMin || 'any'}-${yearMax || 'any'})`);
-    
+ 
     // Determine sort field and direction
     const sortField = sortBy || 'sold_date';
     const ascending = sortOrder === 'asc';
@@ -98,7 +95,6 @@ export async function POST(request: NextRequest) {
           query = query.neq('status', 'sold');
         }
       }
-      console.log("Query: ", query);
       // Execute the query
       const { data: supabaseResults, error: supabaseError } = await query;
       

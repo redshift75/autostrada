@@ -382,9 +382,7 @@ export class BringATrailerResultsScraper extends BaseBATScraper {
     const model = params.model || '';
     const yearMin = params.yearMin;
     const yearMax = params.yearMax;
-    
-    console.log('Filtering listings with params:', { make, model, yearMin, yearMax });
-    
+        
     try {
       return listings.filter(listing => {
         // Filter by year range
