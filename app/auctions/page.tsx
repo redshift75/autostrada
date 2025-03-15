@@ -64,18 +64,18 @@ function AuctionsContent() {
     maxPages: 2,
   });
   
+  // Add state for makes
+  const [makes, setMakes] = useState<string[]>([]);
+  const [loadingMakes, setLoadingMakes] = useState(true);
+  
   // Form refs for uncontrolled inputs
-  const makeInputRef = useRef<HTMLInputElement>(null);
+  const makeInputRef = useRef<HTMLSelectElement>(null);
   const modelInputRef = useRef<HTMLInputElement>(null);
   const yearMinInputRef = useRef<HTMLInputElement>(null);
   const yearMaxInputRef = useRef<HTMLInputElement>(null);
   
-  // State for suggestions
-  const [makeSuggestions, setMakeSuggestions] = useState<string[]>([]);
-  const [showMakeSuggestions, setShowMakeSuggestions] = useState(false);
-  
-  // Debounce timers
-  const makeDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // State for database connection
+  const [dbConnectionError, setDbConnectionError] = useState(false);
   
   // State for auction results and loading status
   const [results, setResults] = useState<AuctionResult[]>([]);
@@ -83,9 +83,6 @@ function AuctionsContent() {
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState<string>('Loading...');
   const [error, setError] = useState<string | null>(null);
-  
-  // State for database connection status
-  const [dbConnectionError, setDbConnectionError] = useState(false);
   
   // State for visualizations
   const [visualizations, setVisualizations] = useState<any>(null);
@@ -109,110 +106,46 @@ function AuctionsContent() {
   // State for data source
   const [dataSource, setDataSource] = useState<string | null>(null);
   
-  // Fetch make suggestions from Supabase with debounce
-  const fetchMakeSuggestions = async (query: string) => {
-    if (!query || query.length < 2) {
-      setMakeSuggestions([]);
-      return;
-    }
-    
-    try {
-      console.log('Fetching make suggestions for query:', query);
-      const response = await fetch(`/api/cars?type=makes&query=${encodeURIComponent(query)}`);
-      
-      if (response.status === 503) {
-        // Database connection error
-        setDbConnectionError(true);
-        setMakeSuggestions([]);
-        return;
-      }
-      
-      if (!response.ok) {
-        console.error('Make suggestions API error:', response.status, response.statusText);
-        // Don't throw error, just log it and return empty array
-        setMakeSuggestions([]);
-        return;
-      }
-      
-      // Reset connection error state if we got a successful response
-      setDbConnectionError(false);
-      
-      const data = await response.json();
-      console.log('Received make suggestions data:', data);
-      
-      if (!data || !Array.isArray(data)) {
-        console.error('Invalid make suggestions data format:', data);
-        setMakeSuggestions([]);
-        return;
-      }
-      
-      // Get unique makes using Set to remove duplicates
-      const uniqueMakes = Array.from(new Set(data.map((item: CarMake) => item.make)))
-        .filter((make): make is string => !!make)
-        .sort()
-        .slice(0, 3); // Limit to 3 results
-      
-      console.log('Processed unique makes:', uniqueMakes);
-      setMakeSuggestions(uniqueMakes);
-      setShowMakeSuggestions(uniqueMakes.length > 0);
-    } catch (error) {
-      console.error('Error fetching make suggestions:', error);
-      // Don't show error to user, just silently fail
-      setMakeSuggestions([]);
-      setShowMakeSuggestions(false);
-    }
-  };
-  
-  // Debounced version of fetchMakeSuggestions
-  const debouncedFetchMakeSuggestions = (query: string) => {
-    // Clear any existing timer
-    if (makeDebounceTimerRef.current) {
-      clearTimeout(makeDebounceTimerRef.current);
-    }
-    
-    // Set a new timer
-    makeDebounceTimerRef.current = setTimeout(() => {
-      fetchMakeSuggestions(query);
-    }, 300); // 300ms delay
-  };
-  
-  // Clean up timers on unmount
+  // Add useEffect to fetch makes on mount
   useEffect(() => {
-    return () => {
-      if (makeDebounceTimerRef.current) {
-        clearTimeout(makeDebounceTimerRef.current);
+    const fetchMakes = async () => {
+      try {
+        const response = await fetch('/api/cars?type=makes');
+        
+        if (response.status === 503) {
+          setDbConnectionError(true);
+          setLoadingMakes(false);
+          return;
+        }
+        
+        if (!response.ok) {
+          console.error('Makes API error:', response.status, response.statusText);
+          setLoadingMakes(false);
+          return;
+        }
+        
+        const data = await response.json();
+        
+        if (!data || !Array.isArray(data)) {
+          console.error('Invalid makes data format:', data);
+          setLoadingMakes(false);
+          return;
+        }
+        
+        // Get unique makes using Set to remove duplicates
+        const uniqueMakes = Array.from(new Set(data.map((item: CarMake) => item.make)))
+          .filter((make): make is string => !!make)
+          .sort();
+        
+        setMakes(uniqueMakes);
+        setLoadingMakes(false);
+      } catch (error) {
+        console.error('Error fetching makes:', error);
+        setLoadingMakes(false);
       }
-    };
-  }, []);
-  
-  // Handle suggestion selection
-  const handleSuggestionClick = (name: string, value: string) => {
-    if (name === 'make') {
-      if (makeInputRef.current) {
-        makeInputRef.current.value = value;
-      }
-      
-      // Clear model when make changes
-      if (modelInputRef.current) {
-        modelInputRef.current.value = '';
-      }
-    } else if (name === 'model') {
-      if (modelInputRef.current) {
-        modelInputRef.current.value = value;
-      }
-    }
-  };
-  
-  // Close suggestions when clicking outside
-  useEffect(() => {
-    const handleClickOutside = () => {
-      setShowMakeSuggestions(false);
     };
     
-    document.addEventListener('click', handleClickOutside);
-    return () => {
-      document.removeEventListener('click', handleClickOutside);
-    };
+    fetchMakes();
   }, []);
   
   // Handle histogram bar click
@@ -599,41 +532,32 @@ function AuctionsContent() {
                 <label htmlFor="make" className="mb-1 font-medium">
                   Make <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="text"
+                <select
                   id="make"
                   name="make"
                   ref={makeInputRef}
-                  defaultValue={formData.make}
+                  defaultValue=""
                   onChange={(e) => {
-                    if (e.target.value.length >= 2) {
-                      debouncedFetchMakeSuggestions(e.target.value);
+                    if (modelInputRef.current) {
+                      modelInputRef.current.value = '';
                     }
                   }}
-                  onFocus={(e) => e.target.value.length >= 2 && debouncedFetchMakeSuggestions(e.target.value)}
-                  onClick={(e) => e.stopPropagation()}
                   className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
                   required
-                  autoComplete="off"
-                  placeholder={dbConnectionError ? "Enter car make manually..." : "Start typing to see suggestions..."}
-                />
-                {showMakeSuggestions && makeSuggestions.length > 0 && (
-                  <div className="absolute z-10 w-full mt-1 top-full bg-white dark:bg-gray-700 shadow-lg rounded-md border border-gray-200 dark:border-gray-600 max-h-60 overflow-y-auto">
-                    <div className="py-1">
-                      {makeSuggestions.map((make, index) => (
-                        <div
-                          key={index}
-                          className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer transition-colors duration-150"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSuggestionClick('make', make);
-                          }}
-                        >
-                          {make}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                >
+                  <option value="" disabled>
+                    {loadingMakes ? 'Loading makes...' : 'Select a make'}
+                  </option>
+                  {makes.map((make) => (
+                    <option key={make} value={make}>
+                      {make}
+                    </option>
+                  ))}
+                </select>
+                {dbConnectionError && (
+                  <p className="mt-1 text-sm text-red-500">
+                    Database connection error. Some makes may not be available.
+                  </p>
                 )}
               </div>
               
@@ -646,13 +570,10 @@ function AuctionsContent() {
                   id="model"
                   name="model"
                   ref={modelInputRef}
-                  defaultValue={formData.model}
                   onClick={(e) => e.stopPropagation()}
                   className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
                   autoComplete="off"
-                  placeholder={dbConnectionError 
-                    ? "Enter model manually..." 
-                    : (makeInputRef.current?.value ? `Enter ${makeInputRef.current.value} model...` : "First select a make...")}
+                  placeholder={loadingMakes ? "Loading makes..." : (makeInputRef.current?.value ? `Enter ${makeInputRef.current.value} model...` : "First select a make...")}
                 />
               </div>
               

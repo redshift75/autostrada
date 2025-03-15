@@ -44,10 +44,11 @@ export async function GET(request: Request) {
       // Build the query for make search and if no make provided get all
       supabaseQuery = supabase
         .from('all_makes')
-        .select(field);
+        .select(field)
+        .order(field);
         
       if (query) {
-        supabaseQuery.ilike(field, `%${query}%`);
+        supabaseQuery = supabaseQuery.ilike(field, `%${query}%`);
       }
     }
 
