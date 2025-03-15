@@ -73,6 +73,7 @@ function ListingsContent() {
   // Form state
   const [make, setMake] = useState(searchParams.get('make') || '');
   const [model, setModel] = useState(searchParams.get('model') || '');
+  const [trim, setTrim] = useState(searchParams.get('trim') || '');
   const [yearMin, setYearMin] = useState(searchParams.get('yearMin') || '');
   const [yearMax, setYearMax] = useState(searchParams.get('yearMax') || '');
   const [transmission, setTransmission] = useState(searchParams.get('transmission') || 'Any');
@@ -120,6 +121,8 @@ function ListingsContent() {
   // State for suggestions
   const [makeSuggestions, setMakeSuggestions] = useState<string[]>([]);
   const [showMakeSuggestions, setShowMakeSuggestions] = useState(false);
+  const [modelOptions, setModelOptions] = useState<string[]>([]);
+  const [trimOptions, setTrimOptions] = useState<string[]>([]);
 
   // Debounce timers
   const makeDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -215,7 +218,119 @@ function ListingsContent() {
       fetchMakeSuggestions(query);
     }, 300); // 300ms delay
   };
-  
+
+  // Fetch model options from MarketCheck API
+  const fetchModelOptions = async () => {
+    if (!make) {
+      setModelOptions([]);
+      return;
+    }
+    
+    try {
+      console.log('Fetching model options for make:', make);
+      const response = await fetch(`/api/marketcheck?field=model&input=&make=${encodeURIComponent(make)}`);
+      
+      if (response.status === 503) {
+        setDbConnectionError(true);
+        setModelOptions([]);
+        return;
+      }
+      
+      if (!response.ok) {
+        console.error('Model options API error:', response.status, response.statusText);
+        setModelOptions([]);
+        return;
+      }
+      
+      setDbConnectionError(false);
+      
+      const data = await response.json();
+      console.log('Received model options data:', data);
+      
+      if (!data || !data.suggestions || !Array.isArray(data.suggestions)) {
+        console.error('Invalid model options data format:', data);
+        setModelOptions([]);
+        return;
+      }
+      
+      const uniqueModels = Array.from(new Set(data.suggestions))
+        .filter((model): model is string => !!model)
+        .sort();
+      
+      console.log('Processed unique models:', uniqueModels);
+      setModelOptions(uniqueModels);
+    } catch (error) {
+      console.error('Error fetching model options:', error);
+      setModelOptions([]);
+    }
+  };
+
+  // Fetch trim options from MarketCheck API
+  const fetchTrimOptions = async () => {
+    if (!make || !model) {
+      setTrimOptions([]);
+      return;
+    }
+    
+    try {
+      console.log('Fetching trim options for', make, model);
+      const response = await fetch(
+        `/api/marketcheck?field=trim&input=&make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}`
+      );
+      
+      if (response.status === 503) {
+        setDbConnectionError(true);
+        setTrimOptions([]);
+        return;
+      }
+      
+      if (!response.ok) {
+        console.error('Trim options API error:', response.status, response.statusText);
+        setTrimOptions([]);
+        return;
+      }
+      
+      setDbConnectionError(false);
+      
+      const data = await response.json();
+      console.log('Received trim options data:', data);
+      
+      if (!data || !data.suggestions || !Array.isArray(data.suggestions)) {
+        console.error('Invalid trim options data format:', data);
+        setTrimOptions([]);
+        return;
+      }
+      
+      const uniqueTrims = Array.from(new Set(data.suggestions))
+        .filter((trim): trim is string => !!trim)
+        .sort();
+      
+      console.log('Processed unique trims:', uniqueTrims);
+      setTrimOptions(uniqueTrims);
+    } catch (error) {
+      console.error('Error fetching trim options:', error);
+      setTrimOptions([]);
+    }
+  };
+
+  // Load model options when make is set
+  useEffect(() => {
+    if (make) {
+      fetchModelOptions();
+    } else {
+      setModelOptions([]);
+    }
+  }, [make]);
+
+  // Load trim options when make and model are set
+  useEffect(() => {
+    if (make && model) {
+      fetchTrimOptions();
+    } else {
+      setTrimOptions([]);
+    }
+  }, [make, model]);
+
   // Handle input changes with debounce for suggestions
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -223,12 +338,24 @@ function ListingsContent() {
     if (name === 'make') {
       setMake(value);
       debouncedFetchMakeSuggestions(value);
-      // Clear model when make changes
+      // Clear model and trim when make changes
       if (model) {
         setModel('');
+        setModelOptions([]);
+      }
+      if (trim) {
+        setTrim('');
+        setTrimOptions([]);
       }
     } else if (name === 'model') {
       setModel(value);
+      // Clear trim when model changes
+      if (trim) {
+        setTrim('');
+        setTrimOptions([]);
+      }
+    } else if (name === 'trim') {
+      setTrim(value);
     } else if (name === 'yearMin') {
       setYearMin(value);
     } else if (name === 'yearMax') {
@@ -243,11 +370,6 @@ function ListingsContent() {
     if (name === 'make') {
       setMake(value);
       setShowMakeSuggestions(false);
-      // Focus the model input after selecting a make
-      const modelInput = document.getElementById('model');
-      if (modelInput) {
-        modelInput.focus();
-      }
     }
   };
   
@@ -293,6 +415,7 @@ function ListingsContent() {
         body: JSON.stringify({
           make,
           model: model || undefined,
+          trim: trim || undefined,
           yearMin: yearMin ? parseInt(yearMin) : undefined,
           yearMax: yearMax ? parseInt(yearMax) : undefined,
           transmission: transmission !== 'Any' ? transmission : undefined,
@@ -320,6 +443,7 @@ function ListingsContent() {
       const params = new URLSearchParams();
       if (make) params.set('make', make);
       if (model) params.set('model', model);
+      if (trim) params.set('trim', trim);
       if (yearMin) params.set('yearMin', yearMin);
       if (yearMax) params.set('yearMax', yearMax);
       if (transmission && transmission !== 'Any') params.set('transmission', transmission);
@@ -333,7 +457,7 @@ function ListingsContent() {
     } finally {
       setLoading(false);
     }
-  }, [make, model, yearMin, yearMax, transmission, router]);
+  }, [make, model, trim, yearMin, yearMax, transmission, router]);
 
   // Load results if URL has search params on initial load
   useEffect(() => {
@@ -617,16 +741,42 @@ function ListingsContent() {
             <label htmlFor="model" className="mb-1 font-medium">
               Model
             </label>
-            <input
+            <select
               id="model"
-              type="text"
               name="model"
               value={model}
               onChange={handleInputChange}
               className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
-              placeholder={make ? `Enter ${make} model...` : "First select a make..."}
-              autoComplete="off"
-            />
+              disabled={!make}
+            >
+              <option value="">Select model...</option>
+              {modelOptions.map((option, index) => (
+                <option key={index} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          <div className="flex flex-col relative">
+            <label htmlFor="trim" className="mb-1 font-medium">
+              Trim
+            </label>
+            <select
+              id="trim"
+              name="trim"
+              value={trim}
+              onChange={handleInputChange}
+              className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
+              disabled={!make || !model}
+            >
+              <option value="">Select trim...</option>
+              {trimOptions.map((option, index) => (
+                <option key={index} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
           </div>
           
           <div className="flex flex-col">

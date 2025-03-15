@@ -97,7 +97,7 @@ type TransformedListing = {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { make, model, yearMin, yearMax, transmission, maxResults = 100 } = body;
+    const { make, model, trim, yearMin, yearMax, transmission, maxResults = 100 } = body;
 
     // Validate required parameters
     if (!make) {
@@ -129,7 +129,7 @@ export async function POST(request: Request) {
       params.append('make', make);
 
       if (model) params.append('model', model);
-
+      if (trim) params.append('trim', trim);
       if (yearMin && yearMax && yearMin === yearMax) {
         params.append('year', yearMin.toString());
       } else if (yearMin && yearMax) {
