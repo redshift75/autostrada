@@ -26,6 +26,7 @@
     "@langchain/core": "^0.3.41",
     "@langchain/openai": "^0.4.4",
     "@supabase/supabase-js": "^2.49.1",
+    "@trigger.dev/sdk": "^3.3.17",
     "cheerio": "^1.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -51,6 +52,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@trigger.dev/build": "^3.3.17",
     "@types/dotenv": "^6.1.1",
     "@types/express": "^5.0.0",
     "@types/jsdom": "^21.1.7",
