@@ -37,7 +37,7 @@ export function parseBidAmount(bidText: string): number {
 export function extractMakeFromTitle(title: string): string {
   // Common car makes to look for in the title
   const commonMakes = [
-    'Porsche', 'Ferrari', 'Mercedes-Benz', 'Mercedes', 'BMW', 'Audi', 'Volkswagen', 'VW',
+    'Porsche', 'Ferrari', 'Mercedes-Benz', 'Mercedes-AMG', 'BMW', 'Audi', 'Volkswagen', 'VW',
     'Toyota', 'Honda', 'Nissan', 'Mazda', 'Subaru', 'Lexus', 'Acura', 'Infiniti',
     'Ford', 'Chevrolet', 'Chevy', 'Dodge', 'Jeep', 'Cadillac', 'Lincoln', 'Buick',
     'Jaguar', 'Land Rover', 'Range Rover', 'Aston Martin', 'Bentley', 'Rolls-Royce',
