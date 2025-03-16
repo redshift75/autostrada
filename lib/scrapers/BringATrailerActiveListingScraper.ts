@@ -1,9 +1,5 @@
 import { BaseBATScraper } from './BaseBATScraper';
-import * as fs from 'fs';
-import * as path from 'path';
-import axios from 'axios';
 import * as cheerio from 'cheerio';
-import { fetchDetailsFromListingPage } from './utils/BATDetailsExtractor';
 import { 
   parseBidAmount, 
   extractMakeFromTitle, 
