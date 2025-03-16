@@ -85,11 +85,13 @@ export function extractModelFromTitle(title: string, make: string): string {
   title = decodeHtmlEntities(title);
   // If make is provided, try to extract the model that follows it
   if (make && title.toLowerCase().includes(make.toLowerCase())) {
-    // Remove the make and any leading/trailing whitespace
-    const afterMake = title.toLowerCase().split(make.toLowerCase())[1];
+    // Find the index of the make (case-insensitive) in the title
+    const makeIndex = title.toLowerCase().indexOf(make.toLowerCase());
+    // Extract the part after the make, preserving the original case
+    const afterMake = title.substring(makeIndex + make.length);
     if (afterMake) {
       // Clean up the model string - remove common separators and trim
-      return afterMake;
+      return afterMake.trim();
     }
   }
   // Fallback to just returning the trimmed model string

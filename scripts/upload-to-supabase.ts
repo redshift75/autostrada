@@ -103,7 +103,7 @@ async function uploadCompletedAuctionsToSupabase() {
         bid_date: listing.bid_date ? new Date(listing.bid_date) : null,
         status: listing.status,
         year: listing.year,
-        make: listing.make ? listing.make.replace(/-/g, ' ') : null,
+        make: listing.make ? listing.make : null,
         model: listing.model,
         mileage: listing.mileage,
         source_file: file,
