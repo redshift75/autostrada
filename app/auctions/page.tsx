@@ -60,6 +60,7 @@ function AuctionsContent() {
     yearMin: 1950,
     yearMax: 2025,
     maxPages: 2,
+    transmission: 'Any',
   });
   
   // Add state for makes
@@ -304,7 +305,8 @@ function AuctionsContent() {
       model,
       yearMin,
       yearMax,
-      maxPages: formData.maxPages, // Keep the default value
+      maxPages: formData.maxPages,
+      transmission: formData.transmission, // Keep transmission as string
     };
     
     // Update form data state
@@ -328,13 +330,19 @@ function AuctionsContent() {
         setLoadingMessage('No results found in database. Fetching fresh data from Bring a Trailer...');
       }, 2000);
       
+      // Prepare API request data
+      const apiRequestData = {
+        ...submissionData,
+        transmission: formData.transmission !== 'Any' ? formData.transmission : undefined,
+      };
+      
       // Step 1: Fetch auction results
       const resultsResponse = await fetch('/api/auction/results', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(submissionData),
+        body: JSON.stringify(apiRequestData),
       });
       
       // Clear the timeout
@@ -518,7 +526,7 @@ function AuctionsContent() {
         <div className="bg-white shadow-md rounded-lg p-6 mb-8">
           <h2 className="text-xl font-semibold mb-4">Search Auction Results</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
               <div className="flex flex-col relative">
                 <label htmlFor="make" className="mb-1 font-medium">
                   Make <span className="text-red-500">*</span>
@@ -600,7 +608,23 @@ function AuctionsContent() {
                   max="2025"
                 />
               </div>
-              <div className="md:col-span-2 lg:col-span-4 flex justify-end">
+              <div className="flex flex-col">
+                <label htmlFor="transmission" className="mb-1 font-medium">
+                  Transmission
+                </label>
+                <select
+                  id="transmission"
+                  name="transmission"
+                  value={formData.transmission}
+                  onChange={(e) => setFormData(prev => ({ ...prev, transmission: e.target.value }))}
+                  className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
+                >
+                  <option value="Any">Any</option>
+                  <option value="Automatic">Automatic</option>
+                  <option value="Manual">Manual</option>
+                </select>
+              </div>
+              <div className="md:col-span-2 lg:col-span-5 flex justify-end">
                 <button
                   type="submit"
                   className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-md transition-colors"

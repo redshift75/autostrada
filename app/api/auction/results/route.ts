@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
   try {
     // Parse the request body
     const body = await request.json();
-    const { make, model, yearMin, yearMax, maxPages, sortBy, sortOrder, status, forceScrape = false } = body;
+    const { make, model, yearMin, yearMax, maxPages, sortBy, sortOrder, status, transmission, forceScrape = false } = body;
  
     // Determine sort field and direction
     const sortField = sortBy || 'sold_date';
@@ -88,6 +88,11 @@ export async function POST(request: NextRequest) {
         query = query.lte('year', yearMax);
       }
       
+      // Add transmission filter if provided
+      if (transmission && transmission !== 'Any') {
+        query = query.ilike('transmission', `%${transmission}%`);
+      }
+      
       // Add status filter if provided
       if (status) {
         if (status === 'sold') {
@@ -120,7 +125,8 @@ export async function POST(request: NextRequest) {
           bidders: item.bidders,
           watchers: item.watchers,
           comments: item.comments,
-          image_url: item.image_url
+          image_url: item.image_url,
+          transmission: item.transmission
         }));
         
         // Create a result object
@@ -162,7 +168,8 @@ export async function POST(request: NextRequest) {
           model,
           yearMin,
           yearMax,
-          maxPages: maxPages || 1
+          maxPages: maxPages || 1,
+          transmission
         });
         
         console.log(`Scraped ${scrapedResults.length} results directly`);
@@ -182,7 +189,8 @@ export async function POST(request: NextRequest) {
           bidders: item.bidders,
           watchers: item.watchers,
           comments: item.comments,
-          image_url: item.image_url
+          image_url: item.image_url,
+          transmission: item.transmission
         }));
         
         // Apply status filter if provided
@@ -192,6 +200,13 @@ export async function POST(request: NextRequest) {
           } else if (status === 'unsold') {
             results = results.filter(item => item.status !== 'sold');
           }
+        }
+        
+        // Apply transmission filter if provided (for scraped results)
+        if (transmission && transmission !== 'Any') {
+          results = results.filter(item => 
+            item.transmission?.toLowerCase().includes(transmission.toLowerCase())
+          );
         }
         
         // Create a result object
@@ -290,7 +305,8 @@ export async function POST(request: NextRequest) {
         model: model || 'Any',
         yearMin: yearMin || 'Any',
         yearMax: yearMax || 'Any',
-        status: status || 'all'
+        status: status || 'all',
+        transmission: transmission || 'Any'
       }
     };
     

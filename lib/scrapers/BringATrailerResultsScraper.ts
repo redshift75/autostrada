@@ -66,6 +66,7 @@ export interface BaTResultsScraperParams {
   longPauseInterval?: number; // Number of pages after which to take a longer pause
   longPauseDelay?: number; // Duration of the longer pause in milliseconds
   modelSuggestions?: string[]; // List of model suggestions for the specified make
+  transmission?: string; // Add transmission parameter
 }
 
 export class BringATrailerResultsScraper extends BaseBATScraper {
@@ -377,53 +378,28 @@ export class BringATrailerResultsScraper extends BaseBATScraper {
   }
 
   private filterListings(listings: BaTCompletedListing[], params: BaTResultsScraperParams): BaTCompletedListing[] {
-    // Handle undefined or empty params
-    const make = params.make || '';
-    const model = params.model || '';
-    const yearMin = params.yearMin;
-    const yearMax = params.yearMax;
-        
-    try {
-      return listings.filter(listing => {
-        // Filter by year range
-        if (yearMin && listing.year && listing.year < yearMin) {
-          return false;
-        }
-        if (yearMax && listing.year && listing.year > yearMax) {
-          return false;
-        }
-        
-        // Filter by make (case-insensitive)
-        if (make && listing.make) {
-          const listingMake = listing.make.toLowerCase();
-          const searchMake = make.toLowerCase();
-          if (!listingMake.includes(searchMake)) {
-            console.log(`Listing ${listing.title} does not match make ${make}`);
-            return false;
-          }
-        } else if (make) {
-          return false;
-        }
-        
-        // Filter by model (case-insensitive)
-        if (model && listing.model) {
-          const listingModel = listing.model.toLowerCase();
-          const searchModel = model.toLowerCase();
-          if (!listingModel.includes(searchModel) && !searchModel.includes(listingModel)) {
-            console.log(`Filtering ${listing.title} does not match model ${model}`);
-            return false;
-          }
-        } else if (model) {
-          // If model is specified but the listing doesn't have a model, exclude it
-          return false;
-        }
-        
-        return true;
-      });
-    } catch (error) {
-      console.error('Error filtering listings:', error);
-      console.error('Error occurred with params:', { make, model, yearMin, yearMax });
-      return [];
-    }
+    return listings.filter(listing => {
+      // Extract year, make, and model from the title if not already present
+      const { year, make, model } = parseTitle(listing.title);
+      
+      // Apply year filter if provided
+      if (params.yearMin && year && year < params.yearMin) return false;
+      if (params.yearMax && year && year > params.yearMax) return false;
+      
+      // Apply make filter if provided
+      if (params.make && make && !make.toLowerCase().includes(params.make.toLowerCase())) return false;
+      
+      // Apply model filter if provided
+      if (params.model && model && !model.toLowerCase().includes(params.model.toLowerCase())) return false;
+      
+      // Apply transmission filter if provided
+      if (params.transmission && params.transmission !== 'Any') {
+        const transmissionLower = params.transmission.toLowerCase();
+        const titleLower = listing.title.toLowerCase();
+        if (!titleLower.includes(transmissionLower)) return false;
+      }
+      
+      return true;
+    });
   }
 } 
