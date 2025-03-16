@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { TopLevelSpec } from 'vega-lite';
 import VegaChart from '@/components/shared/VegaChart';
-import { formatPrice } from '@/lib/scrapers/utils/index';
+import { formatPrice } from '@/lib/utils/index';
 import { decodeHtmlEntities } from '@/components/shared/utils';
 
 // Define types for the Deal Finder page

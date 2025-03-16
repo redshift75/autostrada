@@ -134,7 +134,7 @@ export const getAuctionResultsTool = () => {
 };
 
 // Tool to analyze current auction results
-export const viewAuctionResultsAnalysisTool = () => {
+export const auctionResultsAnalysisTool = () => {
   return new DynamicStructuredTool({
     name: "analyze_auction_results",
     description: "Analyze auction results data that the user is currently viewing",

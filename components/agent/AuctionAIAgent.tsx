@@ -1,5 +1,5 @@
 import AIAgent from './AIAgent';
-import { auctionFormatter } from '@/lib/scrapers/utils/formatters';
+import { auctionFormatter } from '@/lib/utils/formatters';
 
 // Define the AuctionResult type
 export type AuctionResult = {
@@ -27,11 +27,11 @@ type AuctionAIAgentProps = {
 export default function AuctionAIAgent({ auctionResults }: AuctionAIAgentProps) {
   // Define suggestions for the AI agent
   const suggestions = [
-    "what are the cheapest recent mclaren sales?",
+    "what are the cheapest recent McLaren sales?",
     "What are the most expensive manual BMW cars?",
-    "What are the top 5 most expensive cars?",
+    "Which of these cars is the best deal?",
     "Is there a trend in these results?",
-    "Summarize these auction results for me"
+    "What are the best value manual ferrari from the early 90s"
   ];
 
   return (

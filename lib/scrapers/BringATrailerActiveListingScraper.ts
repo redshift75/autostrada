@@ -7,7 +7,7 @@ import {
   filterListingsByMake,
   filterListingsByModel,
   filterListingsByYear
-} from './utils/BaTScraperUtils';
+} from '../utils/BaTScraperUtils';
 
 // Define our own BaTListing interface
 export interface BaTActiveListing {

@@ -7,7 +7,7 @@ import AuctionAIAgent from '../../components/agent/AuctionAIAgent';
 // Import the shared VegaChart component
 import VegaChart from '@/components/shared/VegaChart';
 // Import utility functions
-import { formatPrice } from '@/lib/scrapers/utils/index';
+import { formatPrice } from '@/lib/utils/index';
 import { validateVegaLiteSpec } from '@/lib/utils/visualization';
 
 // Define types for car data from Supabase

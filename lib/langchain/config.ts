@@ -42,16 +42,14 @@ export const createAgentPrompt = () => {
       "This tool can provide detailed information about completed auctions including sold prices, " +
       "dates, vehicle details, and market trends. " +
       
-      "You can also answer database queries about auction results. When users ask questions that require " +
-      "looking up information from the database, use the fetch_auction_results tool with the appropriate " +
-      "make, model, yearMin, and yearMax parameters. The tool will return auction data with the following fields: " +
+      "The tool will return auction data with the following fields: " +
       "listing_id, url, title, image_url, sold_price, sold_date, bid_amount, bid_date, status, year, make, model, " +
       "mileage, bidders, watchers, comments, and transmission. You can analyze this data to answer specific " +
       "questions about auction results, price trends, vehicle specifications, and market statistics. " +
       
       "For queries that might return a large number of results, use the maxResults parameter to limit the number " +
       "of results returned. This is especially important for broad queries like 'all Ferrari models' or 'all vehicles " +
-      "from the 1960s'. A good default value is 50-100 results. " +
+      "from the 1960s'. A good default value is 10-20 results. " +
       
       "When users ask for specific sorting of results, such as 'highest price', 'lowest mileage', or 'most recent', " +
       "use the sortBy parameter with one of the following values: " +
@@ -76,7 +74,7 @@ export const createAgentPrompt = () => {
       "accurate and helpful information about those specific listings. " +
         
       "When responding about specific listings, always include the location of the listing if available, and provide " +
-      "the clickoffURL as a clickable link if available. This helps users know where the vehicle is located and gives " +
+      "the URL as a clickable link if available. This helps users know where the vehicle is located and gives " +
       "them a direct way to view the full listing details. " +
       
       "For questions about value, such as 'which is the best value' or 'is there a good value listing', " +
@@ -87,10 +85,6 @@ export const createAgentPrompt = () => {
       "use the analyze_auction_results tool with the appropriate analysisType. For finding the best deals, use " +
       "analysisType='best_deal'. For price analysis, use analysisType='price_comparison' or analysisType='price_range'. " +
       "For sold percentage analysis, use analysisType='sold_percentage'. " +
-      
-      "For questions about low mileage vehicles that are good value, use the analyze_current_listings tool with " +
-      "analysisType='best_value' and filter by mileage if appropriate. You can also use analysisType='lowest_mileage' " +
-      "to find the listings with the lowest mileage and then compare their prices. " +
       
       "Always use the appropriate analysis type based on the user's question: " +
       
@@ -105,7 +99,7 @@ export const createAgentPrompt = () => {
       "- For mileage range analysis: analysisType='mileage_range' " +
       "- For a general summary: analysisType='summary' " +
       
-      "For getting auction results for makes and models that are not in your auction results data, " +
+      "For getting data for makes and models that are not in your context data, " +
       "use the fetch_auction_results tool with the appropriate parameters. " +
      
       "For auction results analysis: " +

@@ -1,9 +1,6 @@
 // Export configuration
 export * from './config';
 
-// Export utility functions
-export * from './utils';
-
 // Export tools
 export * from './tools';
 
@@ -16,7 +13,7 @@ import { createAgentPrompt } from "./config";
 import {
   getAuctionResultsTool,
   viewListingsAnalysisTool,
-  viewAuctionResultsAnalysisTool
+  auctionResultsAnalysisTool
 } from "./tools";
 import { initOpenAIClient, initSupabaseVectorStore } from "./clients";
 
@@ -27,7 +24,7 @@ export async function initializeAgent() {
   // Create the tools
   const auctionResultsTool = getAuctionResultsTool();
   const listingsAnalysisTool = viewListingsAnalysisTool();
-  const auctionResultsAnalysisTool = viewAuctionResultsAnalysisTool();
+  const analysisResultsTool = auctionResultsAnalysisTool();
 
   // Create the prompt template
   const prompt = createAgentPrompt();
@@ -38,7 +35,7 @@ export async function initializeAgent() {
     tools: [
       auctionResultsTool,
       listingsAnalysisTool,
-      auctionResultsAnalysisTool,
+      analysisResultsTool,
     ],
     prompt,
   });
@@ -49,7 +46,7 @@ export async function initializeAgent() {
     tools: [
       auctionResultsTool,
       listingsAnalysisTool,
-      auctionResultsAnalysisTool,
+      analysisResultsTool,
     ],
     verbose: false,
   });
