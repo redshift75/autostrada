@@ -84,8 +84,18 @@ function AuctionsContent() {
   const [error, setError] = useState<string | null>(null);
   
   // State for visualizations
-  const [visualizations, setVisualizations] = useState<any>(null);
-  const [filteredVisualizations, setFilteredVisualizations] = useState<any>(null);
+  const [visualizations, setVisualizations] = useState<{
+    timeSeriesChart: TopLevelSpec | null;
+    priceHistogram: TopLevelSpec | null;
+    priceMileageScatter: TopLevelSpec | null;
+  } | null>(null);
+  
+  // State for filtered visualizations
+  const [filteredVisualizations, setFilteredVisualizations] = useState<{
+    timeSeriesChart: TopLevelSpec | null;
+    priceHistogram: TopLevelSpec | null;
+    priceMileageScatter: TopLevelSpec | null;
+  } | null>(null);
   
   // State for active filter
   const [activeFilter, setActiveFilter] = useState<{
@@ -256,12 +266,30 @@ function AuctionsContent() {
             values: filteredValues
           }
         };
+
+        // Filter price vs mileage scatter plot data
+        let filteredPriceMileageScatter = null;
+        if (visualizations.priceMileageScatter) {
+          const originalScatterValues = (visualizations.priceMileageScatter.data as any).values;
+          const filteredScatterValues = originalScatterValues.filter((d: any) => {
+            const price = d.sold_price || d.price || 0;
+            return price >= minPrice && price <= maxPrice;
+          });
+
+          filteredPriceMileageScatter = {
+            ...visualizations.priceMileageScatter,
+            data: {
+              values: filteredScatterValues
+            }
+          };
+        }
         
         // Only update if we have data
         if (filteredValues.length > 0) {
           setFilteredVisualizations({
             timeSeriesChart: filteredTimeSeriesChart as TopLevelSpec,
-            priceHistogram: visualizations.priceHistogram
+            priceHistogram: visualizations.priceHistogram,
+            priceMileageScatter: filteredPriceMileageScatter as TopLevelSpec
           });
         } else {
           // If no data matches the filter, show a message instead
@@ -280,7 +308,11 @@ function AuctionsContent() {
   const clearFilters = () => {
     setActiveFilter(null);
     setFilteredResults([]);
-    setFilteredVisualizations(null);
+    setFilteredVisualizations({
+      timeSeriesChart: null,
+      priceHistogram: null,
+      priceMileageScatter: null
+    });
   };
   
   // Handle form submission
@@ -383,7 +415,8 @@ function AuctionsContent() {
       if (data.visualizations && data.results.length > 0) {
         console.log('Visualization data types:', {
           timeSeriesChart: typeof data.visualizations.timeSeriesChart,
-          priceHistogram: typeof data.visualizations.priceHistogram
+          priceHistogram: typeof data.visualizations.priceHistogram,
+          priceMileageScatter: typeof data.visualizations.priceMileageScatter
         });
         
         // Ensure we have valid Vega-Lite specifications
@@ -410,16 +443,16 @@ function AuctionsContent() {
             data.visualizations.priceHistogram = null;
           }
         }
-        
-        // Validate the Vega-Lite specifications
-        if (!validateVegaLiteSpec(data.visualizations.timeSeriesChart)) {
-          console.error('Invalid time series chart specification:', data.visualizations.timeSeriesChart);
-          data.visualizations.timeSeriesChart = null;
-        }
-        
-        if (!validateVegaLiteSpec(data.visualizations.priceHistogram)) {
-          console.error('Invalid price histogram specification:', data.visualizations.priceHistogram);
-          data.visualizations.priceHistogram = null;
+
+        if (typeof data.visualizations.priceMileageScatter === 'string') {
+          console.log('Price vs mileage scatter is a string, attempting to parse');
+          try {
+            data.visualizations.priceMileageScatter = JSON.parse(data.visualizations.priceMileageScatter);
+            console.log('Successfully parsed price vs mileage scatter');
+          } catch (e) {
+            console.error('Failed to parse price vs mileage scatter as JSON:', e);
+            data.visualizations.priceMileageScatter = null;
+          }
         }
         
         // Add 90-day moving average to time series chart
@@ -703,39 +736,41 @@ function AuctionsContent() {
                 {/* Charts section */}
                 <div className="lg:w-2/3 flex-shrink-0 overflow-hidden">
                   {visualizations ? (
-                    <div className="grid grid-cols-1 gap-6 mb-4">
-                      {(filteredVisualizations?.timeSeriesChart || visualizations.timeSeriesChart) ? (
-                        <div className="bg-gray-50 p-4 rounded-md">
-                          <h3 className="text-lg font-semibold mb-2">
-                            Price Trends
-                            <span className="ml-2 text-sm font-normal text-gray-500">
-                              (Click on a point to view listing)
-                            </span>
-                          </h3>
-                          <div className="w-full" style={{ maxWidth: '100%', minHeight: '400px' }}>
-                            <VegaChart 
-                              spec={filteredVisualizations?.timeSeriesChart || visualizations.timeSeriesChart!} 
-                              className="w-full h-auto"
-                              onSignalClick={handleTimeSeriesClick}
-                            />
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="bg-gray-50 p-4 rounded-md">
-                          <h3 className="text-lg font-semibold mb-2">Price Trends</h3>
-                          <div className="w-full flex items-center justify-center" style={{ minHeight: '200px' }}>
-                            <div className="text-center p-6">
-                              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                              </svg>
-                              <h3 className="mt-2 text-sm font-medium text-gray-900">No price trend data available</h3>
-                              <p className="mt-1 text-sm text-gray-500">
-                                We couldn't generate a price trend chart for this search. This may be because there are too few results or the data is inconsistent.
-                              </p>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4">
+                      <div className="lg:col-span-2">
+                        {(filteredVisualizations?.timeSeriesChart || visualizations.timeSeriesChart) ? (
+                          <div className="bg-gray-50 p-4 rounded-md">
+                            <h3 className="text-lg font-semibold mb-2">
+                              Price Trends
+                              <span className="ml-2 text-sm font-normal text-gray-500">
+                                (Click on a point to view listing)
+                              </span>
+                            </h3>
+                            <div className="w-full" style={{ maxWidth: '100%', minHeight: '400px' }}>
+                              <VegaChart 
+                                spec={filteredVisualizations?.timeSeriesChart || visualizations.timeSeriesChart!} 
+                                className="w-full h-auto"
+                                onSignalClick={handleTimeSeriesClick}
+                              />
                             </div>
                           </div>
-                        </div>
-                      )}
+                        ) : (
+                          <div className="bg-gray-50 p-4 rounded-md">
+                            <h3 className="text-lg font-semibold mb-2">Price Trends</h3>
+                            <div className="w-full flex items-center justify-center" style={{ minHeight: '200px' }}>
+                              <div className="text-center p-6">
+                                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                <h3 className="mt-2 text-sm font-medium text-gray-900">No price trend data available</h3>
+                                <p className="mt-1 text-sm text-gray-500">
+                                  We couldn't generate a price trend chart for this search. This may be because there are too few results or the data is inconsistent.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                       
                       {visualizations.priceHistogram ? (
                         <div className="bg-gray-50 p-4 rounded-md">
@@ -755,7 +790,7 @@ function AuctionsContent() {
                               </button>
                             )}
                           </div>
-                          <div className="w-full" style={{ maxWidth: '100%', minHeight: '400px' }}>
+                          <div className="w-full" style={{ maxWidth: '100%', minHeight: '300px' }}>
                             <VegaChart 
                               spec={visualizations.priceHistogram} 
                               className="w-full h-auto"
@@ -774,6 +809,41 @@ function AuctionsContent() {
                               <h3 className="mt-2 text-sm font-medium text-gray-900">No price distribution data available</h3>
                               <p className="mt-1 text-sm text-gray-500">
                                 We couldn't generate a price distribution chart for this search. This may be because there are too few results or the data is inconsistent.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {visualizations.priceMileageScatter ? (
+                        <div className="bg-gray-50 p-4 rounded-md">
+                          <div className="flex justify-between items-center mb-2">
+                            <h3 className="text-lg font-semibold">
+                              Price vs Mileage
+                              <span className="ml-2 text-sm font-normal text-gray-500">
+                                (Click on a point to view listing)
+                              </span>
+                            </h3>
+                          </div>
+                          <div className="w-full" style={{ maxWidth: '100%', minHeight: '300px' }}>
+                            <VegaChart 
+                              spec={filteredVisualizations?.priceMileageScatter || visualizations.priceMileageScatter} 
+                              className="w-full h-auto"
+                              onSignalClick={handleTimeSeriesClick}
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="bg-gray-50 p-4 rounded-md">
+                          <h3 className="text-lg font-semibold mb-2">Price vs Mileage</h3>
+                          <div className="w-full flex items-center justify-center" style={{ minHeight: '200px' }}>
+                            <div className="text-center p-6">
+                              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                              </svg>
+                              <h3 className="mt-2 text-sm font-medium text-gray-900">No mileage data available</h3>
+                              <p className="mt-1 text-sm text-gray-500">
+                                We couldn't generate a price vs mileage chart for this search. This may be because mileage data is missing or inconsistent.
                               </p>
                             </div>
                           </div>

@@ -319,7 +319,24 @@ export function generateScatterPlot(
       { field: yField, title: yField.charAt(0).toUpperCase() + yField.slice(1), format: yField.toLowerCase() === 'price' ? '$,.0f' : ',.0f', type: 'quantitative' as FieldType }
     ];
 
-    // Create a Vega-Lite specification
+    // Common axis configuration
+    const xAxis = {
+      field: xField,
+      type: 'quantitative' as const,
+      title: config.xAxisTitle || xField.charAt(0).toUpperCase() + xField.slice(1),
+      scale: { zero: false, padding: 20 },
+      axis: { grid: true, format: '~s' }
+    };
+
+    const yAxis = {
+      field: yField,
+      type: 'quantitative' as const,
+      title: config.yAxisTitle || yField.charAt(0).toUpperCase() + yField.slice(1) + (yField.toLowerCase() === 'price' ? ' ($)' : ''),
+      scale: { zero: false, padding: 20 },
+      axis: { grid: true, format: yField.toLowerCase() === 'price' ? '$~s' : '~s' }
+    };
+
+    // Create a Vega-Lite specification with regression line
     const spec: vegaLite.TopLevelSpec = {
       $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
       description: config.description || `${yField} vs ${xField}`,
@@ -331,25 +348,42 @@ export function generateScatterPlot(
         contains: "padding",
         resize: true
       },
-      mark: {
-        type: 'point' as MarkType,
-        size: 60,
-        filled: true,
-        tooltip: true
-      },
-      encoding: {
-        x: {
-          field: xField,
-          type: 'quantitative',
-          title: config.xAxisTitle || xField.charAt(0).toUpperCase() + xField.slice(1)
+      layer: [
+        // Regression line layer
+        {
+          transform: [{
+            regression: yField,
+            on: xField,
+            method: "linear"
+          }],
+          mark: {
+            type: "line",
+            color: "firebrick",
+            strokeWidth: 1,
+            strokeDash: [6, 4]
+          },
+          encoding: {
+            x: xAxis,
+            y: yAxis
+          }
         },
-        y: {
-          field: yField,
-          type: 'quantitative',
-          title: config.yAxisTitle || yField.charAt(0).toUpperCase() + yField.slice(1) + (yField.toLowerCase() === 'price' ? ' ($)' : '')
-        },
-        tooltip: tooltipFields
-      }
+        // Scatter plot layer
+        {
+          mark: {
+            type: 'circle',
+            size: 80,
+            opacity: 0.6,
+            tooltip: true,
+            cursor: 'pointer',
+            color: '#3b82f6'
+          },
+          encoding: {
+            x: xAxis,
+            y: yAxis,
+            tooltip: tooltipFields
+          }
+        }
+      ]
     };
 
     return spec;
@@ -372,6 +406,17 @@ export function validateVegaLiteSpec(spec: any): boolean {
   // Check for required Vega-Lite properties
   const hasSchema = spec.$schema && spec.$schema.includes('vega-lite');
   const hasData = spec.data && (spec.data.values || spec.data.url);
+  
+  // For layered charts
+  if (spec.layer) {
+    // Check if it's an array and at least one layer has encoding or mark
+    const hasValidLayers = Array.isArray(spec.layer) && spec.layer.some((layer: any) => 
+      (layer.encoding && typeof layer.encoding === 'object') || layer.mark !== undefined
+    );
+    return hasSchema && hasData && hasValidLayers;
+  }
+  
+  // For single-layer charts
   const hasEncoding = spec.encoding && typeof spec.encoding === 'object';
   const hasMark = spec.mark !== undefined;
 

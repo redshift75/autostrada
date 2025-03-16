@@ -21,8 +21,6 @@ export default function VegaChart({ spec, className, onSignalClick }: VegaChartP
       return;
     }
 
-    console.log('VegaChart: Spec description:', (spec as any).description);
-
     // Clear any previous errors
     setError(null);
 
@@ -247,11 +245,12 @@ export default function VegaChart({ spec, className, onSignalClick }: VegaChartP
             
             // Add click event listener for time series chart points
             if (onSignalClick) {
-              // Check if this is a time series chart
+              // Check if this is a time series chart or scatter plot
               const isTimeSeries = specAny.description?.includes('Price Trends') || 
-                                   specAny.description?.includes('Historical Price');
-              
-              if (isTimeSeries) {
+                                 specAny.description?.includes('Historical Price');
+              const isScatterPlot = specAny.description?.includes('Price vs. Mileage');
+
+              if (isTimeSeries || isScatterPlot) {
                 result.view.addEventListener('click', (event: any, item: any) => {
                   if (item && item.datum) {
                     onSignalClick('pointClick', item.datum);
