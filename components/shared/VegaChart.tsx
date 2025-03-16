@@ -21,7 +21,6 @@ export default function VegaChart({ spec, className, onSignalClick }: VegaChartP
       return;
     }
 
-    console.log('VegaChart: Rendering chart with spec type:', typeof spec);
     console.log('VegaChart: Spec description:', (spec as any).description);
 
     // Clear any previous errors

@@ -470,16 +470,9 @@ function AuctionsContent() {
             
             // Remove the mark and encoding from the top level since they're now in the layers
             delete data.visualizations.timeSeriesChart.mark;
-            delete data.visualizations.timeSeriesChart.encoding;
-            
-            console.log('Added 90-day moving average to time series chart');
+            delete data.visualizations.timeSeriesChart.encoding;            
           }
         }
-        
-        console.log('Final visualization data:', {
-          timeSeriesChart: data.visualizations.timeSeriesChart ? 'valid' : 'null',
-          priceHistogram: data.visualizations.priceHistogram ? 'valid' : 'null'
-        });
       }
       
       // Update state with results

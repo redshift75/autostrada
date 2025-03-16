@@ -104,6 +104,17 @@ export default function DealFinder() {
 
   // Update models when make changes
   const handleMakeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Don't update models on every change, only clear them if make is cleared
+    if (!e.target.value) {
+      if (modelInputRef.current) {
+        modelInputRef.current.value = '';
+      }
+      setAvailableModels([]);
+    }
+  };
+
+  // Handle make selection from datalist
+  const handleMakeSelect = (e: React.FocusEvent<HTMLInputElement>) => {
     const selectedMake = e.target.value;
     
     // Clear model when make changes
@@ -117,15 +128,18 @@ export default function DealFinder() {
       return;
     }
 
-    // Extract unique models for the selected make from activeListings
-    const models = Array.from(new Set(
-      activeListings
-        .filter(listing => listing.make === selectedMake)
-        .map(listing => listing.model as string)
-        .filter((model): model is string => Boolean(model))
-    )).sort();
+    // Only update models if the make exists in availableMakes
+    if (availableMakes.includes(selectedMake)) {
+      // Extract unique models for the selected make from activeListings
+      const models = Array.from(new Set(
+        activeListings
+          .filter(listing => listing.make === selectedMake)
+          .map(listing => listing.model as string)
+          .filter((model): model is string => Boolean(model))
+      )).sort();
 
-    setAvailableModels(models);
+      setAvailableModels(models);
+    }
   };
 
   // Update fetchEndingSoonDeals to store activeListings
@@ -652,6 +666,7 @@ export default function DealFinder() {
                   ref={makeInputRef}
                   defaultValue={formData.make}
                   onChange={handleMakeChange}
+                  onBlur={handleMakeSelect}
                   list="makes-list"
                   className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
                   placeholder={availableMakes.length ? 'Start typing to select a make' : 'Loading makes...'}
