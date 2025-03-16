@@ -395,8 +395,8 @@ export class BringATrailerResultsScraper extends BaseBATScraper {
       // Apply transmission filter if provided
       if (params.transmission && params.transmission !== 'Any') {
         const transmissionLower = params.transmission.toLowerCase();
-        const titleLower = listing.title.toLowerCase();
-        if (!titleLower.includes(transmissionLower)) return false;
+        const listingTrans = listing.transmission?.toLowerCase() || '';
+        if (!listingTrans.includes(transmissionLower)) return false;
       }
       
       return true;
