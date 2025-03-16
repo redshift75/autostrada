@@ -729,7 +729,7 @@ export default function DealFinder() {
                   placeholder="e.g. 2025"
                 />
               </div>
-              <div className="md:col-span-2 lg:col-span-5 flex justify-end">
+              <div className="md:col-span-2 lg:col-span-4 flex justify-end">
                 <button
                   type="submit"
                   className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-md transition-colors"

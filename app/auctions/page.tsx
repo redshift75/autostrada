@@ -600,7 +600,6 @@ function AuctionsContent() {
                   max="2025"
                 />
               </div>
-              
               <div className="md:col-span-2 lg:col-span-4 flex justify-end">
                 <button
                   type="submit"

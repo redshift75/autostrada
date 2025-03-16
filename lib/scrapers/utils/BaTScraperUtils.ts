@@ -1,3 +1,4 @@
+import { decodeHtmlEntities } from '@/components/shared/utils';
 import axios from 'axios';
 
 /**
@@ -80,58 +81,19 @@ export function extractMakeFromTitle(title: string): string {
 export function extractModelFromTitle(title: string, make: string): string {
   if (!make) return '';
   
-  // Try to extract the model after the make
-  const modelPattern = new RegExp(`${make}\\s+([A-Za-z0-9-]+)`, 'i'); // Case-insensitive
-  const match = title.match(modelPattern);
-  
-  if (match && match[1]) {
-    return match[1];
-  }
-  
-  // If no model found after make, try to find common model patterns
-  // For BMW, look for M followed by a number
-  if (make.toLowerCase() === 'bmw') {
-    const bmwModelPattern = /\bM[1-8](?:\s|$|\b)/i;
-    const bmwMatch = title.match(bmwModelPattern);
-    if (bmwMatch) {
-      return bmwMatch[0].trim();
+  if (!title) return '';
+  title = decodeHtmlEntities(title);
+  // If make is provided, try to extract the model that follows it
+  if (make && title.toLowerCase().includes(make.toLowerCase())) {
+    // Remove the make and any leading/trailing whitespace
+    const afterMake = title.toLowerCase().split(make.toLowerCase())[1];
+    if (afterMake) {
+      // Clean up the model string - remove common separators and trim
+      return afterMake;
     }
   }
-  
-  // For Porsche, handle common models with special logic
-  if (make === 'Porsche') {
-    const parts = title.split(/\s+/);
-    const modelIndex = parts.findIndex(part => 
-      part === '911' || part === '356' || part === '944' || 
-      part === '928' || part === '968' || part === '914' || 
-      part === '718' || part === 'Cayenne' || part === 'Macan' || 
-      part === 'Panamera' || part === 'Cayman' || part === 'Boxster' || 
-      part === 'Taycan'
-    );
-    
-    if (modelIndex !== -1) {
-      const model = parts[modelIndex];
-      
-      // For 911, often include the variant (Carrera, Turbo, etc.)
-      if (model === '911' && parts.length > modelIndex + 1) {
-        if (['Carrera', 'Turbo', 'GT3', 'GT2', 'Targa'].includes(parts[modelIndex + 1])) {
-          // Include the variant in the model
-          let fullModel = model + ' ' + parts[modelIndex + 1];
-          
-          // Sometimes there's more specificity (Carrera 4, Turbo S, etc.)
-          if (parts.length > modelIndex + 2 && ['4', 'S', 'RS', '4S'].includes(parts[modelIndex + 2])) {
-            fullModel += ' ' + parts[modelIndex + 2];
-          }
-          
-          return fullModel;
-        }
-      }
-      
-      return model;
-    }
-  }
-  
-  return '';
+  // Fallback to just returning the trimmed model string
+  return title.trim();
 }
 
 /**

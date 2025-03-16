@@ -12,11 +12,11 @@ export const getAuctionResultsTool = () => {
       yearMin: z.number().optional().describe("The minimum year to filter results"),
       yearMax: z.number().optional().describe("The maximum year to filter results"),
       maxPages: z.number().optional().describe("Maximum number of pages to fetch (default: 2)"),
-      maxResults: z.number().optional().describe("Maximum number of results to return (default: 100)"),
+      maxResults: z.number().optional().describe("Maximum number of results to return (default: 10)"),
       sortBy: z.enum(["price_high_to_low", "price_low_to_high", "date_newest_first", "date_oldest_first", "mileage_lowest_first", "mileage_highest_first"]).optional().describe("How to sort the results before limiting them (default: date_newest_first)"),
       status: z.enum(["sold", "unsold", "all"]).optional().describe("Filter results by sold status (default: all)"),
     }),
-    func: async ({ make, model, yearMin, yearMax, maxPages, maxResults = 100, sortBy = "date_newest_first", status = "all" }) => {
+    func: async ({ make, model, yearMin, yearMax, maxPages, maxResults = 10, sortBy = "date_newest_first", status = "all" }) => {
       try {
         console.log(`Fetching auction results for ${make} ${model || ''} (${yearMin || 'any'}-${yearMax || 'any'}), status: ${status}`);
         
@@ -57,17 +57,11 @@ export const getAuctionResultsTool = () => {
         // Ensure we have a valid base URL
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
         const apiUrl = new URL('/api/auction/results', baseUrl).toString();
-        console.log("In tool calling fetch: ", apiUrl);
         
         // Only pass status if it's not 'all'
         const statusParam = status !== 'all' ? status : undefined;
         
-        const response = await fetch(apiUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
+        const body = JSON.stringify({
             make,
             model,
             yearMin,
@@ -76,7 +70,14 @@ export const getAuctionResultsTool = () => {
             sortBy: apiSortBy,
             sortOrder: apiSortOrder,
             status: statusParam
-          }),
+          });
+
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: body,
         });
         
         if (!response.ok) {
