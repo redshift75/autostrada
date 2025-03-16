@@ -96,9 +96,10 @@ export async function POST(request: NextRequest) {
           query = query.neq('status', 'sold');
         }
       }
+
       // Execute the query
       const { data: supabaseResults, error: supabaseError } = await query;
-      
+
       // Check if we got results from Supabase
       if (!supabaseError && supabaseResults && supabaseResults.length > 0) {
         console.log(`Found ${supabaseResults.length} results in Supabase database`);

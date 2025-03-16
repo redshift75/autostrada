@@ -18,7 +18,7 @@ export const getAuctionResultsTool = () => {
     }),
     func: async ({ make, model, yearMin, yearMax, maxPages, maxResults = 10, sortBy = "date_newest_first", status = "all" }) => {
       try {
-        console.log(`Fetching auction results for ${make} ${model || ''} (${yearMin || 'any'}-${yearMax || 'any'}), status: ${status}`);
+        console.log(`Fetching auction results for ${make} ${model || 'Any'} (${yearMin || 'any'}-${yearMax || 'any'}), status: ${status}`);
         
         // Map the tool's sort options to the API's sort parameters
         let apiSortBy: string;
@@ -60,7 +60,7 @@ export const getAuctionResultsTool = () => {
         
         // Only pass status if it's not 'all'
         const statusParam = status !== 'all' ? status : undefined;
-        
+
         const body = JSON.stringify({
             make,
             model,
@@ -71,6 +71,8 @@ export const getAuctionResultsTool = () => {
             sortOrder: apiSortOrder,
             status: statusParam
           });
+        
+        console.log(`Body: ${body}`);
 
         const response = await fetch(apiUrl, {
           method: 'POST',
