@@ -3,7 +3,7 @@ import { BringATrailerResultsScraper } from '../../lib/scrapers/BringATrailerRes
 import { supabase } from '../../lib/supabase/client';
 
 type CarMake = {
-  Make: string;
+  make: string;
 };
 
 export const batScheduledTask = schedules.task({
@@ -23,7 +23,7 @@ export const batScheduledTask = schedules.task({
       // Get all makes from Supabase
       const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/cars?type=makes`);
       const data = await response.json()
-      const makesToScrape = Array.from(new Set(data.map((item: CarMake) => item.Make)))
+      const makesToScrape = Array.from(new Set(data.map((item: CarMake) => item.make)))
   
       if (!response.ok) {
         return logger.error('Failed to fetch makes');
