@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '../../../../lib/supabase/client';
 import { BringATrailerResultsScraper } from '../../../../lib/scrapers/BringATrailerResultsScraper';
+import { decodeHtmlEntities } from '@/components/shared/utils';
 
 // Helper functions for calculating statistics from results
 function calculateAverageSoldPrice(results: any[]): string {
@@ -103,8 +104,9 @@ export async function POST(request: NextRequest) {
         console.log(`Found ${supabaseResults.length} results in Supabase database`);
         
         // Format the results to match the expected structure
+        
         results = supabaseResults.map(item => ({
-          title: item.title,
+          title: decodeHtmlEntities(item.title),
           year: item.year,
           make: item.make,
           model: item.model,
@@ -166,7 +168,7 @@ export async function POST(request: NextRequest) {
         
         // Format the results to match the expected structure
         results = scrapedResults.map(item => ({
-          title: item.title,
+          title: decodeHtmlEntities(item.title),
           year: item.year,
           make: item.make,
           model: item.model,

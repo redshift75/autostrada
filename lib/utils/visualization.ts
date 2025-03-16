@@ -1,7 +1,7 @@
 import * as vega from 'vega';
 import * as vegaLite from 'vega-lite';
 import { BaTCompletedListing } from '../scrapers/BringATrailerResultsScraper';
-import { decodeHtmlEntities } from '@/components/shared/utils';
+
 // Common chart types
 export type ChartType = 'timeSeries' | 'histogram' | 'scatterPlot';
 
@@ -74,12 +74,10 @@ export async function generatePriceTimeSeriesChart(
         parsedPrice = parseInt(priceValue.replace(/[^0-9]/g, '') || '0');
       }
       
-      const decodedTitle = decodeHtmlEntities(listing.title);
-
       return {
         date: listing.sold_date,
         price: parsedPrice,
-        title: decodedTitle,
+        title: listing.title,
         url: listing.url,
         mileage: listing.mileage,
         status: listing.status

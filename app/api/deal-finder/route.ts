@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { BringATrailerActiveListingScraper } from '@/lib/scrapers/BringATrailerActiveListingScraper';
 import { fetchDetailsFromListingPage } from '@/lib/scrapers/utils/BATDetailsExtractor';
+import { decodeHtmlEntities } from '@/components/shared/utils';
 
 // Define the response type for the Deal Finder API
 type DealFinderResponse = {
@@ -23,7 +24,7 @@ type DealFinderResponse = {
 // Helper function to parse model names from listing titles
 function parseModel(modelString: string, make?: string): string {
   if (!modelString) return '';
-  
+  modelString = decodeHtmlEntities(modelString);
   // If make is provided, try to extract the model that follows it
   if (make && modelString.toLowerCase().includes(make.toLowerCase())) {
     // Remove the make and any leading/trailing whitespace
@@ -111,14 +112,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ 
         message: "No auctions ending soon found matching your criteria",
         totalActive: activeListings.length,
-        afterFiltering: filteredListings.length,
-        sampleListings: filteredListings.slice(0, 3).map(l => ({
-          title: l.title,
-          make: l.make,
-          model: l.model,
-          year: l.year,
-          endDate: l.endDate ? new Date(l.endDate).toISOString() : 'unknown'
-        }))
+        afterFiltering: filteredListings.length
       });
     }
     

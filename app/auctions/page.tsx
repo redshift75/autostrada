@@ -1,8 +1,6 @@
 'use client';
 
 import { useEffect, useState, Suspense, useRef } from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { TopLevelSpec } from 'vega-lite';
 import AuctionAIAgent from '../../components/agent/AuctionAIAgent';
@@ -11,7 +9,6 @@ import VegaChart from '@/components/shared/VegaChart';
 // Import utility functions
 import { formatPrice } from '@/lib/scrapers/utils/index';
 import { validateVegaLiteSpec } from '@/lib/utils/visualization';
-import { decodeHtmlEntities } from '@/components/shared/utils';
 
 // Define types for car data from Supabase
 type CarMake = {
@@ -816,13 +813,13 @@ function AuctionsContent() {
                                     <div className="flex-shrink-0 w-20 h-20 bg-gray-200 rounded-md overflow-hidden">
                                       <img 
                                         src={result.image_url || result.images?.small?.url || '/placeholder-car.jpg'} 
-                                        alt={decodeHtmlEntities(result.title)}
+                                        alt={result.title}
                                         className="w-full h-full object-cover"
                                       />
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                      <h3 className="font-medium text-sm truncate" title={decodeHtmlEntities(result.title)}>
-                                        {decodeHtmlEntities(result.title)}
+                                      <h3 className="font-medium text-sm truncate" title={result.title}>
+                                        {result.title}
                                       </h3>
                                       <div className="flex items-center mt-1">
                                         <span className={`text-sm font-semibold ${result.status === 'sold' ? 'text-green-600' : 'text-red-600'}`}>
