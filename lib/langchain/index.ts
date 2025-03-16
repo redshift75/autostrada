@@ -11,19 +11,12 @@ export * from './tools';
 export * from './clients';
 
 // Create a convenience function to initialize the entire agent system
-import { ChatOpenAI } from "@langchain/openai";
 import { AgentExecutor, createOpenAIFunctionsAgent } from "langchain/agents";
-import { SupabaseVectorStore } from "@langchain/community/vectorstores/supabase";
-import { OpenAIEmbeddings } from "@langchain/openai";
 import { createAgentPrompt } from "./config";
 import {
-  createVehicleSearchTool,
-  createPriceHistoryTool,
-  createVehicleDetailTool,
-  createMarketAnalysisTool,
-  createAuctionResultsTool,
-  createListingsAnalysisTool,
-  createAuctionResultsAnalysisTool
+  getAuctionResultsTool,
+  viewListingsAnalysisTool,
+  viewAuctionResultsAnalysisTool
 } from "./tools";
 import { initOpenAIClient, initSupabaseVectorStore } from "./clients";
 
@@ -32,13 +25,9 @@ export async function initializeAgent() {
   const llm = initOpenAIClient();
 
   // Create the tools
-  const vehicleSearchTool = createVehicleSearchTool();
-  const priceHistoryTool = createPriceHistoryTool();
-  const vehicleDetailTool = createVehicleDetailTool();
-  const marketAnalysisTool = createMarketAnalysisTool();
-  const auctionResultsTool = createAuctionResultsTool();
-  const listingsAnalysisTool = createListingsAnalysisTool();
-  const auctionResultsAnalysisTool = createAuctionResultsAnalysisTool();
+  const auctionResultsTool = getAuctionResultsTool();
+  const listingsAnalysisTool = viewListingsAnalysisTool();
+  const auctionResultsAnalysisTool = viewAuctionResultsAnalysisTool();
 
   // Create the prompt template
   const prompt = createAgentPrompt();
@@ -47,10 +36,6 @@ export async function initializeAgent() {
   const agent = await createOpenAIFunctionsAgent({
     llm,
     tools: [
-      vehicleSearchTool,
-      priceHistoryTool,
-      vehicleDetailTool,
-      marketAnalysisTool,
       auctionResultsTool,
       listingsAnalysisTool,
       auctionResultsAnalysisTool,
@@ -62,10 +47,6 @@ export async function initializeAgent() {
   const agentExecutor = AgentExecutor.fromAgentAndTools({
     agent,
     tools: [
-      vehicleSearchTool,
-      priceHistoryTool,
-      vehicleDetailTool,
-      marketAnalysisTool,
       auctionResultsTool,
       listingsAnalysisTool,
       auctionResultsAnalysisTool,

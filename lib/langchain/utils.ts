@@ -79,43 +79,6 @@ export async function summarizeText(
   return chain.invoke({});
 }
 
-// Function to extract key details from vehicle descriptions
-export async function extractVehicleDetails(
-  description: string,
-  llm: ChatOpenAI
-) {
-  const parser = new StringOutputParser();
-  
-  const prompt = PromptTemplate.fromTemplate(`
-    Extract the following details from the vehicle description if present:
-    - Make
-    - Model
-    - Year
-    - Engine
-    - Transmission
-    - Mileage
-    - Condition
-    - Special features
-    
-    Format the output as a JSON object with these fields.
-    
-    Description: {description}
-  `);
-  
-  const chain = RunnableSequence.from([prompt, llm, parser]);
-  
-  const result = await chain.invoke({
-    description,
-  });
-  
-  try {
-    return JSON.parse(result);
-  } catch (error) {
-    console.error("Failed to parse LLM output as JSON:", error);
-    return { error: "Failed to extract vehicle details" };
-  }
-}
-
 // Function to analyze market trends
 export async function analyzeMarketTrend(
   vehicleData: string,

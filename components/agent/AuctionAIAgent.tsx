@@ -30,7 +30,6 @@ export default function AuctionAIAgent({ auctionResults }: AuctionAIAgentProps) 
     "what is the trend for mclaren sales?",
     "What are the most expensive manual BMW cars?",
     "What are the top 5 most expensive cars?",
-    "What are the most popular models?",
     "Is there a trend in these results?",
     "Summarize these auction results for me"
   ];

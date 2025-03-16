@@ -47,7 +47,7 @@ export class MarketAnalysisAgent extends BaseAgent {
     2. Factors affecting valuation
     3. Market outlook
     
-    Base your analysis on general market knowledge.
+    Base your analysis on the results of using the getAuctionResultsTool.
     `;
     
     return this.runChain(templateString, {
@@ -74,6 +74,8 @@ export class MarketAnalysisAgent extends BaseAgent {
     - Maintenance considerations
     - Market demand
     
+    Use the getAuctionResultsTool to get the latest auction results for each vehicle.
+    
     Provide a balanced comparison highlighting the pros and cons of each.
     `;
     
@@ -83,48 +85,3 @@ export class MarketAnalysisAgent extends BaseAgent {
     });
   }
 }
-
-// Vehicle identification agent
-export class VehicleIdentificationAgent extends BaseAgent {
-  async extractVehicleDetails(description: string): Promise<string> {
-    const templateString = `
-    Extract key vehicle details from the following description:
-    
-    {description}
-    
-    Identify:
-    - Make and model
-    - Year
-    - Engine/powertrain details
-    - Special features or options
-    - Condition indicators
-    
-    Format the information in a structured way.
-    `;
-    
-    return this.runChain(templateString, {
-      description,
-    });
-  }
-  
-  async identifyRareFeatures(vehicleDetails: string): Promise<string> {
-    const templateString = `
-    Analyze the following vehicle details and identify any rare or valuable features:
-    
-    {vehicleDetails}
-    
-    Consider:
-    - Limited production options
-    - Special editions
-    - Factory modifications
-    - Period-correct rare accessories
-    - Original features that are often replaced
-    
-    Explain why these features add value to the vehicle.
-    `;
-    
-    return this.runChain(templateString, {
-      vehicleDetails,
-    });
-  }
-} 

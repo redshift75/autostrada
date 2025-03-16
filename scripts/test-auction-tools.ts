@@ -8,7 +8,7 @@
  * 4. Agent with auction tool and visualizations
  */
 
-import { createAuctionResultsTool } from '../lib/langchain/tools';
+import { getAuctionResultsTool } from '../lib/langchain/tools';
 import { initializeAgent } from '../lib/langchain';
 import { ChatOpenAI } from "@langchain/openai";
 import { AgentExecutor, createOpenAIFunctionsAgent } from "langchain/agents";
@@ -64,7 +64,7 @@ function extractVisualizationPaths(response: string): {
 // Test the basic auction results tool
 async function testBasicAuctionTool() {
   console.log('Testing basic auction results tool...');
-  const auctionResultsTool = createAuctionResultsTool();
+  const auctionResultsTool = getAuctionResultsTool();
   
   console.log(`Testing auction results for ${make} ${model}...`);
   const result = await auctionResultsTool.invoke({
@@ -107,7 +107,7 @@ async function testSimpleAgent() {
   });
   
   // Create the auction results tool
-  const auctionResultsTool = createAuctionResultsTool();
+  const auctionResultsTool = getAuctionResultsTool();
   
   // Create a simple prompt template
   const prompt = ChatPromptTemplate.fromMessages([

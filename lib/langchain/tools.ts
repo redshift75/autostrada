@@ -1,154 +1,8 @@
 import { DynamicStructuredTool } from "@langchain/core/tools";
 import { z } from "zod";
 
-// Tool to search for vehicles by criteria
-export const createVehicleSearchTool = () => {
-  return new DynamicStructuredTool({
-    name: "search_vehicles",
-    description: "Search for vehicles based on make, model, year, and other criteria",
-    schema: z.object({
-      make: z.string().optional().describe("The manufacturer of the vehicle"),
-      model: z.string().optional().describe("The model of the vehicle"),
-      yearStart: z.number().optional().describe("The starting year in a range"),
-      yearEnd: z.number().optional().describe("The ending year in a range"),
-      priceMin: z.number().optional().describe("The minimum price"),
-      priceMax: z.number().optional().describe("The maximum price"),
-      condition: z.string().optional().describe("The condition of the vehicle"),
-    }),
-    func: async ({ make, model, yearStart, yearEnd, priceMin, priceMax, condition }) => {
-      // This would connect to your database in a real implementation
-      // For now, return a placeholder response
-      return JSON.stringify({
-        results: [
-          {
-            id: 1,
-            make: make || "Porsche",
-            model: model || "911",
-            year: yearStart || 1973,
-            price: priceMin || 150000,
-            condition: condition || "excellent",
-            description: "Matching search criteria"
-          }
-        ],
-        count: 1
-      });
-    },
-  });
-};
-
-// Tool to get price history for a specific vehicle or model
-export const createPriceHistoryTool = () => {
-  return new DynamicStructuredTool({
-    name: "get_price_history",
-    description: "Get historical price data for a specific vehicle make/model",
-    schema: z.object({
-      make: z.string().describe("The manufacturer of the vehicle"),
-      model: z.string().describe("The model of the vehicle"),
-      yearStart: z.number().optional().describe("The starting year in a range"),
-      yearEnd: z.number().optional().describe("The ending year in a range"),
-      timeframe: z.string().optional().describe("The timeframe for historical data (e.g., '5y', '1y', '6m')"),
-    }),
-    func: async ({ make, model, yearStart, yearEnd, timeframe }) => {
-      // This would connect to your database in a real implementation
-      // For now, return a placeholder response
-      return JSON.stringify({
-        make,
-        model,
-        yearRange: `${yearStart || "any"} - ${yearEnd || "any"}`,
-        timeframe: timeframe || "5y",
-        priceHistory: [
-          { date: "2018-01", avgPrice: 120000 },
-          { date: "2019-01", avgPrice: 125000 },
-          { date: "2020-01", avgPrice: 135000 },
-          { date: "2021-01", avgPrice: 155000 },
-          { date: "2022-01", avgPrice: 175000 },
-          { date: "2023-01", avgPrice: 185000 },
-        ],
-        trend: "appreciating",
-        percentChange: "+54.2%"
-      });
-    },
-  });
-};
-
-// Tool to get detailed information about a specific vehicle
-export const createVehicleDetailTool = () => {
-  return new DynamicStructuredTool({
-    name: "get_vehicle_details",
-    description: "Get detailed information about a specific vehicle by ID",
-    schema: z.object({
-      vehicleId: z.number().describe("The ID of the vehicle to retrieve details for"),
-    }),
-    func: async ({ vehicleId }) => {
-      // This would connect to your database in a real implementation
-      // For now, return a placeholder response
-      return JSON.stringify({
-        id: vehicleId,
-        make: "Porsche",
-        model: "911",
-        year: 1973,
-        trim: "Carrera RS",
-        engine: "2.7L flat-six",
-        transmission: "5-speed manual",
-        drivetrain: "RWD",
-        exteriorColor: "Grand Prix White",
-        interiorColor: "Black",
-        mileage: 45000,
-        condition: "excellent",
-        price: 750000,
-        location: "Los Angeles, CA",
-        description: "Matching numbers example with documented history",
-        features: [
-          "Lightweight specification",
-          "Original engine",
-          "Factory documentation",
-          "Recent service"
-        ],
-        images: [
-          "https://example.com/image1.jpg",
-          "https://example.com/image2.jpg"
-        ]
-      });
-    },
-  });
-};
-
-// Tool to get market analysis for a vehicle segment
-export const createMarketAnalysisTool = () => {
-  return new DynamicStructuredTool({
-    name: "get_market_analysis",
-    description: "Get market analysis for a specific vehicle segment or type",
-    schema: z.object({
-      segment: z.string().describe("The market segment to analyze (e.g., 'air-cooled Porsche', 'vintage Ferrari', 'muscle cars')"),
-      timeframe: z.string().optional().describe("The timeframe for analysis (e.g., '5y', '1y', '6m')"),
-    }),
-    func: async ({ segment, timeframe }) => {
-      // This would connect to your database in a real implementation
-      // For now, return a placeholder response
-      return JSON.stringify({
-        segment,
-        timeframe: timeframe || "5y",
-        overallTrend: "appreciating",
-        percentChange: "+32.5%",
-        volumeTrend: "decreasing",
-        hotModels: [
-          "Porsche 911 Carrera RS",
-          "Porsche 930 Turbo",
-          "Porsche 964 Carrera RS"
-        ],
-        marketInsights: [
-          "Limited supply driving prices up",
-          "Increased interest from younger collectors",
-          "Original, documented examples commanding premium"
-        ],
-        forecast: "Continued steady appreciation expected"
-      });
-    },
-  });
-};
-
 // Tool to fetch auction results from Bring a Trailer
-export const createAuctionResultsTool = () => {
+export const getAuctionResultsTool = () => {
   return new DynamicStructuredTool({
     name: "fetch_auction_results",
     description: "Fetch recent auction results from Bring a Trailer for a specific make and model. This tool queries the database for auction data including listing_id, url, title, image_url, sold_price, sold_date, bid_amount, bid_date, status, year, make, model, mileage, bidders, watchers, comments, and transmission. Use this tool to answer specific questions about auction results, price trends, vehicle specifications, and market statistics.",
@@ -276,8 +130,126 @@ export const createAuctionResultsTool = () => {
   });
 };
 
+// Tool to analyze current auction results
+export const viewAuctionResultsAnalysisTool = () => {
+  return new DynamicStructuredTool({
+    name: "analyze_auction_results",
+    description: "Analyze auction results data that the user is currently viewing",
+    schema: z.object({
+      analysisType: z.enum([
+        "price_comparison", 
+        "best_deal", 
+        "sold_percentage", 
+        "make_distribution", 
+        "model_distribution", 
+        "year_distribution", 
+        "price_range", 
+        "summary",
+        "database_query"
+      ]).describe("The type of analysis to perform"),
+      query: z.string().optional().describe("The specific database query to perform (for database_query analysis type)"),
+      make: z.string().optional().describe("Filter by make"),
+      model: z.string().optional().describe("Filter by model"),
+      yearMin: z.number().optional().describe("Filter by minimum year"),
+      yearMax: z.number().optional().describe("Filter by maximum year"),
+    }),
+    func: async ({ analysisType, query, make, model, yearMin, yearMax }) => {
+      try {
+        // This function will be called with the auction results context from the agent route
+        // We'll access the auction results from the global context that will be set in the agent route
+        
+        // @ts-ignore - This will be set in the agent route
+        const auctionResults = global.currentAuctionResults || [];
+        
+        if (!auctionResults || auctionResults.length === 0) {
+          return JSON.stringify({
+            error: "No auction results available for analysis",
+            message: "There are no auction results available to analyze. Please make sure you're viewing auction results."
+          });
+        }
+        
+        // Filter results based on criteria if provided
+        let filteredResults = [...auctionResults];
+        
+        if (make) {
+          filteredResults = filteredResults.filter(result => 
+            result.make && result.make.toLowerCase().includes(make.toLowerCase())
+          );
+        }
+        
+        if (model) {
+          filteredResults = filteredResults.filter(result => 
+            result.model && result.model.toLowerCase().includes(model.toLowerCase())
+          );
+        }
+        
+        if (yearMin) {
+          filteredResults = filteredResults.filter(result => result.year >= yearMin);
+        }
+        
+        if (yearMax) {
+          filteredResults = filteredResults.filter(result => result.year <= yearMax);
+        }
+        
+        if (filteredResults.length === 0) {
+          return JSON.stringify({
+            error: "No auction results match the criteria",
+            message: "No auction results match the specified criteria. Please try different filters."
+          });
+        }
+        
+        // Perform the requested analysis
+        let result;
+        
+        switch (analysisType) {
+          case "price_comparison":
+            result = analyzeAuctionPriceComparison(filteredResults);
+            break;
+          case "best_deal":
+            result = analyzeAuctionBestDeal(filteredResults);
+            break;
+          case "sold_percentage":
+            result = analyzeAuctionSoldPercentage(filteredResults);
+            break;
+          case "make_distribution":
+            result = analyzeAuctionMakeDistribution(filteredResults);
+            break;
+          case "model_distribution":
+            result = analyzeAuctionModelDistribution(filteredResults);
+            break;
+          case "year_distribution":
+            result = analyzeAuctionYearDistribution(filteredResults);
+            break;
+          case "price_range":
+            result = analyzeAuctionPriceRange(filteredResults);
+            break;
+          case "summary":
+            result = analyzeAuctionSummary(filteredResults);
+            break;
+          case "database_query":
+            result = analyzeDatabaseQuery(filteredResults, query || "");
+            break;
+          default:
+            result = {
+              error: "Invalid analysis type",
+              message: `The analysis type '${analysisType}' is not supported.`
+            };
+        }
+        
+        return JSON.stringify(result);
+      } catch (error) {
+        console.error("Error analyzing auction results:", error);
+        return JSON.stringify({
+          error: "Failed to analyze auction results",
+          message: error instanceof Error ? error.message : "Unknown error"
+        });
+      }
+    },
+  });
+};
+
 // Tool to analyze current listings
-export const createListingsAnalysisTool = () => {
+export const viewListingsAnalysisTool = () => {
   return new DynamicStructuredTool({
     name: "analyze_current_listings",
     description: "Analyze the current listings being viewed by the user",
@@ -836,124 +808,6 @@ function analyzeSummary(listings: any[]) {
     analysis: `There are ${listings.length} listings in total, with ${topMakes.length} different makes and ${Object.keys(modelCount).length} different models. The most common make is ${topMakes[0].make} with ${topMakes[0].count} listings. The prices range from $${priceMin.toLocaleString()} to $${priceMax.toLocaleString()}, with an average of $${Math.round(priceAvg).toLocaleString()}. The mileage ranges from ${mileageMin.toLocaleString()} to ${mileageMax.toLocaleString()} miles, with an average of ${Math.round(mileageAvg).toLocaleString()} miles. The best value appears to be a ${bestValue.year} ${bestValue.make} ${bestValue.model} priced at $${bestValue.price.toLocaleString()} with ${bestValue.mileage.toLocaleString()} miles${bestValue.location ? ` located in ${bestValue.location}` : ''}${bestValue.clickoffURL ? `. ${bestValue.clickoffURL}` : ''}.`
   };
 }
-
-// Tool to analyze current auction results
-export const createAuctionResultsAnalysisTool = () => {
-  return new DynamicStructuredTool({
-    name: "analyze_auction_results",
-    description: "Analyze auction results data that the user is currently viewing",
-    schema: z.object({
-      analysisType: z.enum([
-        "price_comparison", 
-        "best_deal", 
-        "sold_percentage", 
-        "make_distribution", 
-        "model_distribution", 
-        "year_distribution", 
-        "price_range", 
-        "summary",
-        "database_query"
-      ]).describe("The type of analysis to perform"),
-      query: z.string().optional().describe("The specific database query to perform (for database_query analysis type)"),
-      make: z.string().optional().describe("Filter by make"),
-      model: z.string().optional().describe("Filter by model"),
-      yearMin: z.number().optional().describe("Filter by minimum year"),
-      yearMax: z.number().optional().describe("Filter by maximum year"),
-    }),
-    func: async ({ analysisType, query, make, model, yearMin, yearMax }) => {
-      try {
-        // This function will be called with the auction results context from the agent route
-        // We'll access the auction results from the global context that will be set in the agent route
-        
-        // @ts-ignore - This will be set in the agent route
-        const auctionResults = global.currentAuctionResults || [];
-        
-        if (!auctionResults || auctionResults.length === 0) {
-          return JSON.stringify({
-            error: "No auction results available for analysis",
-            message: "There are no auction results available to analyze. Please make sure you're viewing auction results."
-          });
-        }
-        
-        // Filter results based on criteria if provided
-        let filteredResults = [...auctionResults];
-        
-        if (make) {
-          filteredResults = filteredResults.filter(result => 
-            result.make && result.make.toLowerCase().includes(make.toLowerCase())
-          );
-        }
-        
-        if (model) {
-          filteredResults = filteredResults.filter(result => 
-            result.model && result.model.toLowerCase().includes(model.toLowerCase())
-          );
-        }
-        
-        if (yearMin) {
-          filteredResults = filteredResults.filter(result => result.year >= yearMin);
-        }
-        
-        if (yearMax) {
-          filteredResults = filteredResults.filter(result => result.year <= yearMax);
-        }
-        
-        if (filteredResults.length === 0) {
-          return JSON.stringify({
-            error: "No auction results match the criteria",
-            message: "No auction results match the specified criteria. Please try different filters."
-          });
-        }
-        
-        // Perform the requested analysis
-        let result;
-        
-        switch (analysisType) {
-          case "price_comparison":
-            result = analyzeAuctionPriceComparison(filteredResults);
-            break;
-          case "best_deal":
-            result = analyzeAuctionBestDeal(filteredResults);
-            break;
-          case "sold_percentage":
-            result = analyzeAuctionSoldPercentage(filteredResults);
-            break;
-          case "make_distribution":
-            result = analyzeAuctionMakeDistribution(filteredResults);
-            break;
-          case "model_distribution":
-            result = analyzeAuctionModelDistribution(filteredResults);
-            break;
-          case "year_distribution":
-            result = analyzeAuctionYearDistribution(filteredResults);
-            break;
-          case "price_range":
-            result = analyzeAuctionPriceRange(filteredResults);
-            break;
-          case "summary":
-            result = analyzeAuctionSummary(filteredResults);
-            break;
-          case "database_query":
-            result = analyzeDatabaseQuery(filteredResults, query || "");
-            break;
-          default:
-            result = {
-              error: "Invalid analysis type",
-              message: `The analysis type '${analysisType}' is not supported.`
-            };
-        }
-        
-        return JSON.stringify(result);
-      } catch (error) {
-        console.error("Error analyzing auction results:", error);
-        return JSON.stringify({
-          error: "Failed to analyze auction results",
-          message: error instanceof Error ? error.message : "Unknown error"
-        });
-      }
-    },
-  });
-};
 
 // Helper functions for auction results analysis
 

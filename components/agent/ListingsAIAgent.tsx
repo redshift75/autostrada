@@ -9,8 +9,7 @@ type ListingsAIAgentProps = {
 export default function ListingsAIAgent({ listings }: ListingsAIAgentProps) {
   // Define suggestions for the AI agent
   const suggestions = [
-    "How do the best value listings compare to recent auction results?",
-    "Which listing offers the best value?",
+    "How does the best value listing compare to auction results?",
     "Is there a low mileage car that's particularly well priced?",
     "Summarize these listings for me"
   ];
