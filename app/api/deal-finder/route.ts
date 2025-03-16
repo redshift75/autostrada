@@ -47,39 +47,13 @@ export async function GET(request: NextRequest) {
     const yearMin = parseInt(searchParams.get('yearMin') || '0') || undefined;
     const yearMax = parseInt(searchParams.get('yearMax') || '0') || undefined;
     const maxDeals = parseInt(searchParams.get('maxDeals') || '10');
-    const debug = searchParams.get('debug') === 'true';
-
-    console.log(`Deal Finder API called with params: make=${make}, model=${model}, yearMin=${yearMin}, yearMax=${yearMax}`);
 
     // Initialize scraper for active listings
     const activeListingScraper = new BringATrailerActiveListingScraper();
 
     // Fetch active auctions - first get all listings, then filter them
-    console.log('Fetching active listings...');
     const activeListings = await activeListingScraper.scrape();
     console.log(`Fetched ${activeListings.length} active listings`);
-
-    if (debug) {
-      // Return more detailed debug information
-      return NextResponse.json({ 
-        activeListings: activeListings.slice(0, 5),
-        totalActiveListings: activeListings.length,
-        searchParams: {
-          make,
-          model,
-          yearMin,
-          yearMax
-        },
-        makeModelSamples: activeListings.slice(0, 10).map(l => ({
-          title: l.title,
-          make: l.make,
-          model: l.model,
-          year: l.year,
-          rawEndDate: l.endDate,
-          formattedEndDate: l.endDate ? new Date(l.endDate).toISOString() : 'unknown'
-        }))
-      });
-    }
     
     // Filter by make/model if provided
     let filteredListings = activeListings;
@@ -100,8 +74,7 @@ export async function GET(request: NextRequest) {
         return makeMatch && modelMatch;
       });
     }
-    console.log(`After make/model filtering: ${filteredListings.length} listings`);
-
+    
     // Filter by year if provided
     if (yearMin || yearMax) {
       filteredListings = filteredListings.filter(listing => {
@@ -111,7 +84,7 @@ export async function GET(request: NextRequest) {
         return minMatch && maxMatch;
       });
     }
-    console.log(`After year filtering: ${filteredListings.length} listings`);
+    console.log(`After filtering: ${filteredListings.length} listings`);
 
     // Filter for auctions ending within the next 3 days (instead of just today)
     // This gives us more results to work with

@@ -8,6 +8,7 @@ import ListingsAIAgent from '@/components/agent/ListingsAIAgent';
 import { generateHistogram } from '@/lib/utils/visualization';
 import type { TopLevelSpec } from 'vega-lite';
 import VegaChart from '@/components/shared/VegaChart';
+import { decodeHtmlEntities } from '@/components/shared/utils';
 
 // CSS for animations
 const fadeInAnimation = `

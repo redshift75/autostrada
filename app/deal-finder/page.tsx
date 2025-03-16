@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { TopLevelSpec } from 'vega-lite';
 import VegaChart from '@/components/shared/VegaChart';
 import { formatPrice } from '@/lib/scrapers/utils/index';
+import { decodeHtmlEntities } from '@/components/shared/utils';
 
 // Define types for the Deal Finder page
 type Deal = {
@@ -639,7 +640,7 @@ export default function DealFinder() {
         <div className="bg-white shadow-md rounded-lg p-6 mb-8">
           <h2 className="text-xl font-semibold mb-4">Find Deals</h2>
           <form onSubmit={handleSubmit}>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="flex flex-col">
                 <label htmlFor="make" className="mb-1 font-medium">
                   Make <span className="text-red-500">*</span>
@@ -808,7 +809,7 @@ export default function DealFinder() {
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2">
                           <h3 className="text-xl font-bold text-gray-900 dark:text-white">
                             <a href={deal.activeListing.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
-                              {deal.activeListing.title}
+                              {decodeHtmlEntities(deal.activeListing.title)}
                             </a>
                             {deal.activeListing.mileage && (
                                 <span className="ml-2 text-sm font-medium text-gray-600 dark:text-gray-400">
@@ -954,7 +955,7 @@ export default function DealFinder() {
                                 <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150">
                                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                                     <a href={sale.url} target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 hover:underline">
-                                      {sale.title}
+                                      {decodeHtmlEntities(sale.title)}
                                     </a>
                                   </td>
                                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
