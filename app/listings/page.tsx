@@ -649,21 +649,22 @@ function ListingsContent() {
             <label htmlFor="make" className="mb-1 font-medium">
               Make <span className="text-red-500">*</span>
             </label>
-            <select
+            <input
+              type="text"
               id="make"
               name="make"
               value={make}
               onChange={handleInputChange}
+              list="makes-list"
               className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
+              placeholder={makeOptions.length ? 'Start typing to select a make' : 'Loading makes...'}
               required
-            >
-              <option value="">Select make...</option>
-              {makeOptions.map((option, index) => (
-                <option key={index} value={option}>
-                  {option}
-                </option>
+            />
+            <datalist id="makes-list">
+              {makeOptions.map((option) => (
+                <option key={option} value={option} />
               ))}
-            </select>
+            </datalist>
           </div>
           
           <div className="flex flex-col relative">

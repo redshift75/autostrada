@@ -75,11 +75,11 @@ export default function DealFinder() {
     model: '',
     yearMin: '',
     yearMax: '',
-    maxDeals: '5'
+    maxDeals: '10'
   });
 
   // Form refs for uncontrolled inputs
-  const makeSelectRef = useRef<HTMLSelectElement>(null);
+  const makeInputRef = useRef<HTMLInputElement>(null);
   const modelInputRef = useRef<HTMLSelectElement>(null);
   const yearMinInputRef = useRef<HTMLInputElement>(null);
   const yearMaxInputRef = useRef<HTMLInputElement>(null);
@@ -102,7 +102,7 @@ export default function DealFinder() {
   }, []);
 
   // Update models when make changes
-  const handleMakeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleMakeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedMake = e.target.value;
     
     // Clear model when make changes
@@ -202,7 +202,7 @@ export default function DealFinder() {
     e.preventDefault();
     
     // Get values from refs
-    const make = makeSelectRef.current?.value || '';
+    const make = makeInputRef.current?.value || '';
     const model = modelInputRef.current?.value || '';
     const yearMin = yearMinInputRef.current?.value || '';
     const yearMax = yearMaxInputRef.current?.value || '';
@@ -644,22 +644,23 @@ export default function DealFinder() {
                 <label htmlFor="make" className="mb-1 font-medium">
                   Make <span className="text-red-500">*</span>
                 </label>
-                <select
+                <input
+                  type="text"
                   id="make"
                   name="make"
-                  ref={makeSelectRef}
+                  ref={makeInputRef}
                   defaultValue={formData.make}
                   onChange={handleMakeChange}
+                  list="makes-list"
                   className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
+                  placeholder={availableMakes.length ? 'Start typing to select a make' : 'Loading makes...'}
                   required
-                >
-                  <option value="">Select a make</option>
+                />
+                <datalist id="makes-list">
                   {availableMakes.map((make) => (
-                    <option key={make} value={make}>
-                      {make}
-                    </option>
+                    <option key={make} value={make} />
                   ))}
-                </select>
+                </datalist>
               </div>
               
               <div className="flex flex-col">
@@ -672,7 +673,7 @@ export default function DealFinder() {
                   ref={modelInputRef}
                   defaultValue={formData.model}
                   className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
-                  disabled={!makeSelectRef.current?.value}
+                  disabled={!makeInputRef.current?.value}
                 >
                   <option value="">Select model...</option>
                   {availableModels.map((model) => (

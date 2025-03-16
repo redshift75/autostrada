@@ -18,7 +18,6 @@ type DealFinderResponse = {
     dealScore: number; // 1-10 score, higher is better deal
     endingSoon: boolean; // Whether the auction is ending within 24 hours
   }>;
-  uniqueMakes: string[];
 };
 
 // Helper function to parse model names from listing titles
@@ -60,19 +59,11 @@ export async function GET(request: NextRequest) {
     const activeListings = await activeListingScraper.scrape();
     console.log(`Fetched ${activeListings.length} active listings`);
 
-    // Extract unique makes from active listings
-    const uniqueMakes = Array.from(new Set(activeListings
-      .map(listing => listing.make)
-      .filter(make => make) // Remove empty or undefined makes
-      .sort()
-    ));
-
     if (debug) {
       // Return more detailed debug information
       return NextResponse.json({ 
         activeListings: activeListings.slice(0, 5),
         totalActiveListings: activeListings.length,
-        uniqueMakes,
         searchParams: {
           make,
           model,
@@ -163,7 +154,6 @@ export async function GET(request: NextRequest) {
       endingSoon.map(async (activeListing) => {
         // Fetch historical data for this specific make/model/year range using the auction results API
         const listingMake = activeListing.make;
-        console.log(`Listing make: ${listingMake}`);
         // Extract model from the listing title using the listing's make
         const listingModel = parseModel(activeListing.title, listingMake);
         const listingYear = parseInt(activeListing.year);
@@ -277,8 +267,7 @@ export async function GET(request: NextRequest) {
     // Filter out null values and sort by deal score (highest first)
     const validDeals = deals
       .filter(deal => deal !== null)
-      .sort((a, b) => b!.dealScore - a!.dealScore)
-      .slice(0, maxDeals);
+      .sort((a, b) => b!.dealScore - a!.dealScore);
     
     // Get mileage from listing page
     for (const validDeal of validDeals) {

@@ -69,7 +69,7 @@ function AuctionsContent() {
   const [loadingMakes, setLoadingMakes] = useState(true);
   
   // Form refs for uncontrolled inputs
-  const makeInputRef = useRef<HTMLSelectElement>(null);
+  const makeInputRef = useRef<HTMLInputElement>(null);
   const modelInputRef = useRef<HTMLInputElement>(null);
   const yearMinInputRef = useRef<HTMLInputElement>(null);
   const yearMaxInputRef = useRef<HTMLInputElement>(null);
@@ -532,10 +532,12 @@ function AuctionsContent() {
                 <label htmlFor="make" className="mb-1 font-medium">
                   Make <span className="text-red-500">*</span>
                 </label>
-                <select
+                <input
+                  type="text"
                   id="make"
                   name="make"
                   ref={makeInputRef}
+                  list="makes-list"
                   defaultValue=""
                   onChange={(e) => {
                     if (modelInputRef.current) {
@@ -543,17 +545,14 @@ function AuctionsContent() {
                     }
                   }}
                   className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
+                  placeholder={loadingMakes ? 'Loading makes...' : 'Start typing to select a make'}
                   required
-                >
-                  <option value="" disabled>
-                    {loadingMakes ? 'Loading makes...' : 'Select a make'}
-                  </option>
+                />
+                <datalist id="makes-list">
                   {makes.map((make) => (
-                    <option key={make} value={make}>
-                      {make}
-                    </option>
+                    <option key={make} value={make} />
                   ))}
-                </select>
+                </datalist>
                 {dbConnectionError && (
                   <p className="mt-1 text-sm text-red-500">
                     Database connection error. Some makes may not be available.
