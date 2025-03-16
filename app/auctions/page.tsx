@@ -328,7 +328,7 @@ function AuctionsContent() {
       // This assumes that if Supabase doesn't have results, we'll fall back to the scraper
       const messageTimeout = setTimeout(() => {
         setLoadingMessage('No results found in database. Fetching fresh data from Bring a Trailer...');
-      }, 2000);
+      }, 3000);
       
       // Prepare API request data
       const apiRequestData = {
