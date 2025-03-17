@@ -9,8 +9,8 @@ export const getAuctionResultsTool = () => {
     schema: z.object({
       make: z.string().optional().describe("The manufacturer of the vehicle"),
       model: z.string().optional().describe("The model of the vehicle"),
-      yearMin: z.number().optional().describe("The minimum year to filter results"),
-      yearMax: z.number().optional().describe("The maximum year to filter results"),
+      yearMin: z.number().optional().describe("The minimum model year"),
+      yearMax: z.number().optional().describe("The maximum model year"),
       sold_date_min: z.string().optional().describe("The minimum sold date to filter results"),
       sold_date_max: z.string().optional().describe("The maximum sold date to filter results"),
       maxPages: z.number().optional().describe("Maximum number of pages to fetch (default: 2)"),
