@@ -17,7 +17,7 @@ export const getAuctionResultsTool = () => {
       maxResults: z.number().optional().describe("Maximum number of results to return (default: 10)"),
       sortBy: z.enum(["price_high_to_low", "price_low_to_high", "date_newest_first", "date_oldest_first",
         "mileage_lowest_first", "mileage_highest_first", "bidders_highest_first", "bidders_lowest_first"]).optional().describe("How to sort the results before limiting them (default: date_newest_first)"),
-      status: z.enum(["sold", "unsold", "all"]).optional().describe("Filter results by sold status (default: all)"),
+      status: z.enum(["sold", "unsold", "all"]).optional().describe("The sales result of the vehicle (default: all)"),
       // New aggregation parameters
       groupBy: z.string().optional().describe("Field to group results by (e.g., 'make', 'model', 'transmission', 'year'). If provided, enables aggregation mode."),
       aggregations: z.array(z.object({
@@ -204,23 +204,11 @@ export const auctionResultsAnalysisTool = () => {
     description: "Analyze auction results data that the user is currently viewing",
     schema: z.object({
       analysisType: z.enum([
-        "price_comparison", 
         "best_deal", 
-        "sold_percentage", 
-        "make_distribution", 
-        "model_distribution", 
-        "year_distribution", 
-        "price_range", 
-        "summary",
-        "database_query"
-      ]).describe("The type of analysis to perform"),
-      query: z.string().optional().describe("The specific database query to perform (for database_query analysis type)"),
-      make: z.string().optional().describe("Filter by make"),
-      model: z.string().optional().describe("Filter by model"),
-      yearMin: z.number().optional().describe("Filter by minimum year"),
-      yearMax: z.number().optional().describe("Filter by maximum year"),
+        "summary"
+      ]).describe("The type of analysis to perform")
     }),
-    func: async ({ analysisType, query, make, model, yearMin, yearMax }) => {
+    func: async ({ analysisType }) => {
       try {
         // This function will be called with the auction results context from the agent route
         // We'll access the auction results from the global context that will be set in the agent route
@@ -235,66 +223,15 @@ export const auctionResultsAnalysisTool = () => {
           });
         }
         
-        // Filter results based on criteria if provided
-        let filteredResults = [...auctionResults];
-        
-        if (make) {
-          filteredResults = filteredResults.filter(result => 
-            result.make && result.make.toLowerCase().includes(make.toLowerCase())
-          );
-        }
-        
-        if (model) {
-          filteredResults = filteredResults.filter(result => 
-            result.model && result.model.toLowerCase().includes(model.toLowerCase())
-          );
-        }
-        
-        if (yearMin) {
-          filteredResults = filteredResults.filter(result => result.year >= yearMin);
-        }
-        
-        if (yearMax) {
-          filteredResults = filteredResults.filter(result => result.year <= yearMax);
-        }
-        
-        if (filteredResults.length === 0) {
-          return JSON.stringify({
-            error: "No auction results match the criteria",
-            message: "No auction results match the specified criteria. Please try different filters."
-          });
-        }
-        
         // Perform the requested analysis
         let result;
         
         switch (analysisType) {
-          case "price_comparison":
-            result = analyzeAuctionPriceComparison(filteredResults);
-            break;
           case "best_deal":
-            result = analyzeAuctionBestDeal(filteredResults);
-            break;
-          case "sold_percentage":
-            result = analyzeAuctionSoldPercentage(filteredResults);
-            break;
-          case "make_distribution":
-            result = analyzeAuctionMakeDistribution(filteredResults);
-            break;
-          case "model_distribution":
-            result = analyzeAuctionModelDistribution(filteredResults);
-            break;
-          case "year_distribution":
-            result = analyzeAuctionYearDistribution(filteredResults);
-            break;
-          case "price_range":
-            result = analyzeAuctionPriceRange(filteredResults);
+            result = analyzeAuctionBestDeal(auctionResults);
             break;
           case "summary":
-            result = analyzeAuctionSummary(filteredResults);
-            break;
-          case "database_query":
-            result = analyzeDatabaseQuery(filteredResults, query || "");
+            result = analyzeAuctionSummary(auctionResults);
             break;
           default:
             result = {
@@ -322,28 +259,11 @@ export const viewListingsAnalysisTool = () => {
     description: "Analyze the current listings being viewed by the user",
     schema: z.object({
       analysisType: z.enum([
-        "price_comparison", 
-        "mileage_comparison", 
-        "best_value", 
-        "newest", 
-        "oldest", 
-        "lowest_mileage", 
-        "highest_mileage",
-        "make_distribution",
-        "model_distribution",
-        "year_distribution",
-        "price_range",
-        "mileage_range",
-        "summary"
-      ]).describe("The type of analysis to perform on the listings"),
-      make: z.string().optional().describe("Filter by make"),
-      model: z.string().optional().describe("Filter by model"),
-      yearMin: z.number().optional().describe("Filter by minimum year"),
-      yearMax: z.number().optional().describe("Filter by maximum year"),
-      priceMax: z.number().optional().describe("Maximum price to consider"),
-      mileageMax: z.number().optional().describe("Maximum mileage to consider"),
+       "best_value", 
+       "summary"
+      ]).describe("The type of analysis to perform on the listings")
     }),
-    func: async ({ analysisType, make, model, yearMin, yearMax, priceMax, mileageMax }) => {
+    func: async ({ analysisType }) => {
       try {
         // This function will be called with the listings context from the agent route
         // We'll access the listings from the global context that will be set in the agent route
@@ -358,86 +278,15 @@ export const viewListingsAnalysisTool = () => {
           });
         }
         
-        // Filter listings based on criteria if provided
-        let filteredListings = [...listings];
-        
-        if (make) {
-          filteredListings = filteredListings.filter(listing => 
-            listing.make.toLowerCase().includes(make.toLowerCase())
-          );
-        }
-        
-        if (model) {
-          filteredListings = filteredListings.filter(listing => 
-            listing.model.toLowerCase().includes(model.toLowerCase())
-          );
-        }
-        
-        if (yearMin) {
-          filteredListings = filteredListings.filter(listing => listing.year >= yearMin);
-        }
-        
-        if (yearMax) {
-          filteredListings = filteredListings.filter(listing => listing.year <= yearMax);
-        }
-        
-        if (priceMax) {
-          filteredListings = filteredListings.filter(listing => listing.price <= priceMax);
-        }
-        
-        if (mileageMax) {
-          filteredListings = filteredListings.filter(listing => listing.mileage <= mileageMax);
-        }
-        
-        if (filteredListings.length === 0) {
-          return JSON.stringify({
-            error: "No listings match the criteria",
-            message: "No listings match the specified criteria. Please try different filters."
-          });
-        }
-        
         // Perform the requested analysis
         let result;
         
         switch (analysisType) {
-          case "price_comparison":
-            result = analyzePriceComparison(filteredListings);
-            break;
-          case "mileage_comparison":
-            result = analyzeMileageComparison(filteredListings);
-            break;
-          case "best_value":
-            result = analyzeBestValue(filteredListings);
-            break;
-          case "newest":
-            result = analyzeNewest(filteredListings);
-            break;
-          case "oldest":
-            result = analyzeOldest(filteredListings);
-            break;
-          case "lowest_mileage":
-            result = analyzeLowestMileage(filteredListings);
-            break;
-          case "highest_mileage":
-            result = analyzeHighestMileage(filteredListings);
-            break;
-          case "make_distribution":
-            result = analyzeMakeDistribution(filteredListings);
-            break;
-          case "model_distribution":
-            result = analyzeModelDistribution(filteredListings);
-            break;
-          case "year_distribution":
-            result = analyzeYearDistribution(filteredListings);
-            break;
-          case "price_range":
-            result = analyzePriceRange(filteredListings);
-            break;
-          case "mileage_range":
-            result = analyzeMileageRange(filteredListings);
+         case "best_value":
+            result = analyzeListingBestValue(listings);
             break;
           case "summary":
-            result = analyzeSummary(filteredListings);
+            result = analyzeListingSummary(listings);
             break;
           default:
             result = {
@@ -448,14 +297,7 @@ export const viewListingsAnalysisTool = () => {
         
         return JSON.stringify({
           analysisType,
-          filters: {
-            make: make || "Any",
-            model: model || "Any",
-            yearRange: `${yearMin || "Any"}-${yearMax || "Any"}`,
-            priceMax: priceMax || "Any",
-            mileageMax: mileageMax || "Any",
-          },
-          totalListings: filteredListings.length,
+          totalListings: listings.length,
           result
         });
       } catch (error) {
@@ -471,124 +313,7 @@ export const viewListingsAnalysisTool = () => {
 };
 
 // Helper functions for listings analysis
-
-function analyzePriceComparison(listings: any[]) {
-  const sortedByPrice = [...listings].sort((a, b) => a.price - b.price);
-  const lowestPrice = sortedByPrice[0];
-  const highestPrice = sortedByPrice[sortedByPrice.length - 1];
-  const averagePrice = listings.reduce((sum: number, listing: any) => sum + listing.price, 0) / listings.length;
-  const averageMileage = listings.reduce((sum: number, listing: any) => sum + listing.mileage, 0) / listings.length;
-  const priceRanges: {
-    low: any[];
-    medium: any[];
-    high: any[];
-  } = {
-    low: [],
-    medium: [],
-    high: []
-  };
-  
-  const lowThreshold = averagePrice * 0.8;
-  const highThreshold = averagePrice * 1.2;
-  
-  listings.forEach((listing: any) => {
-    if (listing.price < lowThreshold) {
-      priceRanges.low.push(listing);
-    } else if (listing.price > highThreshold) {
-      priceRanges.high.push(listing);
-    } else {
-      priceRanges.medium.push(listing);
-    }
-  });
-  
-  return {
-    lowestPrice: {
-      year: lowestPrice.year,
-      make: lowestPrice.make,
-      model: lowestPrice.model,
-      price: lowestPrice.price,
-      mileage: lowestPrice.mileage,
-      location: lowestPrice.location || 'Unknown',
-      clickoffURL: lowestPrice.clickoffURL || null
-    },
-    highestPrice: {
-      year: highestPrice.year,
-      make: highestPrice.make,
-      model: highestPrice.model,
-      price: highestPrice.price,
-      mileage: highestPrice.mileage,
-      location: highestPrice.location || 'Unknown',
-      clickoffURL: highestPrice.clickoffURL || null
-    },
-    averagePrice: Math.round(averagePrice),
-    priceDistribution: {
-      low: priceRanges.low.length,
-      medium: priceRanges.medium.length,
-      high: priceRanges.high.length
-    },
-    analysis: `The prices range from $${lowestPrice.price.toLocaleString()} to $${highestPrice.price.toLocaleString()}, with an average of $${Math.round(averagePrice).toLocaleString()}. ${priceRanges.low.length} listings are priced below average, ${priceRanges.medium.length} are around average, and ${priceRanges.high.length} are above average.`
-  };
-}
-
-function analyzeMileageComparison(listings: any[]) {
-  const sortedByMileage = [...listings].sort((a, b) => a.mileage - b.mileage);
-  const lowestMileage = sortedByMileage[0];
-  const highestMileage = sortedByMileage[sortedByMileage.length - 1];
-  const averageMileage = listings.reduce((sum: number, listing: any) => sum + listing.mileage, 0) / listings.length;
-  
-  const mileageRanges: {
-    low: any[];
-    medium: any[];
-    high: any[];
-  } = {
-    low: [],
-    medium: [],
-    high: []
-  };
-  
-  const lowThreshold = averageMileage * 0.5;
-  const highThreshold = averageMileage * 1.5;
-  
-  listings.forEach((listing: any) => {
-    if (listing.mileage < lowThreshold) {
-      mileageRanges.low.push(listing);
-    } else if (listing.mileage > highThreshold) {
-      mileageRanges.high.push(listing);
-    } else {
-      mileageRanges.medium.push(listing);
-    }
-  });
-  
-  return {
-    lowestMileage: {
-      year: lowestMileage.year,
-      make: lowestMileage.make,
-      model: lowestMileage.model,
-      price: lowestMileage.price,
-      mileage: lowestMileage.mileage,
-      location: lowestMileage.location || 'Unknown',
-      clickoffURL: lowestMileage.clickoffURL || null
-    },
-    highestMileage: {
-      year: highestMileage.year,
-      make: highestMileage.make,
-      model: highestMileage.model,
-      price: highestMileage.price,
-      mileage: highestMileage.mileage,
-      location: highestMileage.location || 'Unknown',
-      clickoffURL: highestMileage.clickoffURL || null
-    },
-    averageMileage: Math.round(averageMileage),
-    mileageDistribution: {
-      low: mileageRanges.low.length,
-      medium: mileageRanges.medium.length,
-      high: mileageRanges.high.length
-    },
-    analysis: `The mileage ranges from ${lowestMileage.mileage.toLocaleString()} to ${highestMileage.mileage.toLocaleString()} miles, with an average of ${Math.round(averageMileage).toLocaleString()} miles. ${mileageRanges.low.length} listings have below average mileage, ${mileageRanges.medium.length} have around average mileage, and ${mileageRanges.high.length} have above average mileage.`
-  };
-}
-
-function analyzeBestValue(listings: any[]) {
+function analyzeListingBestValue(listings: any[]) {
   // Calculate a value score for each listing
   // Lower score = better value (lower price, lower mileage, newer year)
   const scoredListings = listings.map(listing => {
@@ -632,199 +357,7 @@ function analyzeBestValue(listings: any[]) {
   };
 }
 
-function analyzeNewest(listings: any[]) {
-  const sortedByYear = [...listings].sort((a, b) => b.year - a.year);
-  const newest = sortedByYear.slice(0, 3);
-  
-  return {
-    newest: newest.map(listing => ({
-      year: listing.year,
-      make: listing.make,
-      model: listing.model,
-      price: listing.price,
-      mileage: listing.mileage,
-      location: listing.location || 'Unknown',
-      clickoffURL: listing.clickoffURL || null
-    })),
-    analysis: `The newest listing is a ${newest[0].year} ${newest[0].make} ${newest[0].model} priced at $${newest[0].price.toLocaleString()} with ${newest[0].mileage.toLocaleString()} miles${newest[0].location ? ` located in ${newest[0].location}` : ''}${newest[0].clickoffURL ? `. ${newest[0].clickoffURL}` : ''}.`
-  };
-}
-
-function analyzeOldest(listings: any[]) {
-  const sortedByYear = [...listings].sort((a, b) => a.year - b.year);
-  const oldest = sortedByYear.slice(0, 3);
-  
-  return {
-    oldest: oldest.map(listing => ({
-      year: listing.year,
-      make: listing.make,
-      model: listing.model,
-      price: listing.price,
-      mileage: listing.mileage,
-      location: listing.location || 'Unknown',
-      clickoffURL: listing.clickoffURL || null
-    })),
-    analysis: `The oldest listing is a ${oldest[0].year} ${oldest[0].make} ${oldest[0].model} priced at $${oldest[0].price.toLocaleString()} with ${oldest[0].mileage.toLocaleString()} miles${oldest[0].location ? ` located in ${oldest[0].location}` : ''}${oldest[0].clickoffURL ? `. ${oldest[0].clickoffURL}` : ''}.`
-  };
-}
-
-function analyzeLowestMileage(listings: any[]) {
-  const sortedByMileage = [...listings].sort((a, b) => a.mileage - b.mileage);
-  const lowestMileage = sortedByMileage.slice(0, 3);
-  
-  return {
-    lowestMileage: lowestMileage.map(listing => ({
-      year: listing.year,
-      make: listing.make,
-      model: listing.model,
-      price: listing.price,
-      mileage: listing.mileage,
-      location: listing.location || 'Unknown',
-      clickoffURL: listing.clickoffURL || null
-    })),
-    analysis: `The lowest mileage listing is a ${lowestMileage[0].year} ${lowestMileage[0].make} ${lowestMileage[0].model} with ${lowestMileage[0].mileage.toLocaleString()} miles, priced at $${lowestMileage[0].price.toLocaleString()}${lowestMileage[0].location ? ` located in ${lowestMileage[0].location}` : ''}${lowestMileage[0].clickoffURL ? `. ${lowestMileage[0].clickoffURL}` : ''}.`
-  };
-}
-
-function analyzeHighestMileage(listings: any[]) {
-  const sortedByMileage = [...listings].sort((a, b) => b.mileage - a.mileage);
-  const highestMileage = sortedByMileage.slice(0, 3);
-  
-  return {
-    highestMileage: highestMileage.map(listing => ({
-      year: listing.year,
-      make: listing.make,
-      model: listing.model,
-      price: listing.price,
-      mileage: listing.mileage,
-      location: listing.location || 'Unknown',
-      clickoffURL: listing.clickoffURL || null
-    })),
-    analysis: `The highest mileage listing is a ${highestMileage[0].year} ${highestMileage[0].make} ${highestMileage[0].model} with ${highestMileage[0].mileage.toLocaleString()} miles, priced at $${highestMileage[0].price.toLocaleString()}${highestMileage[0].location ? ` located in ${highestMileage[0].location}` : ''}${highestMileage[0].clickoffURL ? `. ${highestMileage[0].clickoffURL}` : ''}.`
-  };
-}
-
-function analyzeMakeDistribution(listings: any[]) {
-  const makeCount: Record<string, number> = {};
-  
-  listings.forEach((listing: any) => {
-    if (makeCount[listing.make]) {
-      makeCount[listing.make]++;
-    } else {
-      makeCount[listing.make] = 1;
-    }
-  });
-  
-  const sortedMakes = Object.entries(makeCount)
-    .sort((a, b) => b[1] - a[1])
-    .map(([make, count]) => ({ make, count }));
-  
-  return {
-    makeDistribution: sortedMakes,
-    analysis: `The most common make is ${sortedMakes[0].make} with ${sortedMakes[0].count} listings, followed by ${sortedMakes.length > 1 ? sortedMakes[1].make + ' with ' + sortedMakes[1].count + ' listings' : 'no other makes'}.`
-  };
-}
-
-function analyzeModelDistribution(listings: any[]) {
-  const modelCount: Record<string, number> = {};
-  
-  listings.forEach((listing: any) => {
-    const fullModel = `${listing.make} ${listing.model}`;
-    if (modelCount[fullModel]) {
-      modelCount[fullModel]++;
-    } else {
-      modelCount[fullModel] = 1;
-    }
-  });
-  
-  const sortedModels = Object.entries(modelCount)
-    .sort((a, b) => b[1] - a[1])
-    .map(([model, count]) => ({ model, count }));
-  
-  return {
-    modelDistribution: sortedModels,
-    analysis: `The most common model is the ${sortedModels[0].model} with ${sortedModels[0].count} listings, followed by ${sortedModels.length > 1 ? 'the ' + sortedModels[1].model + ' with ' + sortedModels[1].count + ' listings' : 'no other models'}.`
-  };
-}
-
-function analyzeYearDistribution(listings: any[]) {
-  const yearCount: Record<number, number> = {};
-  
-  listings.forEach((listing: any) => {
-    if (yearCount[listing.year]) {
-      yearCount[listing.year]++;
-    } else {
-      yearCount[listing.year] = 1;
-    }
-  });
-  
-  const sortedYears = Object.entries(yearCount)
-    .sort((a, b) => parseInt(b[0]) - parseInt(a[0]))
-    .map(([year, count]) => ({ year: parseInt(year), count }));
-  
-  return {
-    yearDistribution: sortedYears,
-    analysis: `The most common year is ${sortedYears[0].year} with ${sortedYears[0].count} listings. The listings span from ${Math.min(...listings.map(l => l.year))} to ${Math.max(...listings.map(l => l.year))}.`
-  };
-}
-
-function analyzePriceRange(listings: any[]) {
-  const lowestPrice = Math.min(...listings.map((l: any) => l.price));
-  const highestPrice = Math.max(...listings.map((l: any) => l.price));
-  const averagePrice = listings.reduce((sum: number, listing: any) => sum + listing.price, 0) / listings.length;
-  
-  // Create price brackets
-  const range = highestPrice - lowestPrice;
-  const bracketSize = range / 5;
-  const brackets = Array.from({ length: 5 }, (_, i) => {
-    const min = lowestPrice + (i * bracketSize);
-    const max = lowestPrice + ((i + 1) * bracketSize);
-    return {
-      range: `$${Math.round(min).toLocaleString()} - $${Math.round(max).toLocaleString()}`,
-      count: listings.filter((l: any) => l.price >= min && l.price < max).length
-    };
-  });
-  
-  return {
-    priceRange: {
-      lowest: lowestPrice,
-      highest: highestPrice,
-      average: Math.round(averagePrice)
-    },
-    priceBrackets: brackets,
-    analysis: `The prices range from $${lowestPrice.toLocaleString()} to $${highestPrice.toLocaleString()}, with an average price of $${Math.round(averagePrice).toLocaleString()}.`
-  };
-}
-
-function analyzeMileageRange(listings: any[]) {
-  const lowestMileage = Math.min(...listings.map((l: any) => l.mileage));
-  const highestMileage = Math.max(...listings.map((l: any) => l.mileage));
-  const averageMileage = listings.reduce((sum: number, listing: any) => sum + listing.mileage, 0) / listings.length;
-  
-  // Create mileage brackets
-  const range = highestMileage - lowestMileage;
-  const bracketSize = range / 5;
-  const brackets = Array.from({ length: 5 }, (_, i) => {
-    const min = lowestMileage + (i * bracketSize);
-    const max = lowestMileage + ((i + 1) * bracketSize);
-    return {
-      range: `${Math.round(min).toLocaleString()} - ${Math.round(max).toLocaleString()} miles`,
-      count: listings.filter((l: any) => l.mileage >= min && l.mileage < max).length
-    };
-  });
-  
-  return {
-    mileageRange: {
-      lowest: lowestMileage,
-      highest: highestMileage,
-      average: Math.round(averageMileage)
-    },
-    mileageBrackets: brackets,
-    analysis: `The mileage ranges from ${lowestMileage.toLocaleString()} to ${highestMileage.toLocaleString()} miles, with an average mileage of ${Math.round(averageMileage).toLocaleString()} miles.`
-  };
-}
-
-function analyzeSummary(listings: any[]) {
+function analyzeListingSummary(listings: any[]) {
   const makeCount: Record<string, number> = {};
   const modelCount: Record<string, number> = {};
   const yearMin = Math.min(...listings.map((l: any) => l.year));
@@ -862,7 +395,7 @@ function analyzeSummary(listings: any[]) {
     .map(([model, count]) => ({ model, count }));
   
   // Find best value listing
-  const bestValue = analyzeBestValue(listings).bestValues[0];
+  const bestValue = analyzeListingBestValue(listings).bestValues[0];
   
   return {
     totalListings: listings.length,
@@ -877,75 +410,6 @@ function analyzeSummary(listings: any[]) {
 }
 
 // Helper functions for auction results analysis
-
-function analyzeAuctionPriceComparison(results: any[]) {
-  const soldResults = results.filter(result => result.status === 'sold');
-  
-  if (soldResults.length === 0) {
-    return {
-      analysis: "No sold items found for price comparison."
-    };
-  }
-  
-  // Extract numeric prices, handling different formats
-  const prices = soldResults.map(result => {
-    if (typeof result.price === 'number') {
-      return result.price;
-    }
-    
-    if (result.sold_price) {
-      // Handle string price format (e.g., "$12,345")
-      const numericPrice = result.sold_price.toString().replace(/[^0-9.]/g, '');
-      return numericPrice ? parseFloat(numericPrice) : 0;
-    }
-    
-    return 0; // Default if no valid price found
-  }).filter(price => price > 0); // Filter out zero prices
-  
-  if (prices.length === 0) {
-    return {
-      analysis: "Could not extract valid price information from the sold items."
-    };
-  }
-  
-  const lowestPrice = Math.min(...prices);
-  const highestPrice = Math.max(...prices);
-  const averagePrice = prices.reduce((sum, price) => sum + price, 0) / prices.length;
-  
-  // Find the items with lowest and highest prices
-  const lowestPriceItem = soldResults.find(result => {
-    const price = typeof result.price === 'number' ? 
-      result.price : 
-      parseFloat(result.sold_price?.toString().replace(/[^0-9.]/g, '') || '0');
-    return price === lowestPrice;
-  }) || soldResults[0];
-  
-  const highestPriceItem = soldResults.find(result => {
-    const price = typeof result.price === 'number' ? 
-      result.price : 
-      parseFloat(result.sold_price?.toString().replace(/[^0-9.]/g, '') || '0');
-    return price === highestPrice;
-  }) || soldResults[0];
-  
-  return {
-    lowestPrice: {
-      title: lowestPriceItem.title,
-      price: `$${lowestPrice.toLocaleString()}`,
-      date: lowestPriceItem.sold_date || 'Unknown',
-      url: lowestPriceItem.url || null
-    },
-    highestPrice: {
-      title: highestPriceItem.title,
-      price: `$${highestPrice.toLocaleString()}`,
-      date: highestPriceItem.sold_date || 'Unknown',
-      url: highestPriceItem.url || null
-    },
-    averagePrice: `$${Math.round(averagePrice).toLocaleString()}`,
-    totalSold: soldResults.length,
-    analysis: `The sold prices range from $${lowestPrice.toLocaleString()} to $${highestPrice.toLocaleString()}, with an average of $${Math.round(averagePrice).toLocaleString()}. ${soldResults.length} out of ${results.length} items were sold.`
-  };
-}
-
 function analyzeAuctionBestDeal(results: any[]) {
   const soldResults = results.filter(result => result.status === 'sold');
   
@@ -1035,287 +499,6 @@ function analyzeAuctionBestDeal(results: any[]) {
   };
 }
 
-function analyzeAuctionSoldPercentage(results: any[]) {
-  const total = results.length;
-  
-  if (total === 0) {
-    return {
-      analysis: "No auction results available for analysis.",
-      overall: { total: 0, sold: 0, soldPercentage: 0 },
-      byMake: []
-    };
-  }
-  
-  const sold = results.filter(result => result.status === 'sold').length;
-  const soldPercentage = (sold / total) * 100;
-  
-  // Group by extracted make
-  const makeGroups: Record<string, { total: number, sold: number }> = {};
-  
-  results.forEach(result => {
-    let make = result.make;
-    if (!make) {
-      // Try to extract make from title
-      const titleParts = result.title.split(' ');
-      if (titleParts.length > 1) {
-        make = titleParts[1]; // Assuming format is "YEAR MAKE MODEL"
-      } else {
-        make = 'Unknown';
-      }
-    }
-    
-    // Ensure make is a string
-    make = String(make || 'Unknown');
-    
-    if (!makeGroups[make]) {
-      makeGroups[make] = { total: 0, sold: 0 };
-    }
-    
-    makeGroups[make].total++;
-    if (result.status === 'sold') {
-      makeGroups[make].sold++;
-    }
-  });
-  
-  const makeStats = Object.entries(makeGroups)
-    .map(([make, stats]) => ({
-      make,
-      total: stats.total,
-      sold: stats.sold,
-      soldPercentage: stats.total > 0 ? Math.round((stats.sold / stats.total) * 100) : 0
-    }))
-    .sort((a, b) => b.soldPercentage - a.soldPercentage);
-  
-  return {
-    overall: {
-      total,
-      sold,
-      soldPercentage: Math.round(soldPercentage)
-    },
-    byMake: makeStats,
-    analysis: `Overall, ${sold} out of ${total} auctions resulted in a sale (${Math.round(soldPercentage)}%). ${
-      makeStats.length > 0 
-        ? `The make with the highest sell-through rate is ${makeStats[0].make} at ${makeStats[0].soldPercentage}% (${makeStats[0].sold} out of ${makeStats[0].total}).`
-        : ''
-    }`
-  };
-}
-
-function analyzeAuctionMakeDistribution(results: any[]) {
-  if (results.length === 0) {
-    return {
-      makeDistribution: [],
-      analysis: "No auction results available for analysis."
-    };
-  }
-  
-  const makeCount: Record<string, number> = {};
-  
-  results.forEach(result => {
-    let make = result.make;
-    if (!make) {
-      // Try to extract make from title
-      const titleParts = result.title.split(' ');
-      if (titleParts.length > 1) {
-        make = titleParts[1]; // Assuming format is "YEAR MAKE MODEL"
-      } else {
-        make = 'Unknown';
-      }
-    }
-    
-    // Ensure make is a string
-    make = String(make || 'Unknown');
-    
-    if (makeCount[make]) {
-      makeCount[make]++;
-    } else {
-      makeCount[make] = 1;
-    }
-  });
-  
-  const sortedMakes = Object.entries(makeCount)
-    .sort((a, b) => b[1] - a[1])
-    .map(([make, count]) => ({ make, count }));
-  
-  if (sortedMakes.length === 0) {
-    return {
-      makeDistribution: [],
-      analysis: "Could not extract make information from the auction results."
-    };
-  }
-  
-  return {
-    makeDistribution: sortedMakes,
-    analysis: `The most common make is ${sortedMakes[0].make} with ${sortedMakes[0].count} auction results, followed by ${sortedMakes.length > 1 ? sortedMakes[1].make + ' with ' + sortedMakes[1].count + ' results' : 'no other makes'}.`
-  };
-}
-
-function analyzeAuctionModelDistribution(results: any[]) {
-  if (results.length === 0) {
-    return {
-      modelDistribution: [],
-      analysis: "No auction results available for analysis."
-    };
-  }
-  
-  const modelCount: Record<string, number> = {};
-  
-  results.forEach(result => {
-    let make = result.make;
-    let model = result.model;
-    
-    if (!make || !model) {
-      // Try to extract make and model from title
-      const titleParts = result.title.split(' ');
-      if (titleParts.length > 2) {
-        make = make || titleParts[1]; // Assuming format is "YEAR MAKE MODEL"
-        model = model || titleParts[2];
-      } else {
-        make = make || 'Unknown';
-        model = model || 'Unknown';
-      }
-    }
-    
-    // Ensure make and model are strings
-    make = String(make || 'Unknown');
-    model = String(model || 'Unknown');
-    
-    const fullModel = `${make} ${model}`;
-    
-    if (modelCount[fullModel]) {
-      modelCount[fullModel]++;
-    } else {
-      modelCount[fullModel] = 1;
-    }
-  });
-  
-  const sortedModels = Object.entries(modelCount)
-    .sort((a, b) => b[1] - a[1])
-    .map(([model, count]) => ({ model, count }));
-  
-  if (sortedModels.length === 0) {
-    return {
-      modelDistribution: [],
-      analysis: "Could not extract model information from the auction results."
-    };
-  }
-  
-  return {
-    modelDistribution: sortedModels,
-    analysis: `The most common model is the ${sortedModels[0].model} with ${sortedModels[0].count} auction results, followed by ${sortedModels.length > 1 ? 'the ' + sortedModels[1].model + ' with ' + sortedModels[1].count + ' results' : 'no other models'}.`
-  };
-}
-
-function analyzeAuctionYearDistribution(results: any[]) {
-  if (results.length === 0) {
-    return {
-      analysis: "No auction results available for analysis.",
-      yearDistribution: []
-    };
-  }
-  
-  const yearCount: Record<number, number> = {};
-  
-  results.forEach(result => {
-    // Try to extract year from title if not already available
-    let year: number | null = null;
-    
-    if (result.year && typeof result.year === 'number') {
-      year = result.year;
-    } else {
-      const yearMatch = result.title.match(/\b(19|20)\d{2}\b/);
-      if (yearMatch) {
-        year = parseInt(yearMatch[0]);
-      }
-    }
-    
-    if (year && !isNaN(year)) {
-      if (yearCount[year]) {
-        yearCount[year]++;
-      } else {
-        yearCount[year] = 1;
-      }
-    }
-  });
-  
-  const sortedYears = Object.entries(yearCount)
-    .sort((a, b) => parseInt(b[0]) - parseInt(a[0]))
-    .map(([year, count]) => ({ year: parseInt(year), count }));
-  
-  if (sortedYears.length === 0) {
-    return {
-      analysis: "Could not extract year information from the auction results.",
-      yearDistribution: []
-    };
-  }
-  
-  const years = sortedYears.map(y => y.year);
-  const minYear = Math.min(...years);
-  const maxYear = Math.max(...years);
-  
-  return {
-    yearDistribution: sortedYears,
-    yearRange: { min: minYear, max: maxYear },
-    analysis: `The most common year is ${sortedYears[0].year} with ${sortedYears[0].count} auction results. The results span from ${minYear} to ${maxYear}.`
-  };
-}
-
-function analyzeAuctionPriceRange(results: any[]) {
-  const soldResults = results.filter(result => result.status === 'sold');
-  
-  if (soldResults.length === 0) {
-    return {
-      analysis: "No sold items found for price range analysis."
-    };
-  }
-  
-  // Extract numeric prices, handling different formats
-  const prices = soldResults.map(result => {
-    if (typeof result.price === 'number') {
-      return result.price;
-    }
-    
-    if (result.sold_price) {
-      const numericPrice = result.sold_price.toString().replace(/[^0-9.]/g, '');
-      return numericPrice ? parseFloat(numericPrice) : 0;
-    }
-    
-    return 0;
-  }).filter(price => price > 0);
-  
-  if (prices.length === 0) {
-    return {
-      analysis: "Could not extract valid price information from the sold items."
-    };
-  }
-  
-  const lowestPrice = Math.min(...prices);
-  const highestPrice = Math.max(...prices);
-  const averagePrice = prices.reduce((sum, price) => sum + price, 0) / prices.length;
-  
-  // Create price brackets
-  const range = highestPrice - lowestPrice;
-  const bracketSize = range / 5;
-  const brackets = Array.from({ length: 5 }, (_, i) => {
-    const min = lowestPrice + (i * bracketSize);
-    const max = lowestPrice + ((i + 1) * bracketSize);
-    return {
-      range: `$${Math.round(min).toLocaleString()} - $${Math.round(max).toLocaleString()}`,
-      count: prices.filter(price => price >= min && price < max).length
-    };
-  });
-  
-  return {
-    priceRange: {
-      lowest: `$${lowestPrice.toLocaleString()}`,
-      highest: `$${highestPrice.toLocaleString()}`,
-      average: `$${Math.round(averagePrice).toLocaleString()}`
-    },
-    priceBrackets: brackets,
-    analysis: `The sold prices range from $${lowestPrice.toLocaleString()} to $${highestPrice.toLocaleString()}, with an average price of $${Math.round(averagePrice).toLocaleString()}.`
-  };
-}
-
 function analyzeAuctionSummary(results: any[]) {
   const total = results.length;
   const sold = results.filter(result => result.status === 'sold').length;
@@ -1352,12 +535,6 @@ function analyzeAuctionSummary(results: any[]) {
     };
   }
   
-  // Analyze make distribution
-  const makeAnalysis = analyzeAuctionMakeDistribution(results);
-  
-  // Analyze year distribution
-  const yearAnalysis = analyzeAuctionYearDistribution(results);
-  
   // Find best deal if there are sold items
   type BestDealType = {
     bestDeals: {
@@ -1386,20 +563,10 @@ function analyzeAuctionSummary(results: any[]) {
       soldPercentage: Math.round(soldPercentage)
     },
     priceStats,
-    topMakes: makeAnalysis.makeDistribution.slice(0, 3),
-    yearRange: yearAnalysis.yearRange || { min: 'Unknown', max: 'Unknown' },
     bestDeal: bestDealAnalysis.bestDeals[0] || null,
     analysis: `There are ${total} auction results in total, with ${sold} resulting in a sale (${Math.round(soldPercentage)}%). ${
       soldPrices.length > 0 
         ? `The sold prices range from ${priceStats.lowest} to ${priceStats.highest}, with an average of ${priceStats.average}. `
-        : ''
-    }${
-      makeAnalysis.makeDistribution.length > 0
-        ? `The most common make is ${makeAnalysis.makeDistribution[0].make} with ${makeAnalysis.makeDistribution[0].count} results. `
-        : ''
-    }${
-      yearAnalysis.yearRange
-        ? `The results span from ${yearAnalysis.yearRange.min} to ${yearAnalysis.yearRange.max}. `
         : ''
     }${
       bestDealAnalysis.bestDeals.length > 0
@@ -1408,166 +575,3 @@ function analyzeAuctionSummary(results: any[]) {
     }`
   };
 }
-
-// Add this function to handle database queries
-function analyzeDatabaseQuery(results: any[], query: string) {
-  if (!results || results.length === 0) {
-    return {
-      analysis: "No auction results available for database query analysis."
-    };
-  }
-
-  // Process the query to determine what information is being requested
-  const queryLower = query.toLowerCase();
-  
-  // Average price query
-  if (queryLower.includes('average price') || queryLower.includes('avg price')) {
-    const soldResults = results.filter(result => result.status === 'sold');
-    if (soldResults.length === 0) {
-      return { analysis: "No sold items found to calculate average price." };
-    }
-    
-    const prices = soldResults.map(result => {
-      if (typeof result.price === 'number') {
-        return result.price;
-      }
-      if (result.sold_price) {
-        return parseInt(result.sold_price.toString().replace(/[^0-9]/g, ''));
-      }
-      return 0;
-    }).filter(price => price > 0);
-    
-    const averagePrice = prices.reduce((sum, price) => sum + price, 0) / prices.length;
-    return {
-      analysis: `The average price is $${Math.round(averagePrice).toLocaleString()} based on ${prices.length} sold items.`,
-      averagePrice: Math.round(averagePrice)
-    };
-  }
-  
-  // Highest/lowest price query
-  if (queryLower.includes('highest price') || queryLower.includes('most expensive')) {
-    const soldResults = results.filter(result => result.status === 'sold');
-    if (soldResults.length === 0) {
-      return { analysis: "No sold items found to determine highest price." };
-    }
-    
-    const pricesWithItems = soldResults.map(result => {
-      let price = 0;
-      if (typeof result.price === 'number') {
-        price = result.price;
-      } else if (result.sold_price) {
-        price = parseInt(result.sold_price.toString().replace(/[^0-9]/g, ''));
-      }
-      return { price, item: result };
-    }).filter(item => item.price > 0);
-    
-    if (pricesWithItems.length === 0) {
-      return { analysis: "Could not extract valid price information." };
-    }
-    
-    const highestPriceItem = pricesWithItems.sort((a, b) => b.price - a.price)[0];
-    return {
-      analysis: `The highest price is $${highestPriceItem.price.toLocaleString()} for ${highestPriceItem.item.title}. URL: ${highestPriceItem.item.url}`,
-      highestPrice: {
-        price: highestPriceItem.price,
-        title: highestPriceItem.item.title,
-        url: highestPriceItem.item.url,
-        year: highestPriceItem.item.year,
-        make: highestPriceItem.item.make,
-        model: highestPriceItem.item.model
-      }
-    };
-  }
-  
-  if (queryLower.includes('lowest price') || queryLower.includes('least expensive')) {
-    const soldResults = results.filter(result => result.status === 'sold');
-    if (soldResults.length === 0) {
-      return { analysis: "No sold items found to determine lowest price." };
-    }
-    
-    const pricesWithItems = soldResults.map(result => {
-      let price = 0;
-      if (typeof result.price === 'number') {
-        price = result.price;
-      } else if (result.sold_price) {
-        price = parseInt(result.sold_price.toString().replace(/[^0-9]/g, ''));
-      }
-      return { price, item: result };
-    }).filter(item => item.price > 0);
-    
-    if (pricesWithItems.length === 0) {
-      return { analysis: "Could not extract valid price information." };
-    }
-    
-    const lowestPriceItem = pricesWithItems.sort((a, b) => a.price - b.price)[0];
-    return {
-      analysis: `The lowest price is $${lowestPriceItem.price.toLocaleString()} for ${lowestPriceItem.item.title}. URL: ${lowestPriceItem.item.url}`,
-      lowestPrice: {
-        price: lowestPriceItem.price,
-        title: lowestPriceItem.item.title,
-        url: lowestPriceItem.item.url,
-        year: lowestPriceItem.item.year,
-        make: lowestPriceItem.item.make,
-        model: lowestPriceItem.item.model
-      }
-    };
-  }
-  
-  // Mileage query
-  if (queryLower.includes('mileage') || queryLower.includes('miles')) {
-    const itemsWithMileage = results.filter(result => result.mileage && result.mileage > 0);
-    if (itemsWithMileage.length === 0) {
-      return { analysis: "No items found with mileage information." };
-    }
-    
-    const averageMileage = itemsWithMileage.reduce((sum, item) => sum + item.mileage, 0) / itemsWithMileage.length;
-    const lowestMileageItem = [...itemsWithMileage].sort((a, b) => a.mileage - b.mileage)[0];
-    const highestMileageItem = [...itemsWithMileage].sort((a, b) => b.mileage - a.mileage)[0];
-    
-    return {
-      analysis: `The average mileage is ${Math.round(averageMileage).toLocaleString()} miles. The lowest mileage is ${lowestMileageItem.mileage.toLocaleString()} miles (${lowestMileageItem.title}) and the highest is ${highestMileageItem.mileage.toLocaleString()} miles (${highestMileageItem.title}).`,
-      mileageStats: {
-        average: Math.round(averageMileage),
-        lowest: {
-          mileage: lowestMileageItem.mileage,
-          title: lowestMileageItem.title,
-          url: lowestMileageItem.url
-        },
-        highest: {
-          mileage: highestMileageItem.mileage,
-          title: highestMileageItem.title,
-          url: highestMileageItem.url
-        }
-      }
-    };
-  }
-  
-  // Transmission query
-  if (queryLower.includes('transmission')) {
-    const itemsWithTransmission = results.filter(result => result.transmission);
-    if (itemsWithTransmission.length === 0) {
-      return { analysis: "No items found with transmission information." };
-    }
-    
-    const transmissionCount: Record<string, number> = {};
-    itemsWithTransmission.forEach(item => {
-      const transmission = item.transmission.toLowerCase();
-      transmissionCount[transmission] = (transmissionCount[transmission] || 0) + 1;
-    });
-    
-    const sortedTransmissions = Object.entries(transmissionCount)
-      .sort((a, b) => b[1] - a[1])
-      .map(([type, count]) => ({ type, count }));
-    
-    return {
-      analysis: `The most common transmission type is ${sortedTransmissions[0].type} with ${sortedTransmissions[0].count} vehicles.`,
-      transmissionDistribution: sortedTransmissions
-    };
-  }
-  
-  // Default response for other queries
-  return {
-    analysis: `Analyzed ${results.length} auction results. Please specify what information you're looking for about these results.`,
-    resultCount: results.length
-  };
-} 

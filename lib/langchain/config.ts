@@ -45,10 +45,7 @@ export const createAgentPrompt = () => {
       "• Do not include image_url in your response" +
       
       "Analysis types:" +
-      "• Price analysis: price_comparison, price_range" +
       "• Value analysis: best_value, best_deal" +
-      "• Statistical analysis: sold_percentage, make_distribution, model_distribution, year_distribution" +
-      "• Comparison analysis: mileage_comparison, mileage_range" +
       "• General analysis: summary" +
       
       "For data not in your context, use fetch_auction_results with appropriate parameters." +

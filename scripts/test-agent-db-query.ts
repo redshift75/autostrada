@@ -19,7 +19,11 @@ async function testDatabaseQuery() {
   
   // Test queries
   const queries = [
+    "What makes have the lowest sold percentage?",
+    "What Porsche models are least likely to be sold?",
+    "What Bentley models have the lowest mileage?",
     "Compare the average price of manual and automatic Porsche GT3s",
+    "What models have the highest average mileage?",
     "How many Mercedes-Benz were sold in the last year?",
     "What are the most popular cars in the last 30 days?",
     "What are the highest priced 90s models from Ferrari?",
