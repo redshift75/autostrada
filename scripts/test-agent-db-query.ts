@@ -12,14 +12,15 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 async function testDatabaseQuery() {
-  console.log('Testing database query functionality...');
   
   // Initialize the agent
   const agent = await initializeAgent();
   
   // Test queries
   const queries = [
-    "What makes have the lowest sold percentage?",
+    "What makes have the highest sold percentage?",
+    "Compare the average selling prices of manual and automatic Ferraris",
+    "Which model year Porsche have the lowest sold percentage?",
     "What Porsche models are least likely to be sold?",
     "What Bentley models have the lowest mileage?",
     "Compare the average price of manual and automatic Porsche GT3s",

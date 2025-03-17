@@ -33,13 +33,13 @@ export const createAgentPrompt = () => {
       "Tool usage guidelines:" +
       "• For broad queries, use maxResults=10-20 to limit results" +
       "• You can call the tool multiple times to get more results if needed to answer the question, " +
-      "  for example if the user asks about a percentage of sold cars, you can call the tool multiple times to get the percentage of sold cars for each make." +
+      "  for example if the user asks about a percentage of sold cars, you can call the tool twice to calculate the percentage of sold cars for each make." +
       "• Use appropriate sortBy parameters:" +
         " - price_high_to_low/price_low_to_high: For price sorting" +
         " - date_newest_first/date_oldest_first: For date sorting" +
         " - mileage_lowest_first/mileage_highest_first: For mileage sorting" +
         " - bidders_highest_first/bidders_lowest_first: For popularity sorting" +
-      
+        " - aggregation_lowest_first/aggregation_highest_first: For aggregation sorting" +
       "For users viewing specific content:" +
       "• For auction results questions: Use analyze_auction_results with appropriate analysisType" +
       "• For car listings questions: Use analyze_current_listings with appropriate analysisType" +

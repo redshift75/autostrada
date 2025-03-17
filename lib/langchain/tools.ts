@@ -16,14 +16,16 @@ export const getAuctionResultsTool = () => {
       maxPages: z.number().optional().describe("Maximum number of pages to fetch (default: 2)"),
       maxResults: z.number().optional().describe("Maximum number of results to return (default: 10)"),
       sortBy: z.enum(["price_high_to_low", "price_low_to_high", "date_newest_first", "date_oldest_first",
-        "mileage_lowest_first", "mileage_highest_first", "bidders_highest_first", "bidders_lowest_first"]).optional().describe("How to sort the results before limiting them (default: date_newest_first)"),
+        "mileage_lowest_first", "mileage_highest_first", "bidders_highest_first", "bidders_lowest_first", 
+        "aggregation_lowest_first", "aggregation_highest_first"]).optional().describe("How to sort the results before limiting them. When grouping results, always use aggregation_lowest_first or aggregation_highest_first (default: date_newest_first)"),
       status: z.enum(["sold", "unsold", "all"]).optional().describe("The sales result of the vehicle (default: all)"),
       // New aggregation parameters
       groupBy: z.string().optional().describe("Field to group results by. If provided, enables aggregation mode."),
       aggregations: z.array(z.object({
         function: z.enum(["count", "avg", "sum"]).describe("The function to perform on the group"),
-        field: z.string().describe("The field to perform the function on.")
-      })).optional().describe("List of aggregations to perform on each group. Required if groupBy is provided. Only use fields that are in the schema, like 'status',etc")
+        field: z.string().describe("The field to perform the function on."),
+        alias: z.string().optional().describe("Optional alias for the aggregation result")
+      })).optional().describe("List of aggregations to perform on each group. Required if groupBy is provided.")
     }),
     func: async ({ 
       make, 
@@ -84,6 +86,17 @@ export const getAuctionResultsTool = () => {
               apiSortBy = "sold_date";
               apiSortOrder = "desc";
           }
+        } else {
+          switch (sortBy) {
+            case "aggregation_lowest_first":
+              apiSortBy = "aggregation";
+              apiSortOrder = "asc";
+              break;
+            case "aggregation_highest_first":
+              apiSortBy = "aggregation";
+              apiSortOrder = "desc";
+              break;
+          }
         }
         
         // Ensure we have a valid base URL
@@ -104,7 +117,9 @@ export const getAuctionResultsTool = () => {
           sold_date_max,
           status: statusParam,
           groupBy,
-          aggregations
+          aggregations,
+          sortBy: apiSortBy,
+          sortOrder: apiSortOrder
         } : {
           // Regular mode
           make,
