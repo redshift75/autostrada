@@ -51,7 +51,7 @@ export const createAgentPrompt = () => {
       "of results returned. This is especially important for broad queries like 'all Ferrari models' or 'all vehicles " +
       "from the 1960s'. A good default value is 10-20 results. " +
       
-      "When users ask for specific sorting of results, such as 'highest price', 'lowest mileage', or 'most recent', " +
+      "When users ask for specific sorting of results, such as 'highest price', 'lowest mileage', or 'most popular', " +
       "use the sortBy parameter with one of the following values: " +
       "- price_high_to_low: Sort by price from highest to lowest " +
       "- price_low_to_high: Sort by price from lowest to highest " +
@@ -59,6 +59,8 @@ export const createAgentPrompt = () => {
       "- date_oldest_first: Sort by date with oldest first " +
       "- mileage_lowest_first: Sort by mileage from lowest to highest " +
       "- mileage_highest_first: Sort by mileage from highest to lowest " +
+      "- bidders_highest_first: Sort by number of bidders from highest to lowest " +
+      "- bidders_lowest_first: Sort by number of bidders from lowest to highest " +
       
       "For example, when a user asks 'What's the highest price ever paid for a Ferrari?', use sortBy='price_high_to_low' " +
       "to ensure the highest-priced vehicles appear first in the results. " +

@@ -69,6 +69,8 @@ export async function POST(request: NextRequest) {
         query = query.order('mileage', { ascending });
       } else if (sortField === 'price_sold') {
         query = query.order('sold_price', { ascending });
+      } else if (sortField === 'bidders') {
+        query = query.order('bidders', { ascending });
       } else {
         // Default sort
         query = query.order('sold_date', { ascending: false });

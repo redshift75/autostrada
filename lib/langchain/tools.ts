@@ -13,7 +13,8 @@ export const getAuctionResultsTool = () => {
       yearMax: z.number().optional().describe("The maximum year to filter results"),
       maxPages: z.number().optional().describe("Maximum number of pages to fetch (default: 2)"),
       maxResults: z.number().optional().describe("Maximum number of results to return (default: 10)"),
-      sortBy: z.enum(["price_high_to_low", "price_low_to_high", "date_newest_first", "date_oldest_first", "mileage_lowest_first", "mileage_highest_first"]).optional().describe("How to sort the results before limiting them (default: date_newest_first)"),
+      sortBy: z.enum(["price_high_to_low", "price_low_to_high", "date_newest_first", "date_oldest_first",
+        "mileage_lowest_first", "mileage_highest_first", "bidders_highest_first", "bidders_lowest_first"]).optional().describe("How to sort the results before limiting them (default: date_newest_first)"),
       status: z.enum(["sold", "unsold", "all"]).optional().describe("Filter results by sold status (default: all)"),
     }),
     func: async ({ make, model, yearMin, yearMax, maxPages, maxResults = 10, sortBy = "date_newest_first", status = "all" }) => {
@@ -49,6 +50,13 @@ export const getAuctionResultsTool = () => {
             apiSortBy = "mileage";
             apiSortOrder = "desc";
             break;
+          case "bidders_highest_first":
+            apiSortBy = "bidders";
+            apiSortOrder = "desc";
+            break;
+          case "bidders_lowest_first":
+            apiSortBy = "bidders";
+            apiSortOrder = "asc";
           default:
             apiSortBy = "sold_date";
             apiSortOrder = "desc";
