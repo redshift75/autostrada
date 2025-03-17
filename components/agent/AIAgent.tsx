@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import * as React from 'react';
-import { formatMessageWithLinks } from '../shared/FormatMessageWithLinks';
+import ReactMarkdown from 'react-markdown';
 
 export type Message = {
   role: 'user' | 'assistant';
@@ -181,7 +181,19 @@ export default function AIAgent({
                     {message.role === 'user' ? (
                       message.content
                     ) : (
-                      formatMessageWithLinks(message.content)
+                      <ReactMarkdown
+                        components={{
+                          pre: ({ children, className, ...props }) => (
+                            <div className="overflow-auto my-2 bg-gray-800 dark:bg-gray-900 rounded-lg p-2">
+                              <pre className={className} {...props}>
+                                {children}
+                              </pre>
+                            </div>
+                          )
+                        }}
+                      >
+                        {message.content}
+                      </ReactMarkdown>
                     )}
                   </div>
                 </div>

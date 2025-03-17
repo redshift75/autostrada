@@ -11,5 +11,8 @@ module.exports = {
         'fade-in': 'fade-in 0.6s ease-out'
       }
     }
-  }
+  },
+  plugins: [
+    require('@tailwindcss/typography'),
+  ],
 } 

@@ -448,7 +448,7 @@ export async function POST(request: NextRequest) {
         transmission: transmission || 'Any'
       }
     };
-    console.log(response);
+
     return NextResponse.json(response);
   } catch (error) {
     console.error('Error fetching auction results:', error);
