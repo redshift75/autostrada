@@ -3,6 +3,12 @@ import { supabase } from '../../../../lib/supabase/client';
 import { BringATrailerResultsScraper } from '../../../../lib/scrapers/BringATrailerResultsScraper';
 import { decodeHtmlEntities } from '@/components/shared/utils';
 
+// Types for aggregation
+interface AggregationConfig {
+  function: 'count' | 'avg' | 'sum';
+  field: string;
+}
+
 // Helper functions for calculating statistics from results
 function calculateAverageSoldPrice(results: any[]): string {
   const soldResults = results.filter(r => r.status === 'sold' && r.sold_price);
@@ -47,8 +53,113 @@ export async function POST(request: NextRequest) {
   try {
     // Parse the request body
     const body = await request.json();
-    const { make, model, yearMin, yearMax, maxPages, sortBy, sortOrder, status, transmission, forceScrape = false } = body;
- 
+    const { 
+      make, 
+      model, 
+      yearMin, 
+      yearMax, 
+      sold_date_min,
+      sold_date_max,
+      maxPages, 
+      sortBy, 
+      sortOrder, 
+      status, 
+      transmission, 
+      forceScrape = false,
+      // New aggregation parameters
+      groupBy,
+      aggregations
+    }: {
+      make?: string;
+      model?: string;
+      yearMin?: number;
+      yearMax?: number;
+      sold_date_min?: string;
+      sold_date_max?: string;
+      maxPages?: number;
+      sortBy?: string;
+      sortOrder?: 'asc' | 'desc';
+      status?: string;
+      transmission?: string;
+      forceScrape?: boolean;
+      groupBy?: string;
+      aggregations?: AggregationConfig[];
+    } = body;
+
+    // Early return for group by queries
+    if (groupBy && aggregations) {
+      const selectQuery = `${groupBy}, ${aggregations.map(agg => 
+        `${agg.field}.${agg.function}()`
+      ).join(', ')}`;
+
+      let query = supabase
+        .from('bat_completed_auctions')
+        .select(selectQuery);
+
+      // Add base filters
+      if (make) {
+        query = query.ilike('make', `%${make}%`);
+      }
+
+      if (model && model !== 'Any') {
+        query = query.ilike('title', `%${model}%`);
+      }
+
+      if (yearMin) {
+        query = query.gte('year', yearMin);
+      }
+
+      if (yearMax) {
+        query = query.lte('year', yearMax);
+      }
+
+      if (transmission && transmission !== 'Any') {
+        query = query.ilike('transmission', `%${transmission}%`);
+      }
+      
+      if (sold_date_min) {
+        query = query.gte('sold_date', sold_date_min);
+      }
+
+      if (sold_date_max) {
+        query = query.lte('sold_date', sold_date_max);
+      }
+
+      if (status) {
+        if (status === 'sold') {
+          query = query.eq('status', 'sold');
+        } else if (status === 'unsold') {
+          query = query.neq('status', 'sold');
+        }
+      }
+
+      // Execute the query with group by in the select statement
+      const { data: aggregatedResults, error: aggregationError } = await query;
+
+      if (aggregationError) {
+        console.error('Error performing aggregation:', aggregationError);
+        return NextResponse.json(
+          { error: 'Failed to perform aggregation' },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json({
+        message: 'Aggregation completed successfully',
+        groupBy,
+        aggregations,
+        results: aggregatedResults,
+        filters: {
+          make,
+          model: model || 'Any',
+          yearMin: yearMin || 'Any',
+          yearMax: yearMax || 'Any',
+          status: status || 'all',
+          transmission: transmission || 'Any'
+        }
+      });
+    }
+
     // Determine sort field and direction
     const sortField = sortBy || 'sold_date';
     const ascending = sortOrder === 'asc';

@@ -5,61 +5,85 @@ import { z } from "zod";
 export const getAuctionResultsTool = () => {
   return new DynamicStructuredTool({
     name: "fetch_auction_results",
-    description: "Fetch recent auction results from Bring a Trailer for a specific make and model. This tool queries the database for auction data including listing_id, url, title, image_url, sold_price, sold_date, bid_amount, bid_date, status, year, make, model, mileage, bidders, watchers, comments, and transmission. Use this tool to answer specific questions about auction results, price trends, vehicle specifications, and market statistics.",
+    description: "Fetch and analyze auction results from Bring a Trailer. Can perform both detailed listing queries and aggregated statistics. For regular queries, returns detailed auction data. For aggregation queries, returns grouped statistics like counts, averages, and sums. Use aggregation mode to answer questions about trends and statistics.",
     schema: z.object({
       make: z.string().describe("The manufacturer of the vehicle"),
       model: z.string().optional().describe("The model of the vehicle"),
       yearMin: z.number().optional().describe("The minimum year to filter results"),
       yearMax: z.number().optional().describe("The maximum year to filter results"),
+      sold_date_min: z.string().optional().describe("The minimum sold date to filter results"),
+      sold_date_max: z.string().optional().describe("The maximum sold date to filter results"),
       maxPages: z.number().optional().describe("Maximum number of pages to fetch (default: 2)"),
       maxResults: z.number().optional().describe("Maximum number of results to return (default: 10)"),
       sortBy: z.enum(["price_high_to_low", "price_low_to_high", "date_newest_first", "date_oldest_first",
         "mileage_lowest_first", "mileage_highest_first", "bidders_highest_first", "bidders_lowest_first"]).optional().describe("How to sort the results before limiting them (default: date_newest_first)"),
       status: z.enum(["sold", "unsold", "all"]).optional().describe("Filter results by sold status (default: all)"),
+      // New aggregation parameters
+      groupBy: z.string().optional().describe("Field to group results by (e.g., 'make', 'model', 'transmission', 'year'). If provided, enables aggregation mode."),
+      aggregations: z.array(z.object({
+        function: z.enum(["count", "avg", "sum"]),
+        field: z.string()
+      })).optional().describe("List of aggregations to perform on each group. Required if groupBy is provided.")
     }),
-    func: async ({ make, model, yearMin, yearMax, maxPages, maxResults = 10, sortBy = "date_newest_first", status = "all" }) => {
+    func: async ({ 
+      make, 
+      model, 
+      yearMin, 
+      yearMax, 
+      sold_date_min,
+      sold_date_max,
+      maxPages, 
+      maxResults = 10, 
+      sortBy = "date_newest_first", 
+      status = "all",
+      groupBy,
+      aggregations 
+    }) => {
       try {
         console.log(`Fetching auction results for ${make} ${model || 'Any'} (${yearMin || 'any'}-${yearMax || 'any'}), status: ${status}`);
         
         // Map the tool's sort options to the API's sort parameters
-        let apiSortBy: string;
-        let apiSortOrder: string;
+        let apiSortBy: string = "sold_date";
+        let apiSortOrder: string = "desc";
         
-        switch (sortBy) {
-          case "price_high_to_low":
-            apiSortBy = "price_sold";
-            apiSortOrder = "desc";
-            break;
-          case "price_low_to_high":
-            apiSortBy = "price_sold";
-            apiSortOrder = "asc";
-            break;
-          case "date_newest_first":
-            apiSortBy = "sold_date";
-            apiSortOrder = "desc";
-            break;
-          case "date_oldest_first":
-            apiSortBy = "sold_date";
-            apiSortOrder = "asc";
-            break;
-          case "mileage_lowest_first":
-            apiSortBy = "mileage";
-            apiSortOrder = "asc";
-            break;
-          case "mileage_highest_first":
-            apiSortBy = "mileage";
-            apiSortOrder = "desc";
-            break;
-          case "bidders_highest_first":
-            apiSortBy = "bidders";
-            apiSortOrder = "desc";
-            break;
-          case "bidders_lowest_first":
-            apiSortBy = "bidders";
-            apiSortOrder = "asc";
-          default:
-            apiSortBy = "sold_date";
-            apiSortOrder = "desc";
+        // Only process sort parameters if not in aggregation mode
+        if (!groupBy) {
+          switch (sortBy) {
+            case "price_high_to_low":
+              apiSortBy = "price_sold";
+              apiSortOrder = "desc";
+              break;
+            case "price_low_to_high":
+              apiSortBy = "price_sold";
+              apiSortOrder = "asc";
+              break;
+            case "date_newest_first":
+              apiSortBy = "sold_date";
+              apiSortOrder = "desc";
+              break;
+            case "date_oldest_first":
+              apiSortBy = "sold_date";
+              apiSortOrder = "asc";
+              break;
+            case "mileage_lowest_first":
+              apiSortBy = "mileage";
+              apiSortOrder = "asc";
+              break;
+            case "mileage_highest_first":
+              apiSortBy = "mileage";
+              apiSortOrder = "desc";
+              break;
+            case "bidders_highest_first":
+              apiSortBy = "bidders";
+              apiSortOrder = "desc";
+              break;
+            case "bidders_lowest_first":
+              apiSortBy = "bidders";
+              apiSortOrder = "asc";
+            default:
+              apiSortBy = "sold_date";
+              apiSortOrder = "desc";
+          }
         }
         
         // Ensure we have a valid base URL
@@ -69,16 +93,31 @@ export const getAuctionResultsTool = () => {
         // Only pass status if it's not 'all'
         const statusParam = status !== 'all' ? status : undefined;
 
-        const body = JSON.stringify({
-            make,
-            model,
-            yearMin,
-            yearMax,
-            maxPages: maxPages || 2,
-            sortBy: apiSortBy,
-            sortOrder: apiSortOrder,
-            status: statusParam
-          });
+        // Prepare request body based on whether we're doing aggregation or not
+        const body = JSON.stringify(groupBy && aggregations ? {
+          // Aggregation mode
+          make,
+          model,
+          yearMin,
+          yearMax,
+          sold_date_min,
+          sold_date_max,
+          status: statusParam,
+          groupBy,
+          aggregations
+        } : {
+          // Regular mode
+          make,
+          model,
+          yearMin,
+          yearMax,
+          sold_date_min,
+          sold_date_max,
+          maxPages: maxPages || 2,
+          sortBy: apiSortBy,
+          sortOrder: apiSortOrder,
+          status: statusParam
+        });
         
         console.log(`Body: ${body}`);
 
@@ -96,7 +135,23 @@ export const getAuctionResultsTool = () => {
         
         const data = await response.json();
         
-        // Filter out results where sold_price is 'Not sold' if needed
+        // Handle aggregation results differently
+        if (groupBy && aggregations) {
+          return JSON.stringify({
+            query: {
+              make,
+              model: model || 'Any',
+              yearRange: `${yearMin || 'Any'}-${yearMax || 'Any'}`,
+              soldDateRange: `${sold_date_min || 'Any'}-${sold_date_max || 'Any'}`,
+              groupBy,
+              aggregations
+            },
+            results: data.results,
+            filters: data.filters
+          });
+        }
+        
+        // Regular results processing
         if (data.results && data.results.length > 0) {
           // Only filter out non-sold items for price-based sorts
           if (sortBy === "price_high_to_low" || sortBy === "price_low_to_high") {
@@ -122,6 +177,7 @@ export const getAuctionResultsTool = () => {
             make,
             model: model || 'Any',
             yearRange: `${yearMin || 'Any'}-${yearMax || 'Any'}`,
+            soldDateRange: `${sold_date_min || 'Any'}-${sold_date_max || 'Any'}`,
             sortBy,
             status
           },

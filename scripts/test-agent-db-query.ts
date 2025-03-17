@@ -19,11 +19,12 @@ async function testDatabaseQuery() {
   
   // Test queries
   const queries = [
+    "How many Mercedes-Benz were sold in the last year?",
+    "How many 2020-2023 McLarens were sold in the last year?",
     "What's the average price of Porsche 911s from 2015 to 2020?",
-    "What's the highest price ever paid for a Ferrari? Please limit the results to 50 to avoid context length issues.",
-    "Show me the lowest mileage BMW M3s with a maximum of 30 results.",
-    "What are the most common transmission types for Corvettes? Limit to 40 results.",
-    "How many Mercedes-Benz vehicles were sold in the last year?"
+    "What's the highest price ever paid for a Ferrari? Please limit the results to 10 to avoid context length issues.",
+    "Show me the lowest mileage BMW M3s with a maximum of 3 results.",
+    "What are the most common transmission types for Corvettes?"
   ];
   
   // Run each query

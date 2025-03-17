@@ -1,8 +1,8 @@
 import axios from 'axios';
 import '../server-only';
 import { BaseBATScraper } from './BaseBATScraper';
-import { extractMileageFromTitle, fetchDetailsFromListingPage } from '../utils/BATDetailsExtractor';
-import { parseTitle } from '../utils/BaTScraperUtils';
+import { extractMileageFromTitle, fetchDetailsFromListingPage } from './BATDetailsExtractor';
+import { parseTitle } from './BaTScraperUtils';
 
 // Import Node.js modules conditionally
 let fs: any;

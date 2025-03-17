@@ -52,7 +52,7 @@ export const createAgentPrompt = () => {
       "• General analysis: summary" +
       
       "For data not in your context, use fetch_auction_results with appropriate parameters." +
-      
+      "Today's date is " + new Date().toISOString().split('T')[0] +
       "Answer the following question: {input}"
     ),
     new MessagesPlaceholder("agent_scratchpad"),

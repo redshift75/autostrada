@@ -12,14 +12,9 @@
     "test-scrapers": "npx tsx -r dotenv/config ./scripts/test-scrapers.ts",
     "test-scrapers:active": "npx tsx -r dotenv/config ./scripts/test-scrapers.ts --mode=active",
     "test-scrapers:completed": "npx tsx -r dotenv/config ./scripts/test-scrapers.ts --mode=completed",
-    "test-auction-tools": "npx tsx -r dotenv/config ./scripts/test-auction-tools.ts",
-    "test-auction-tools:agent": "npx tsx -r dotenv/config ./scripts/test-auction-tools.ts --mode=agent",
     "upload-to-supabase": "npx tsx -r dotenv/config ./scripts/upload-to-supabase.ts",
     "upload-completed": "npx tsx -r dotenv/config ./scripts/upload-to-supabase.ts --completed",
-    "upload-active": "npx tsx -r dotenv/config ./scripts/upload-to-supabase.ts --active",
-    "test-supabase": "npx tsx -r dotenv/config ./scripts/test-supabase-connection.ts",
-    "test-db-query": "npx tsx -r dotenv/config ./scripts/test-database-query.ts",
-    "test-db-direct": "npx tsx -r dotenv/config ./scripts/test-db-direct.ts"
+    "upload-active": "npx tsx -r dotenv/config ./scripts/upload-to-supabase.ts --active"
   },
   "dependencies": {
     "@langchain/community": "^0.3.32",
