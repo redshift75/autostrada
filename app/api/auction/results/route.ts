@@ -178,7 +178,7 @@ export async function POST(request: NextRequest) {
         query = query.order('sold_date', { ascending });
       } else if (sortField === 'mileage') {
         query = query.order('mileage', { ascending });
-      } else if (sortField === 'price_sold') {
+      } else if (sortField === 'sold_price') {
         query = query.order('sold_price', { ascending });
       } else if (sortField === 'bidders') {
         query = query.order('bidders', { ascending });
@@ -387,7 +387,7 @@ export async function POST(request: NextRequest) {
           const mileageA = a.mileage || 0;
           const mileageB = b.mileage || 0;
           return ascending * (mileageA - mileageB);
-        } else if (sortBy === 'price_sold') {
+        } else if (sortBy === 'sold_price') {
           const priceA = a.status === 'sold' ? a.price || 0 : 0;
           const priceB = b.status === 'sold' ? b.price || 0 : 0;
           return ascending * (priceA - priceB);

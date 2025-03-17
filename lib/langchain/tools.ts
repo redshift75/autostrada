@@ -7,7 +7,7 @@ export const getAuctionResultsTool = () => {
     name: "fetch_auction_results",
     description: "Fetch and analyze auction results from Bring a Trailer. Can perform both detailed listing queries and aggregated statistics. For regular queries, returns detailed auction data. For aggregation queries, returns grouped statistics like counts, averages, and sums. Use aggregation mode to answer questions about trends and statistics.",
     schema: z.object({
-      make: z.string().describe("The manufacturer of the vehicle"),
+      make: z.string().optional().describe("The manufacturer of the vehicle"),
       model: z.string().optional().describe("The model of the vehicle"),
       yearMin: z.number().optional().describe("The minimum year to filter results"),
       yearMax: z.number().optional().describe("The maximum year to filter results"),
@@ -50,11 +50,11 @@ export const getAuctionResultsTool = () => {
         if (!groupBy) {
           switch (sortBy) {
             case "price_high_to_low":
-              apiSortBy = "price_sold";
+              apiSortBy = "sold_price";
               apiSortOrder = "desc";
               break;
             case "price_low_to_high":
-              apiSortBy = "price_sold";
+              apiSortBy = "sold_price";
               apiSortOrder = "asc";
               break;
             case "date_newest_first":

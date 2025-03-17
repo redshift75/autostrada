@@ -20,6 +20,8 @@ async function testDatabaseQuery() {
   // Test queries
   const queries = [
     "How many Mercedes-Benz were sold in the last year?",
+    "What are the most popular cars in the last 30 days?",
+    "What are the highest priced models from Ferrari?",
     "How many 2020-2023 McLarens were sold in the last year?",
     "What's the average price of Porsche 911s from 2015 to 2020?",
     "What's the highest price ever paid for a Ferrari? Please limit the results to 10 to avoid context length issues.",
