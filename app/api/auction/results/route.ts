@@ -144,11 +144,37 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // Sort aggregated results if sortBy and sortOrder are provided
+      let sortedResults = [...aggregatedResults];
+      const sortFunction = aggregations[0].function;
+        
+      sortedResults.sort((a: any, b: any) => {
+        const ascending = sortOrder === 'asc' ? 1 : -1;
+        
+        // Get the aggregated values to compare
+        const valueA = a[`${sortFunction}`];
+        const valueB = b[`${sortFunction}`];
+
+        // Handle numeric values (most common for aggregations)
+        if (typeof valueA === 'number' && typeof valueB === 'number') {
+          return ascending * (valueA - valueB);
+        }
+        
+        // Handle string values
+        if (typeof valueA === 'string' && typeof valueB === 'string') {
+          return ascending * valueA.localeCompare(valueB);
+        }
+
+        return 0;
+      });
+
       return NextResponse.json({
         message: 'Aggregation completed successfully',
         groupBy,
         aggregations,
-        results: aggregatedResults,
+        sortBy,
+        sortOrder,
+        results: sortedResults,
         filters: {
           make,
           model: model || 'Any',
@@ -422,7 +448,7 @@ export async function POST(request: NextRequest) {
         transmission: transmission || 'Any'
       }
     };
-    
+    console.log(response);
     return NextResponse.json(response);
   } catch (error) {
     console.error('Error fetching auction results:', error);

@@ -18,10 +18,13 @@ async function testDatabaseQuery() {
   
   // Test queries
   const queries = [
+    "What's the highest price ever paid for a Ferrari?",
+    "What Porsche models are most likely to be sold?",
     "What makes have the highest sold percentage?",
+    "What makes have the lowest sold percentage?",
     "Compare the average selling prices of manual and automatic Ferraris",
-    "Which model year Porsche have the lowest sold percentage?",
-    "What Porsche models are least likely to be sold?",
+    "Which model year Porsche has the lowest sold percentage?",
+    "What Porsche models are most likely to be sold?",
     "What Bentley models have the lowest mileage?",
     "Compare the average price of manual and automatic Porsche GT3s",
     "What models have the highest average mileage?",
@@ -31,7 +34,6 @@ async function testDatabaseQuery() {
     "Whats the best deal on a 2018-2019 Porsche GT3 Touring?",
     "How many 2020-2023 McLarens were sold in the last year?",
     "What's the average price of manual Porsche 911s from 2015 to 2020?",
-    "What's the highest price ever paid for a Ferrari?",
     "Show me the lowest mileage BMW M3s with a maximum of 3 results.",
     "What are the most common transmission types for Corvettes?"
   ];

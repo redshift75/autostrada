@@ -5,7 +5,7 @@ import { z } from "zod";
 export const getAuctionResultsTool = () => {
   return new DynamicStructuredTool({
     name: "fetch_auction_results",
-    description: "Fetch and analyze auction results from Bring a Trailer. Can perform both detailed listing queries and aggregated statistics. For regular queries, returns detailed auction data. For aggregation queries, returns grouped statistics like counts, averages, and sums. Use aggregation mode to answer questions about trends and statistics.",
+    description: "Fetch and analyze auction results from Bring a Trailer. Can perform both detailed listing queries and aggregations by group. For regular queries, returns detailed auction data. For aggregation queries, returns grouped statistics like counts, averages, and sums. Use aggregation to answer questions about groups of vehicles.",
     schema: z.object({
       make: z.string().optional().describe("The manufacturer of the vehicle"),
       model: z.string().optional().describe("The model of the vehicle"),
@@ -17,15 +17,15 @@ export const getAuctionResultsTool = () => {
       maxResults: z.number().optional().describe("Maximum number of results to return (default: 10)"),
       sortBy: z.enum(["price_high_to_low", "price_low_to_high", "date_newest_first", "date_oldest_first",
         "mileage_lowest_first", "mileage_highest_first", "bidders_highest_first", "bidders_lowest_first", 
-        "aggregation_lowest_first", "aggregation_highest_first"]).optional().describe("How to sort the results before limiting them. When grouping results, always use aggregation_lowest_first or aggregation_highest_first (default: date_newest_first)"),
+        "aggregation_lowest_first", "aggregation_highest_first"]).optional().describe("How to sort the results before limiting them. When groupBy is specified, always use aggregation_lowest_first or aggregation_highest_first (default: date_newest_first)"),
       status: z.enum(["sold", "unsold", "all"]).optional().describe("The sales result of the vehicle (default: all)"),
       // New aggregation parameters
       groupBy: z.string().optional().describe("Field to group results by. If provided, enables aggregation mode."),
       aggregations: z.array(z.object({
-        function: z.enum(["count", "avg", "sum"]).describe("The function to perform on the group"),
-        field: z.string().describe("The field to perform the function on."),
+        function: z.enum(["count", "avg", "sum"]).describe("The aggregation function to perform on the field"),
+        field: z.string().describe("The field to perform the aggregation on."),
         alias: z.string().optional().describe("Optional alias for the aggregation result")
-      })).optional().describe("List of aggregations to perform on each group. Required if groupBy is provided.")
+      })).optional().describe("List of aggregations to perform on each groupBy field. Required if groupBy is provided.")
     }),
     func: async ({ 
       make, 
@@ -170,7 +170,7 @@ export const getAuctionResultsTool = () => {
         if (data.results && data.results.length > 0) {
           // Only filter out non-sold items for price-based sorts
           if (sortBy === "price_high_to_low" || sortBy === "price_low_to_high") {
-            data.results = data.results.filter((result: any) => result.sold_price !== 'Not sold');
+            data.results = data.results.filter((result: any) => result.sold_price !== '');
           }
         }
         
