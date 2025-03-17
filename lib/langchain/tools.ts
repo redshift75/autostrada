@@ -35,7 +35,7 @@ export const getAuctionResultsTool = () => {
       sold_date_min,
       sold_date_max,
       maxPages, 
-      maxResults = 10, 
+      maxResults = 25, 
       sortBy = "date_newest_first", 
       status = "all",
       groupBy,
