@@ -813,7 +813,7 @@ function ListingsContent() {
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
             <h2 className="text-xl font-semibold mb-4">Data Visualizations</h2>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              Click on a bar to filter by that range. Double-click to clear the selection.
+              Click to filter. Double-click to clear the selection.
             </p>
             
             {!priceHistogram && !mileageHistogram && (

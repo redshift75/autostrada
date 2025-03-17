@@ -778,7 +778,7 @@ function AuctionsContent() {
                             <h3 className="text-lg font-semibold">
                               Price Distribution
                               <span className="ml-2 text-sm font-normal text-gray-500">
-                                (Click on a bar to filter)
+                                (Click to filter)
                               </span>
                             </h3>
                             {activeFilter && (
@@ -786,7 +786,7 @@ function AuctionsContent() {
                                 onClick={clearFilters}
                                 className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md text-sm transition duration-200"
                               >
-                                Clear Filter
+                                Clear
                               </button>
                             )}
                           </div>
