@@ -19,11 +19,11 @@ export const getAuctionResultsTool = () => {
         "mileage_lowest_first", "mileage_highest_first", "bidders_highest_first", "bidders_lowest_first"]).optional().describe("How to sort the results before limiting them (default: date_newest_first)"),
       status: z.enum(["sold", "unsold", "all"]).optional().describe("The sales result of the vehicle (default: all)"),
       // New aggregation parameters
-      groupBy: z.string().optional().describe("Field to group results by (e.g., 'make', 'model', 'transmission', 'year'). If provided, enables aggregation mode."),
+      groupBy: z.string().optional().describe("Field to group results by. If provided, enables aggregation mode."),
       aggregations: z.array(z.object({
-        function: z.enum(["count", "avg", "sum"]),
-        field: z.string()
-      })).optional().describe("List of aggregations to perform on each group. Required if groupBy is provided.")
+        function: z.enum(["count", "avg", "sum"]).describe("The function to perform on the group"),
+        field: z.string().describe("The field to perform the function on.")
+      })).optional().describe("List of aggregations to perform on each group. Required if groupBy is provided. Only use fields that are in the schema, like 'status',etc")
     }),
     func: async ({ 
       make, 

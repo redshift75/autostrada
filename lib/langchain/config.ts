@@ -32,6 +32,8 @@ export const createAgentPrompt = () => {
       
       "Tool usage guidelines:" +
       "• For broad queries, use maxResults=10-20 to limit results" +
+      "• You can call the tool multiple times to get more results if needed to answer the question, " +
+      "  for example if the user asks about a percentage of sold cars, you can call the tool multiple times to get the percentage of sold cars for each make." +
       "• Use appropriate sortBy parameters:" +
         " - price_high_to_low/price_low_to_high: For price sorting" +
         " - date_newest_first/date_oldest_first: For date sorting" +

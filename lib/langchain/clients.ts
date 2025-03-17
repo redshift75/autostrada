@@ -16,8 +16,8 @@ export const initOpenAIClient = () => {
   
   return new ChatOpenAI({
     openAIApiKey: apiKey,
-    modelName: "gpt-4o-mini",
-    temperature: 0.2,
+    modelName: "gpt-4o",
+    temperature: 0,
   });
 };
 
