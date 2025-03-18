@@ -18,7 +18,7 @@ export const getAuctionResultsTool = () => {
       sortBy: z.enum(["price_high_to_low", "price_low_to_high", "date_newest_first", "date_oldest_first",
         "mileage_lowest_first", "mileage_highest_first", "bidders_highest_first", "bidders_lowest_first", 
         "aggregation_lowest_first", "aggregation_highest_first"]).optional().describe("How to sort the results before limiting them. When groupBy is specified, always use aggregation_lowest_first or aggregation_highest_first (default: date_newest_first)"),
-      status: z.enum(["sold", "unsold", "all"]).optional().describe("The sales result of the vehicle (default: all)"),
+      status: z.enum(["sold", "unsold", "all"]).optional().describe("What sales result to filter by (default: all)"),
       // New aggregation parameters
       groupBy: z.string().optional().describe("Field to group results by. If provided, enables aggregation mode."),
       aggregations: z.array(z.object({
