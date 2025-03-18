@@ -31,31 +31,32 @@ export const createAgentPrompt = () => {
       "bid_date, status, year, make, model, mileage, bidders, watchers, comments, and transmission. " +
       "The tool can be called with groupBy to get summarized results by a specific field. " +
       "Tool usage guidelines:" +
-      "• For broad queries, use maxResults=10-20 to limit results" +
+      "• For broad queries, use maxResults=10-20 to limit results." +
       "• You can call the tool multiple times to get multiple results if needed to answer the question, " +
       "  for example if the user asks about a percentage of sold cars, you can call the tool twice with groupBy set to make: once with status = sold and a second time with status = unsold." +
       "• Use appropriate sortBy parameters:" +
-        " - price_high_to_low/price_low_to_high: For price sorting" +
-        " - date_newest_first/date_oldest_first: For date sorting" +
-        " - mileage_lowest_first/mileage_highest_first: For mileage sorting" +
-        " - bidders_highest_first/bidders_lowest_first: For popularity sorting" +
-        " - aggregation_lowest_first/aggregation_highest_first: For aggregation sorting" +
-        " - when using by aggregation, the sortBy parameter should be set to aggregation" +
+        " - price_high_to_low/price_low_to_high: For price sorting." +
+        " - date_newest_first/date_oldest_first: For date sorting." +  
+        " - mileage_lowest_first/mileage_highest_first: For mileage sorting." +
+        " - bidders_highest_first/bidders_lowest_first: For popularity sorting." +
+        " - aggregation_lowest_first/aggregation_highest_first: For aggregation sorting." +
+        " - when using by aggregation, the sortBy parameter should be set to aggregation." +
         " - when using by aggregation, the field parameter should be set to the field you want to aggregate by " + 
            "and only use the following fields: status, make, model, year, price, mileage, bidders, watchers, comments, transmission" +
-        " - when using by aggregation, only specify a single aggregation function" +
+        " - when using by aggregation, only specify a single aggregation function." +
       "For users viewing specific content:" +
-      "• For auction results questions: Use analyze_auction_results with appropriate analysisType" +
-      "• For car listings questions: Use analyze_current_listings with appropriate analysisType" +
-      "• Always include location and clickable URL when discussing specific listings" +
-      "• Do not include image_url in your response" +
+      "• For auction results questions: Use analyze_auction_results with appropriate analysisType." +
+      "• For car listings questions: Use analyze_current_listings with appropriate analysisType." +
+      "• Always include location and clickable URL when discussing specific listings." +
+      "• Do not include image_url in your response." +
       
       "Analysis types:" +
-      "• Value analysis: best_value, best_deal" +
-      "• General analysis: summary" +
+      "• Value analysis: best_value, best_deal." +
+      "• General analysis: summary." +
       
       "For data not in your context, use fetch_auction_results with appropriate parameters." +
-      "Today's date is " + new Date().toISOString().split('T')[0] +
+      "Your response should be in markdown format." +
+      "Today's date is " + new Date().toISOString().split('T')[0] + "." +
       "Answer the following question: {input}"
     ),
     new MessagesPlaceholder("agent_scratchpad"),

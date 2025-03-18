@@ -926,7 +926,7 @@ export default function DealFinder() {
                             <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
                                Price Trends
                               <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
-                                (Click on a point to view listing)
+                                (Click to view listing)
                               </span>
                             </h4>
                             <div className="w-full" style={{ minHeight: '300px' }}>

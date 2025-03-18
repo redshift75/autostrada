@@ -1,6 +1,6 @@
 import { logger, schedules, wait } from "@trigger.dev/sdk/v3";
-import { BringATrailerResultsScraper } from '../../lib/scrapers/BringATrailerResultsScraper';
-import { supabase } from '../../lib/supabase/client';
+import { BringATrailerResultsScraper } from '../scrapers/BringATrailerResultsScraper';
+import { supabase } from '../supabase/client';
 
 type CarMake = {
   make: string;
@@ -11,7 +11,7 @@ export const batScheduledTask = schedules.task({
   // Every day at 1:00 AM
   cron: "0 18 * * *",
   // Set an optional maxDuration to prevent tasks from running indefinitely
-  maxDuration: 1200, // Stop executing after 300 secs (5 mins) of compute
+  maxDuration: 1200, // Stop executing after 1200 secs (20 mins) of compute
   run: async (payload, { ctx }) => {
     try {
       // Get query parameters

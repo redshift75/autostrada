@@ -743,7 +743,7 @@ function AuctionsContent() {
                             <h3 className="text-lg font-semibold mb-2">
                               Price Trends
                               <span className="ml-2 text-sm font-normal text-gray-500">
-                                (Click on a point to view listing)
+                                (Click to view listing)
                               </span>
                             </h3>
                             <div className="w-full" style={{ maxWidth: '100%', minHeight: '400px' }}>
