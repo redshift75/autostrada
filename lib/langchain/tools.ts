@@ -5,12 +5,13 @@ import { z } from "zod";
 export const getAuctionResultsTool = () => {
   return new DynamicStructuredTool({
     name: "fetch_auction_results",
-    description: "Fetch and analyze auction results from Bring a Trailer. Can perform both detailed listing queries and aggregations by group. For regular queries, returns detailed auction data. For aggregation queries, returns grouped statistics like counts, averages, and sums. Use aggregation to answer questions about groups of vehicles.",
+    description: "Fetch and analyze auction results from Bring a Trailer. Can perform both detailed listing queries or aggregation by group. For regular queries, returns detailed auction data. For aggregation queries, returns grouped statistics like counts, averages, and sums. Use aggregation to answer questions about groups of vehicles.",
     schema: z.object({
       make: z.string().optional().describe("The manufacturer of the vehicle"),
       model: z.string().optional().describe("The model of the vehicle"),
       yearMin: z.number().optional().describe("The minimum model year"),
       yearMax: z.number().optional().describe("The maximum model year"),
+      transmission: z.enum(["manual", "automatic", "all"]).optional().describe("The transmission type of the vehicle (default: all)"),
       sold_date_min: z.string().optional().describe("The minimum sold date to filter results"),
       sold_date_max: z.string().optional().describe("The maximum sold date to filter results"),
       maxPages: z.number().optional().describe("Maximum number of pages to fetch (default: 2)"),
@@ -21,11 +22,10 @@ export const getAuctionResultsTool = () => {
       status: z.enum(["sold", "unsold", "all"]).optional().describe("What sales result to filter by (default: all)"),
       // New aggregation parameters
       groupBy: z.string().optional().describe("Field to group results by. If provided, enables aggregation mode."),
-      aggregations: z.array(z.object({
+      aggregation: z.array(z.object({
         function: z.enum(["count", "avg", "sum"]).describe("The aggregation function to perform on the field"),
-        field: z.string().describe("The field to perform the aggregation on."),
-        alias: z.string().optional().describe("Optional alias for the aggregation result")
-      })).optional().describe("List of aggregations to perform on each groupBy field. Required if groupBy is provided.")
+        field: z.string().describe("The field to perform the aggregation on.")
+      })).optional().describe("The aggregation to perform on each groupBy field. Required if groupBy is provided.")
     }),
     func: async ({ 
       make, 
@@ -39,7 +39,7 @@ export const getAuctionResultsTool = () => {
       sortBy = "date_newest_first", 
       status = "all",
       groupBy,
-      aggregations 
+      aggregation
     }) => {
       try {
         console.log(`Fetching auction results for ${make} ${model || 'Any'} (${yearMin || 'any'}-${yearMax || 'any'}), status: ${status}`);
@@ -96,6 +96,9 @@ export const getAuctionResultsTool = () => {
               apiSortBy = "aggregation";
               apiSortOrder = "desc";
               break;
+            default:
+              apiSortBy = "aggregation";
+              apiSortOrder = "desc";
           }
         }
         
@@ -107,7 +110,7 @@ export const getAuctionResultsTool = () => {
         const statusParam = status !== 'all' ? status : undefined;
 
         // Prepare request body based on whether we're doing aggregation or not
-        const body = JSON.stringify(groupBy && aggregations ? {
+        const body = JSON.stringify(groupBy && aggregation ? {
           // Aggregation mode
           make,
           model,
@@ -117,7 +120,7 @@ export const getAuctionResultsTool = () => {
           sold_date_max,
           status: statusParam,
           groupBy,
-          aggregations,
+          aggregation,
           sortBy: apiSortBy,
           sortOrder: apiSortOrder
         } : {
@@ -151,7 +154,7 @@ export const getAuctionResultsTool = () => {
         const data = await response.json();
         
         // Handle aggregation results differently
-        if (groupBy && aggregations) {
+        if (groupBy && aggregation) {
           return JSON.stringify({
             query: {
               make,
@@ -159,7 +162,7 @@ export const getAuctionResultsTool = () => {
               yearRange: `${yearMin || 'Any'}-${yearMax || 'Any'}`,
               soldDateRange: `${sold_date_min || 'Any'}-${sold_date_max || 'Any'}`,
               groupBy,
-              aggregations
+              aggregation
             },
             results: data.results,
             filters: data.filters

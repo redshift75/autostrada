@@ -41,6 +41,9 @@ export const createAgentPrompt = () => {
         " - bidders_highest_first/bidders_lowest_first: For popularity sorting" +
         " - aggregation_lowest_first/aggregation_highest_first: For aggregation sorting" +
         " - when using by aggregation, the sortBy parameter should be set to aggregation" +
+        " - when using by aggregation, the field parameter should be set to the field you want to aggregate by " + 
+           "and only use the following fields: status, make, model, year, price, mileage, bidders, watchers, comments, transmission" +
+        " - when using by aggregation, only specify a single aggregation function" +
       "For users viewing specific content:" +
       "• For auction results questions: Use analyze_auction_results with appropriate analysisType" +
       "• For car listings questions: Use analyze_current_listings with appropriate analysisType" +

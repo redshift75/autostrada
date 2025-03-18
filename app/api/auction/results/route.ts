@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
       forceScrape = false,
       // New aggregation parameters
       groupBy,
-      aggregations
+      aggregation
     }: {
       make?: string;
       model?: string;
@@ -83,12 +83,12 @@ export async function POST(request: NextRequest) {
       transmission?: string;
       forceScrape?: boolean;
       groupBy?: string;
-      aggregations?: AggregationConfig[];
+      aggregation?: AggregationConfig[];
     } = body;
 
     // Early return for group by queries
-    if (groupBy && aggregations) {
-      const selectQuery = `${groupBy}, ${aggregations.map(agg => 
+    if (groupBy && aggregation) {
+      const selectQuery = `${groupBy}, ${aggregation.map(agg => 
         `${agg.field}.${agg.function}()`
       ).join(', ')}`;
 
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
 
       // Sort aggregated results if sortBy and sortOrder are provided
       let sortedResults = [...aggregatedResults];
-      const sortFunction = aggregations[0].function;
+      const sortFunction = aggregation[0].function;
         
       sortedResults.sort((a: any, b: any) => {
         const ascending = sortOrder === 'asc' ? 1 : -1;
@@ -171,7 +171,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         message: 'Aggregation completed successfully',
         groupBy,
-        aggregations,
+        aggregation,
         sortBy,
         sortOrder,
         results: sortedResults,
@@ -200,14 +200,8 @@ export async function POST(request: NextRequest) {
         .ilike('make', `%${make}%`);
         
       // Apply sorting based on parameters
-      if (sortField === 'sold_date') {
-        query = query.order('sold_date', { ascending });
-      } else if (sortField === 'mileage') {
-        query = query.order('mileage', { ascending });
-      } else if (sortField === 'sold_price') {
-        query = query.order('sold_price', { ascending });
-      } else if (sortField === 'bidders') {
-        query = query.order('bidders', { ascending });
+      if (sortField) {
+        query = query.order(sortField, { ascending });
       } else {
         // Default sort
         query = query.order('sold_date', { ascending: false });

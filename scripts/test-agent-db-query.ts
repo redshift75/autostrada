@@ -11,18 +11,34 @@ import dotenv from 'dotenv';
 // Load environment variables
 dotenv.config();
 
-async function testDatabaseQuery() {
-  
+async function testDatabaseQuery(specificQuery?: string) {
   // Initialize the agent
   const agent = await initializeAgent();
   
-  // Test queries
+  // If a specific query is provided, only run that one
+  if (specificQuery) {
+    console.log(`\nTesting query: "${specificQuery}"`);
+    try {
+      const result = await agent.invoke({
+        input: specificQuery
+      });
+      console.log('\nAgent response:');
+      console.log(result.output);
+    } catch (error) {
+      console.error(`Error processing query:`, error);
+    }
+    return;
+  }
+
+  // Otherwise run all predefined queries
   const queries = [
+    "What is the average selling price of auctions with more than 50 bidders?",
+    "Compare the average selling prices of manual and automatic Ferraris",
+    "What are the most popular manual transmission cars sold in this year?",
     "What's the highest price ever paid for a Ferrari?",
     "What Porsche models are most likely to be sold?",
     "What makes have the highest sold percentage?",
     "What makes have the lowest sold percentage?",
-    "Compare the average selling prices of manual and automatic Ferraris",
     "Which model year Porsche has the lowest sold percentage?",
     "What Porsche models are most likely to be sold?",
     "What Bentley models have the lowest mileage?",
@@ -59,8 +75,11 @@ async function testDatabaseQuery() {
   console.log('\nDatabase query tests completed');
 }
 
-// Run the test
-testDatabaseQuery().catch(error => {
+// Get command line argument if provided
+const queryArg = process.argv[2];
+
+// Run the test with optional command line argument
+testDatabaseQuery(queryArg).catch(error => {
   console.error('Unhandled error:', error);
   process.exit(1);
 }); 
