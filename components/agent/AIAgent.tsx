@@ -189,6 +189,11 @@ export default function AIAgent({
                                 {children}
                               </pre>
                             </div>
+                          ),
+                          a: ({ node, children, ...props }) => (
+                            <a {...props} target="_blank" rel="noopener noreferrer">
+                              {children}
+                            </a>
                           )
                         }}
                       >
