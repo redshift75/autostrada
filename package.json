@@ -17,11 +17,13 @@
     "upload-active": "npx tsx -r dotenv/config ./scripts/upload-to-supabase.ts --active"
   },
   "dependencies": {
+    "@clerk/nextjs": "^6.12.6",
     "@langchain/community": "^0.3.32",
     "@langchain/core": "^0.3.41",
     "@langchain/openai": "^0.4.4",
     "@supabase/supabase-js": "^2.49.1",
     "@trigger.dev/sdk": "^3.3.17",
+    "axios": "^1.8.4",
     "cheerio": "^1.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -30,7 +32,7 @@
     "jsdom": "^24.1.3",
     "langchain": "^0.3.19",
     "lucide-react": "^0.476.0",
-    "next": "15.2.0-canary.76",
+    "next": "^15.3.0-canary.16",
     "pg": "^8.13.3",
     "postgres": "^3.4.3",
     "react": "^19.0.0",
