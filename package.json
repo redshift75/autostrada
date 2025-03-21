@@ -68,6 +68,11 @@
     "tsx": "^4.19.3",
     "typescript": "^5"
   },
+  "overrides": {
+    "@clerk/nextjs": {
+      "next": "^15.3.0-canary.16"
+    }
+  },
   "description": "A comprehensive platform for analyzing classic car market trends, tracking prices, and providing insights for collectors and investors.",
   "main": "index.js",
   "directories": {
