@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { BringATrailerActiveListingScraper } from '@/lib/scrapers/BringATrailerActiveListingScraper';
 import { fetchDetailsFromListingPage } from '@/lib/scrapers/BATDetailsExtractor';
-import { decodeHtmlEntities } from '@/components/shared/utils';
+import { auth } from '@clerk/nextjs/server'
 
 // Define the response type for the Deal Finder API
 type DealFinderResponse = {
@@ -23,6 +23,10 @@ type DealFinderResponse = {
 
 export async function GET(request: NextRequest) {
   try {
+    // Get the token from session
+    const { getToken } = await auth()
+    const token = await getToken()
+
     // Get query parameters
     const searchParams = request.nextUrl.searchParams;
     const make = searchParams.get('make') || '';
@@ -118,6 +122,7 @@ export async function GET(request: NextRequest) {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
             make: listingMake,
