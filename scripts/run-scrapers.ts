@@ -22,7 +22,6 @@ const recency = argv.recency || '';
 const delayBetweenRequests = argv.delay || 100; // Default 1 seconds between requests
 const longPauseInterval = argv.pauseInterval || 10; // Default pause every 10 pages
 const longPauseDelay = argv.pauseDelay || 30000; // Default 10 seconds for long pause
-const makesFile = argv.makesFile || ''; // File containing list of makes to process
 
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -51,7 +50,7 @@ async function readMakesFromDB(): Promise<any[]> {
 
   } catch (error) {
     console.error(`Error reading makes from DB: ${error}`);
-    return [];
+    process.exit(1);
   }
 }
 
@@ -84,12 +83,6 @@ async function runResultsScraper(currentMake: string = make) {
     // Create scraper instance
     const scraper = new BringATrailerResultsScraper();
     
-    // Fetch model suggestions if make is provided
-    let modelSuggestions: string[] = [];
-    if (currentMake) {
-      modelSuggestions = await fetchModelSuggestions(currentMake);
-    }
-    
     // Scrape listings with the provided parameters
     const allListings = await scraper.scrape({
       make: currentMake,
@@ -98,8 +91,7 @@ async function runResultsScraper(currentMake: string = make) {
       delayBetweenRequests,
       longPauseInterval,
       longPauseDelay,
-      recency,
-      modelSuggestions, // Pass model suggestions to the scraper
+      recency
     });
     
     console.log(`\nFound ${allListings.length} completed auctions`);
@@ -202,45 +194,6 @@ async function runActiveScraper(currentMake: string = make) {
   return allListings;
 }
 
-// Add a function to fetch model suggestions from Supabase
-async function fetchModelSuggestions(make: string): Promise<string[]> {
-  try {
-    // If Supabase environment variables are not set, return empty array
-    if (!supabaseUrl || !supabaseKey) {
-      console.warn('Supabase environment variables are not set. Cannot fetch model suggestions.');
-      return [];
-    }
-    
-    console.log(`Fetching model suggestions for make: ${make}`);
-    
-    // Query Supabase for models matching the make
-    const { data, error } = await supabase
-      .from('allcars')
-      .select('model')
-      .eq('make', make)
-      .order('model');
-    
-    if (error) {
-      console.error('Error fetching model suggestions:', error);
-      return [];
-    }
-    
-    if (!data || data.length === 0) {
-      console.log(`No models found for make: ${make}`);
-      return [];
-    }
-    
-    // Extract model names from the data
-    const models = data.map(item => item.model);
-    console.log(`Found ${models.length} models for ${make}`);
-    
-    return models;
-  } catch (error) {
-    console.error('Error in fetchModelSuggestions:', error);
-    return [];
-  }
-}
-
 // Main function to run the selected test mode
 async function runScrape() {
   try {
@@ -270,5 +223,5 @@ async function runScrape() {
   }
 }
 
-// Run the test
+// Run the scraper
 runScrape(); 

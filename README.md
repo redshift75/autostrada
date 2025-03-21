@@ -67,7 +67,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 #### Scraping Auction Data
 
-To test the scrapers with default settings:
+To run the scrapers with default settings:
 
 ```bash
 npm run run-scrapers
@@ -98,34 +98,6 @@ npm run run-scrapers:active
 ```
 
 The results will be saved to the `results` directory as JSON files.
-
-### Data Analysis
-
-#### Testing Auction Analysis Tools
-
-To test the basic auction analysis tool:
-
-```bash
-npm run test-auction-tools
-```
-
-To test the AI agent with auction data:
-
-```bash
-npm run test-auction-tools:agent
-```
-
-To test the AI agent with auction data and visualizations:
-
-```bash
-npm run test-auction-tools:agent-viz
-```
-
-You can customize the analysis by adding parameters:
-
-```bash
-npm run test-auction-tools -- --make=Ferrari --model=Testarossa --yearMin=1990 --yearMax=2000 --maxPages=3 --query="What's the price trend for Ferrari Testarossa models from the 1990s?"
-```
 
 ### Database Operations
 
