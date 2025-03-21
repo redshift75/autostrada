@@ -1,6 +1,6 @@
 import { DynamicStructuredTool } from "@langchain/core/tools";
 import { z } from "zod";
-
+import { auth } from '@clerk/nextjs/server'
 // Tool to fetch auction results from Bring a Trailer
 export const getAuctionResultsTool = () => {
   return new DynamicStructuredTool({
@@ -42,6 +42,9 @@ export const getAuctionResultsTool = () => {
       aggregation
     }) => {
       try {
+        // Get the token from session
+        const { getToken } = await auth()
+        const token = await getToken()
         console.log(`Fetching auction results for ${make} ${model || 'Any'} (${yearMin || 'any'}-${yearMax || 'any'}), status: ${status}`);
         
         // Map the tool's sort options to the API's sort parameters
@@ -143,6 +146,7 @@ export const getAuctionResultsTool = () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
           },
           body: body,
         });
