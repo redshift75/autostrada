@@ -833,7 +833,7 @@ export default function DealFinder() {
                               )}
                           </h3>
                           
-                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium mt-2 sm:mt-0 sm:ml-3 ${
+                          <span className={`inline-flex items-center px-4 py-1.5 rounded-full text-sm font-medium mt-2 sm:mt-0 sm:ml-3 min-w-[120px] justify-center whitespace-nowrap ${
                             deal.dealScore >= 8 ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' :
                             deal.dealScore >= 6 ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300' :
                             deal.dealScore >= 4 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300' :
