@@ -6,8 +6,10 @@ A comprehensive platform for analyzing classic car market trends, tracking price
 
 ### Prerequisites
 
-- A Vercel account (you can sign up at [vercel.com](https://vercel.com))
+- A Vercel account
 - A Supabase account
+- A Clerk account for auth and user management
+- Marketcheck API key for non-auction listings
 - OpenAI API key
 - Node.js 18+ and npm/yarn
 
@@ -15,10 +17,14 @@ A comprehensive platform for analyzing classic car market trends, tracking price
 
 Add the following environment variables in the Vercel project settings:
 
-- `SUPABASE_URL`
-- `SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_KEY`
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_SUPABASE_SERVICE_KEY`
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
+- `NEXT_PUBLIC_APP_URL`
+- `MARKETCHECK_API_KEY`
 - `OPENAI_API_KEY`
+- `CLERK_SECRET_KEY`
 - Any other variables from your `.env` file that are needed
 
 ## Development
