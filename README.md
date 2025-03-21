@@ -70,14 +70,14 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 To test the scrapers with default settings:
 
 ```bash
-npm run test-scrapers
+npm run run-scrapers
 ```
 
 To scrape completed auction results:
 
 ```bash
-npm run test-scrapers:completed -- --make="BMW" --recency='7D' --maxPages=10
-npm run test-scrapers:completed -- --makesFile='results/bat_makes.csv' --recency='7D'
+npm run run-scrapers:completed -- --make="BMW" --recency='7D' --maxPages=10
+npm run run-scrapers:completed -- --makesFile='results/bat_makes.csv' --recency='7D'
 
 | Argument | Description | Default |
 |----------|-------------|---------|
@@ -94,7 +94,7 @@ npm run test-scrapers:completed -- --makesFile='results/bat_makes.csv' --recency
 To scrape only active auction listings:
 
 ```bash
-npm run test-scrapers:active
+npm run run-scrapers:active
 ```
 
 The results will be saved to the `results` directory as JSON files.

@@ -28,6 +28,10 @@ const makesFile = argv.makesFile || ''; // File containing list of makes to proc
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
+type CarMake = {
+  make: string;
+};
+
 // Check if Supabase environment variables are set
 if (!supabaseUrl || !supabaseKey) {
   console.warn('Warning: Supabase environment variables are not set. Model suggestions will not be available.');
@@ -36,23 +40,17 @@ if (!supabaseUrl || !supabaseKey) {
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Function to read makes from a file
-function readMakesFromFile(filePath: string): string[] {
+async function readMakesFromDB(): Promise<any[]> {
   try {
-    if (!fs.existsSync(filePath)) {
-      console.error(`Makes file not found: ${filePath}`);
-      return [];
-    }
-    
-    const fileContent = fs.readFileSync(filePath, 'utf-8');
-    // Split by newline and filter out empty lines
-    const makes = fileContent.split('\n')
-      .map(line => line.trim())
-      .filter(line => line && !line.startsWith('#')); // Skip empty lines and comments
-    
-    console.log(`Read ${makes.length} makes from ${filePath}`);
-    return makes;
+  // Get all makes from Supabase
+  const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL_DEV}/api/cars?type=makes`);
+  const data = await response.json()
+  const makesToScrape = Array.from(new Set(data.map((item: CarMake) => item.make)))
+
+  return makesToScrape;
+
   } catch (error) {
-    console.error(`Error reading makes file: ${error}`);
+    console.error(`Error reading makes from DB: ${error}`);
     return [];
   }
 }
@@ -65,15 +63,15 @@ async function processMake(currentMake: string) {
   const tempArgv = { ...argv, make: currentMake };
   
   if (mode === 'completed' || mode === 'both') {
-    await testResultsScraper(currentMake);
+    await runResultsScraper(currentMake);
   }
   
   if (mode === 'active' || mode === 'both') {
-    await testActiveScraper(currentMake);
+    await runActiveScraper(currentMake);
   }
 }
 
-async function testResultsScraper(currentMake: string = make) {
+async function runResultsScraper(currentMake: string = make) {
   try {
     console.log(`Testing BringATrailerResultsScraper for ${currentMake}...`);
     
@@ -149,7 +147,7 @@ async function testResultsScraper(currentMake: string = make) {
   }
 }
 
-async function testActiveScraper(currentMake: string = make) {
+async function runActiveScraper(currentMake: string = make) {
   console.log(`Testing BringATrailerActiveListingScraper for ${currentMake}...`);
   
   // Create results directory if it doesn't exist
@@ -244,41 +242,33 @@ async function fetchModelSuggestions(make: string): Promise<string[]> {
 }
 
 // Main function to run the selected test mode
-async function runTest() {
+async function runScrape() {
   try {
-    console.log(`Running scraper test in ${mode} mode`);
+    console.log(`Running scraper in ${mode} mode`);
     
-    // Check if a makes file was specified
-    if (makesFile) {
-      const makes = readMakesFromFile(makesFile);
-      
-      if (makes.length === 0) {
-        console.log('No makes found in the specified file. Using default make.');
-        // Process the default make
-        await processMake(make);
-      } else {
-        // Process each make in the file
-        for (const currentMake of makes) {
-          await processMake(currentMake);
-          
-          // Add a pause between processing different makes to avoid rate limiting
-          if (makes.indexOf(currentMake) < makes.length - 1) {
-            console.log(`Pausing before processing next make...`);
-            await new Promise(resolve => setTimeout(resolve, longPauseDelay/10));
-          }
+    // get all makes from supabase
+    const makes = await readMakesFromDB();
+    
+    if (makes.length === 0) {
+      console.log('No makes found in the specified file. Using default make.');
+      process.exit(1);
+    } else {
+      // Process each make in the list
+      for (const currentMake of makes) {
+        await processMake(currentMake);
+        
+        // Add a pause between processing different makes to avoid rate limiting
+        if (makes.indexOf(currentMake) < makes.length - 1) {
+          console.log(`Pausing before processing next make...`);
+          await new Promise(resolve => setTimeout(resolve, longPauseDelay/10));
         }
       }
-    } else {
-      // Process the default make
-      await processMake(make);
     }
-    
-    console.log('\Scrape completed successfully!');
   } catch (error) {
-    console.error('Error running scraper test:', error);
+    console.error('Error running scraper:', error);
     process.exit(1);
   }
 }
 
 // Run the test
-runTest(); 
+runScrape(); 
