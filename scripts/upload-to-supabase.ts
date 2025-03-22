@@ -106,6 +106,7 @@ async function uploadCompletedAuctionsToSupabase() {
         make: listing.make ? listing.make : null,
         model: listing.model,
         mileage: listing.mileage,
+        exterior_color: listing.color,
         source_file: file,
         created_at: new Date(),
         updated_at: new Date(),

@@ -200,21 +200,21 @@ async function runScrape() {
     console.log(`Running scraper in ${mode} mode`);
     
     // get all makes from supabase
-    const makes = await readMakesFromDB();
-    
-    if (makes.length === 0) {
-      console.log('No makes found in the specified file. Using default make.');
-      process.exit(1);
+    let makes = [];
+    if (make) {
+      makes = [make];
     } else {
-      // Process each make in the list
-      for (const currentMake of makes) {
-        await processMake(currentMake);
-        
-        // Add a pause between processing different makes to avoid rate limiting
-        if (makes.indexOf(currentMake) < makes.length - 1) {
-          console.log(`Pausing before processing next make...`);
-          await new Promise(resolve => setTimeout(resolve, longPauseDelay/10));
-        }
+      makes = await readMakesFromDB();
+    }
+
+    // Process each make in the list
+    for (const currentMake of makes) {
+      await processMake(currentMake);
+      
+      // Add a pause between processing different makes to avoid rate limiting
+      if (makes.indexOf(currentMake) < makes.length - 1) {
+        console.log(`Pausing before processing next make...`);
+        await new Promise(resolve => setTimeout(resolve, longPauseDelay/10));
       }
     }
   } catch (error) {

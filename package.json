@@ -9,9 +9,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test-scrapers": "npx tsx -r dotenv/config ./scripts/run-scrapers.ts",
-    "test-scrapers:active": "npx tsx -r dotenv/config ./scripts/run-scrapers.ts --mode=active",
-    "test-scrapers:completed": "npx tsx -r dotenv/config ./scripts/run-scrapers.ts --mode=completed",
+    "run-scrapers": "npx tsx -r dotenv/config ./scripts/run-scrapers.ts",
+    "run-scrapers:active": "npx tsx -r dotenv/config ./scripts/run-scrapers.ts --mode=active",
+    "run-scrapers:completed": "npx tsx -r dotenv/config ./scripts/run-scrapers.ts --mode=completed",
     "upload-to-supabase": "npx tsx -r dotenv/config ./scripts/upload-to-supabase.ts",
     "upload-completed": "npx tsx -r dotenv/config ./scripts/upload-to-supabase.ts --completed",
     "upload-active": "npx tsx -r dotenv/config ./scripts/upload-to-supabase.ts --active"

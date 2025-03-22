@@ -27,7 +27,7 @@ export function extractMileageFromTitle(title: string): number | undefined {
 }
 
 /**
- * Interface for listing data including mileage, bidders, watchers, comments, and transmission
+ * Interface for listing data including mileage, bidders, watchers, comments, transmission, and color
  */
 export interface ListingData {
   mileage?: number;
@@ -35,11 +35,12 @@ export interface ListingData {
   watchers?: number;
   comments?: number;
   transmission?: 'automatic' | 'manual';
+  color?: string;
 }
 
 /**
  * Fetches the listing page and extracts mileage from the BAT Essentials section
- * as well as bidders, watchers, comments counts, and transmission type
+ * as well as bidders, watchers, comments counts, transmission type, and paint color
  */
 export async function fetchDetailsFromListingPage(url: string): Promise<ListingData> {
   try {
@@ -70,6 +71,43 @@ export async function fetchDetailsFromListingPage(url: string): Promise<ListingD
       // Look for transmission type in the essentials section
       const transmissionRegex = /<li[^>]*>([\s\S]*?(?:Dual[-\s]Clutch|Double\s+Clutch|PDK|Automatic|Automated|manual|Manual|Transmission|transaxle|Sequential)[\s\S]*?)<\/li>/gi;
       const transmissionMatch = essentialsSection.match(transmissionRegex);
+
+      // Look for paint color in the essentials section - using a more direct approach
+      // Create a specific regex to find a list item that explicitly mentions paint/color
+      const paintColorRegex = /<li[^>]*>([^<]*(?:Paint|Metallic|Exterior|Color|White|Black|Red|Blue|Green|Yellow|Silver|Gray|Grey)[^<]*)<\/li>/gi;
+      const paintColorMatches = [];
+      let paintMatch;
+      
+      while ((paintMatch = paintColorRegex.exec(essentialsSection)) !== null) {
+        const colorText = paintMatch[1].trim();
+        
+        // Skip items that are likely about interior
+        if (/interior|upholstery|leather|cabin|seat/.test(colorText.toLowerCase())) {
+          continue;
+        }
+        
+        // Prioritize items explicitly about paint
+        if (/paint|finish|exterior color/.test(colorText.toLowerCase())) {
+          paintColorMatches.unshift(colorText); // Add to front with higher priority
+        } else {
+          paintColorMatches.push(colorText);
+        }
+      }
+      
+      // If we found paint color matches, use the first one (highest priority)
+      if (paintColorMatches.length > 0) {
+        result.color = paintColorMatches[0];
+      } else {
+        // If we couldn't find paint directly, look for specific description in the page
+        const carFinishedRegex = /(?:finished|painted) in\s+([^\.]+)/i;
+        const carFinishedMatch = html.match(carFinishedRegex);
+        
+        if (carFinishedMatch && carFinishedMatch[1]) {
+          result.color = carFinishedMatch[1].trim();
+        } else {
+          console.log(`No paint color found in BAT Essentials section for ${url}`);
+        }
+      }
 
       if (transmissionMatch && transmissionMatch[0]) {
         const transmissionItem = transmissionMatch[0];
@@ -122,8 +160,6 @@ export async function fetchDetailsFromListingPage(url: string): Promise<ListingD
         // Remove commas
         mileage = mileage.replace(/,/g, '');
         result.mileage = parseInt(mileage);
-      } else {
-        // console.log(`No mileage found in listing page: ${url}`);
       }
     }
     
@@ -182,7 +218,6 @@ export async function fetchDetailsFromListingPage(url: string): Promise<ListingD
         result.comments = parseInt(commentsNumberMatch[1]);
       }
     }
-    
     return result;
   } catch (error) {
     console.error(`Error fetching data from listing page ${url}:`, error);

@@ -28,6 +28,7 @@ export interface BaTCompletedListing {
   year?: number;
   make?: string;
   model?: string;
+  color?: string;
   country?: string;
   country_code?: string;
   noreserve?: boolean;
@@ -326,6 +327,7 @@ export class BringATrailerResultsScraper extends BaseBATScraper {
               item.watchers = listingData.watchers;
               item.comments = listingData.comments;
               item.transmission = listingData.transmission;
+              item.color = listingData.color;
             } catch (error) {
               console.error(`Error fetching details for ${item.title}:`, error);
             }
@@ -344,6 +346,7 @@ export class BringATrailerResultsScraper extends BaseBATScraper {
             year: itemYear,
             make: itemMake,
             model: itemModel,
+            color: item.color || undefined,
             country: item.country || '',
             country_code: item.country_code || '',
             noreserve: item.noreserve || false,
