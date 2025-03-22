@@ -11,6 +11,7 @@ dotenv.config();
 const args = process.argv.slice(2);
 const maxBatchesArg = args.find(arg => arg.startsWith('--batches='));
 const maxBatches = maxBatchesArg ? parseInt(maxBatchesArg.split('=')[1]) : Infinity;
+const shouldUpsert = args.includes('--upsert');
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -107,6 +108,40 @@ async function normalizeCarColors(colorData: Array<{listing_id: string, exterior
 }
 
 /**
+ * Updates normalized color data in Supabase
+ * @param normalizedColors Array of objects with listing_id and normalized_color
+ * @returns Promise with the update result
+ */
+async function upsertNormalizedColors(normalizedColors: Array<{listing_id: string, normalized_color: string}>) {
+  try {
+    console.log(`Updating ${normalizedColors.length} normalized colors in Supabase...`);
+    
+    // Track successful updates
+    let successCount = 0;
+    
+    // Update each record individually to avoid not-null constraint issues
+    for (const item of normalizedColors) {
+      const { error } = await supabase
+        .from('bat_completed_auctions')
+        .update({ normalized_color: item.normalized_color })
+        .eq('listing_id', item.listing_id);
+      
+      if (error) {
+        console.error(`Error updating listing ${item.listing_id}:`, error);
+      } else {
+        successCount++;
+      }
+    }
+    
+    console.log(`Successfully updated ${successCount} out of ${normalizedColors.length} normalized colors in Supabase.`);
+    return successCount > 0;
+  } catch (error) {
+    console.error('Error updating normalized colors:', error);
+    return false;
+  }
+}
+
+/**
  * Fetches car data from Supabase in batches and normalizes colors
  */
 async function processCarColors() {
@@ -157,6 +192,11 @@ async function processCarColors() {
           JSON.stringify(normalizedBatch, null, 2)
         );
         console.log(`Saved batch ${batchCount} results to ${batchFileName}`);
+        
+        // Upsert to Supabase if the flag is set
+        if (shouldUpsert) {
+          await upsertNormalizedColors(normalizedBatch);
+        }
       } else {
         console.log('No valid colors found in this batch.');
       }
@@ -211,6 +251,8 @@ async function main() {
   try {
     console.log('Starting car color normalization process...');
     console.log(`Will process ${maxBatches === Infinity ? 'all available' : maxBatches} batches`);
+    console.log(`Upsert to Supabase: ${shouldUpsert ? 'Enabled' : 'Disabled'}`);
+    
     const results = await processCarColors();
     console.log(`Completed with ${results.length} normalized color entries.`);
   } catch (error) {
