@@ -13,6 +13,7 @@ export type Listing = {
   engine: string;
   body_style: string;
   fuel_type: string;
+  trim: string;
   mpg_city: number;
   mpg_highway: number;
   url: string;

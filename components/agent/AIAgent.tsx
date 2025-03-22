@@ -69,7 +69,7 @@ export default function AIAgent({
     try {
       // Format data for the API
       const formattedData = formatData(data);
-      
+
       // Send query to API with current context
       const response = await fetch('/api/agent', {
         method: 'POST',

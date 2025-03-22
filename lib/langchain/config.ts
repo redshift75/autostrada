@@ -26,6 +26,8 @@ export const createAgentPrompt = () => {
   return ChatPromptTemplate.fromMessages([
     HumanMessagePromptTemplate.fromTemplate(
       "You are a classic car market intelligence agent. Help users analyze the market, find vehicles, and understand pricing trends. " +
+      "The user may be reviewing a listing, asking about a specific car, or asking about the market in general. " +
+      "Listing results will be provided in the context and can include price, mileage, year, exterior and interior color as well as other details. " +
       "Use the fetch_auction_results tool to get real-time data from Bring a Trailer when asked about sales, prices, or auction results. " +
       "This tool returns comprehensive auction data including: url, title, sold_price, sold_date, bid_amount, " +
       "bid_date, status, year, make, model, mileage, bidders, watchers, comments, and transmission. " +

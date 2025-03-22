@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    
+
     // Initialize the agent
     const agent = await initializeAgent();
     
@@ -33,9 +33,9 @@ export async function POST(request: NextRequest) {
       
       // Format the listings data for the agent
       const listingsData = context.listings.map((listing: any, index: number) => {
-        return `Listing #${index + 1}: ${listing.year} ${listing.make} ${listing.model}, Price: $${listing.price}, Mileage: ${listing.mileage} miles, VIN: ${listing.vin}${listing.location ? `, Location: ${listing.location}` : ''}${listing.clickoffURL ? `, URL: ${listing.clickoffURL}` : ''}`;
+        return `Listing #${index + 1}: ${JSON.stringify(listing)}`;
       }).join('\n');
-      
+
       // Enhance the query with the listings context
       enhancedQuery = `The user is viewing the following car listings:\n\n${listingsData}\n\nUser query: ${query}`;
     } else {

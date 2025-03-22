@@ -89,10 +89,7 @@ function ListingsContent() {
   const [dbConnectionError, setDbConnectionError] = useState(false);
   
   // Debounced form values
-  const debouncedMake = useDebounce(make, 300);
-  const debouncedYearMin = useDebounce(yearMin, 300);
-  const debouncedYearMax = useDebounce(yearMax, 300);
-  const debouncedTransmission = useDebounce(transmission, 300);
+  const debouncedMake = useDebounce(make, 500);
   
   // Results state
   const [results, setResults] = useState<Listing[]>([]);
@@ -186,7 +183,6 @@ function ListingsContent() {
         .filter((model): model is string => !!model)
         .sort();
       
-      console.log('Processed unique models:', uniqueModels);
       setModelOptions(uniqueModels);
     } catch (error) {
       console.error('Error fetching model options:', error);
@@ -234,7 +230,6 @@ function ListingsContent() {
         .filter((trim): trim is string => !!trim)
         .sort();
       
-      console.log('Processed unique trims:', uniqueTrims);
       setTrimOptions(uniqueTrims);
     } catch (error) {
       console.error('Error fetching trim options:', error);
@@ -242,14 +237,14 @@ function ListingsContent() {
     }
   };
 
-  // Load model options when make is set
+  // Load model options when make is set - with debounce
   useEffect(() => {
-    if (make) {
+    if (debouncedMake) {
       fetchModelOptions();
     } else {
       setModelOptions([]);
     }
-  }, [make]);
+  }, [debouncedMake]);
 
   // Load trim options when make and model are set
   useEffect(() => {
@@ -323,7 +318,7 @@ function ListingsContent() {
       });
       
       const data: SearchResponse = await response.json();
-      
+
       // Check if the API returned an error
       if (!response.ok || data.error) {
         throw new Error(data.error || `API error: ${response.status}`);
@@ -333,21 +328,9 @@ function ListingsContent() {
       if (!data.results || !Array.isArray(data.results)) {
         throw new Error('No results returned from API');
       }
-      
       setResults(data.results);
       setSummary(data.summary);
       setPagination(data.pagination);
-      
-      // Update URL with search params
-      const params = new URLSearchParams();
-      if (make) params.set('make', make);
-      if (model) params.set('model', model);
-      if (trim) params.set('trim', trim);
-      if (yearMin) params.set('yearMin', yearMin);
-      if (yearMax) params.set('yearMax', yearMax);
-      if (transmission && transmission !== 'Any') params.set('transmission', transmission);
-      
-      router.push(`/listings?${params.toString()}`);
     } catch (err) {
       setResults([]);
       setSummary(null);
@@ -597,7 +580,6 @@ function ListingsContent() {
         .filter((make): make is string => !!make)
         .sort();
       
-      console.log('Processed unique makes:', uniqueMakes);
       setMakeOptions(uniqueMakes);
     } catch (error) {
       console.error('Error fetching make options:', error);

@@ -15,7 +15,7 @@ import {
   viewListingsAnalysisTool,
   auctionResultsAnalysisTool
 } from "./tools";
-import { initOpenAIClient, initSupabaseVectorStore } from "./clients";
+import { initOpenAIClient } from "./clients";
 
 export async function initializeAgent() {
   // Initialize the LLM
@@ -53,14 +53,3 @@ export async function initializeAgent() {
 
   return agentExecutor;
 }
-
-export async function initializeVectorStore() {
-  try {
-    // Initialize the vector store
-    const vectorStore = initSupabaseVectorStore();
-    return vectorStore;
-  } catch (error) {
-    console.error("Error initializing vector store:", error);
-    return null;
-  }
-} 
