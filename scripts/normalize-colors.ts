@@ -79,7 +79,7 @@ async function normalizeCarColors(colorData: Array<{listing_id: string, exterior
           role: "system",
           content: `You are a car color normalization assistant. Your task is to map non-standard car colors to the closest match in this standard list: ${STANDARD_CAR_COLORS.join(', ')}. 
           For each car in the input array, add a 'normalized_color' property with the matching standard color.
-          Respond ONLY with a valid JSON array of objects, each containing 'listing_id', 'exterior_color', and 'normalized_color'.`
+          Respond ONLY with a valid JSON array of objects called cars, each containing 'listing_id', 'exterior_color', and 'normalized_color'.`
         },
         {
           role: "user",
@@ -90,7 +90,6 @@ async function normalizeCarColors(colorData: Array<{listing_id: string, exterior
     });
 
     const normalizedResponse = JSON.parse(response.choices[0].message.content || '{}');
-    console.log("OpenAI response:", normalizedResponse);
     
     // Return the normalized data, ensuring it has the expected format
     if (Array.isArray(normalizedResponse.cars)) {
@@ -111,7 +110,7 @@ async function normalizeCarColors(colorData: Array<{listing_id: string, exterior
  * Fetches car data from Supabase in batches and normalizes colors
  */
 async function processCarColors() {
-  const batchSize = 10;
+  const batchSize = 50;
   let startIndex = 0;
   let hasMoreData = true;
   let allResults: Array<{listing_id: string, exterior_color: string, normalized_color: string}> = [];
@@ -127,6 +126,7 @@ async function processCarColors() {
         .select('listing_id, exterior_color')
         .range(startIndex, startIndex + batchSize - 1)
         .neq('exterior_color', null)
+        .is('normalized_color', null)
         .order('listing_id');
       
       if (error) {
@@ -142,8 +142,6 @@ async function processCarColors() {
       
       batchCount++;
       console.log(`Processing batch ${batchCount} of ${data.length} records (starting from index ${startIndex})...`);
-      
-      console.log(data)
 
       if (data.length > 0) {
         // Normalize the colors for this batch
