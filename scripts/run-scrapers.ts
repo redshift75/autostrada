@@ -15,7 +15,7 @@ import { createClient } from '@supabase/supabase-js';
 // Parse command line arguments
 const argv = minimist(process.argv.slice(2));
 const mode = argv.mode || 'both'; // completed, active, both
-const make = argv.make || 'Porsche';
+const make = argv.make;
 const model = String(argv.model || ''); // Convert model to string
 const maxPages = argv.maxPages || 3;
 const recency = argv.recency || '';
