@@ -42,7 +42,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 async function readMakesFromDB(): Promise<any[]> {
   try {
   // Get all makes from Supabase
-  const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL_DEV}/api/cars?type=makes`);
+  const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/cars?type=makes`);
   const data = await response.json()
   const makesToScrape = Array.from(new Set(data.map((item: CarMake) => item.make)))
 
