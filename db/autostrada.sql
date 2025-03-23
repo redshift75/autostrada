@@ -13,6 +13,7 @@ create table public.bat_completed_auctions (
   make text null,
   model text null,
   exterior_color text null,
+  normalized_color text null,
   source_file text null,
   created_at timestamp without time zone null default now(),
   updated_at timestamp without time zone null default now(),

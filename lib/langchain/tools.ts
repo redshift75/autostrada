@@ -29,7 +29,7 @@ export const getAuctionResultsTool = () => {
       maxResults: z.number().optional().describe("Maximum number of results to return (default: 10)"),
       sortBy: z.enum(["high_to_low", "low_to_high", "aggregation_high_to_low", "aggregation_low_to_high"]).optional().describe("Sort direction. Use with sortField to specify how to order results. For aggregation queries, use the aggregation options (default: low_to_high)"),
       sortField: z.string().optional().describe("Field to sort by (e.g., 'sold_price', 'sold_date', 'mileage', 'bidders'). Default is 'sold_date'"),
-      status: z.enum(["sold", "unsold", "all"]).optional().describe("What sales result to filter by (default: sold)"),
+      status: z.enum(["sold", "unsold", "all"]).optional().describe("What sales result to filter by. Default is all"),
       // New aggregation parameters
       groupBy: z.string().optional().describe("Field to group results by. If provided, enables aggregation mode."),
       aggregation: z.array(z.object({
@@ -80,8 +80,8 @@ export const getAuctionResultsTool = () => {
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
         const apiUrl = new URL('/api/auction/results', baseUrl).toString();
         
-        // Only pass status if it's not 'all'
-        const statusParam = status !== 'all' ? status : 'sold';
+        // Pass status if it's not all
+        const statusParam = status !== 'all' ? status : undefined;
 
         // Prepare request body based on whether we're doing aggregation or not
         const body = JSON.stringify(groupBy && aggregation ? {

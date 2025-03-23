@@ -31,9 +31,10 @@ export const createAgentPrompt = () => {
       "Use the fetch_auction_results tool to get real-time data from Bring a Trailer when asked about sales, prices, or auction results. " +
       "The tool can be called with groupBy to get summarized results by a specific field. " +
       "Tool usage guidelines:" +
-      "• For broad queries, use maxResults=10-20 to limit results." +
+      "• For broad queries, use maxResults=15-20 to limit results." +
+      "• When queries mention prices paid, use status=sold." +
       "• For unsold queries use bid_amount to get the highest bid amount instead of sold_price." +
-      "• When queries mention vehicle colors (like red, blue, yellow, etc.), use the normalized_color parameter in your search." +
+      "• When queries mention vehicle colors use the normalized_color parameter in your search." +
       "• You can call the tool multiple times to get multiple results if needed to answer the question, " +
       "  for example if the user asks about a percentage of sold cars, you can call the tool twice with groupBy set to make: once with status = sold and a second time with status = unsold." +
       "• Use appropriate sorting parameters:" +

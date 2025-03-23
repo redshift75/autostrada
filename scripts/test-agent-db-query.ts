@@ -38,6 +38,7 @@ async function testDatabaseQuery(specificQuery?: string) {
     "What are the most popular manual transmission cars sold in this year?",
     "What's the highest price ever paid for a Ferrari?",
     "What Porsche models are most likely to be sold?",
+    "Compare the selling prices of black and white BMW M3s",
     "What are the most popular colors for Porsche 911s?",
     "What are some recent yellow Porsche 911 sales?",
     "What makes have the highest sold percentage?",
