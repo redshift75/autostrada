@@ -299,8 +299,6 @@ export async function POST(request: NextRequest) {
           normalized_color: item.normalized_color
         }));
       
-        console.log('results', results);
-
         // Create a result object
         parsedResult = {
           query: {
