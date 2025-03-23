@@ -18,7 +18,18 @@ interface AIAgentProps {
   initialSuggestions?: string[];
   formatData: (data: any[]) => any;
   data: any[];
+  onMessageUpdate?: (messages: Message[]) => void;
 }
+
+/**
+ * Format an assistant message to hide JSON data blocks
+ * @param content The original message content
+ * @returns Formatted content with JSON blocks removed
+ */
+const formatAssistantMessage = (content: string): string => {
+  // Remove JSON blocks from display
+  return content.replace(/(?:```json\n|### Summary in JSON format:\n```json\n)[\s\S]*?\n```/g, '');
+};
 
 /**
  * A reusable AI Agent component that can be extended for different data types
@@ -28,7 +39,8 @@ export default function AIAgent({
   subtitle, 
   initialSuggestions = [], 
   formatData, 
-  data 
+  data,
+  onMessageUpdate
 }: AIAgentProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -42,7 +54,12 @@ export default function AIAgent({
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages]);
+    
+    // Notify parent component of message updates if callback provided
+    if (onMessageUpdate && messages.length > 0) {
+      onMessageUpdate(messages);
+    }
+  }, [messages, onMessageUpdate]);
 
   // Focus input when agent is opened
   useEffect(() => {
@@ -87,6 +104,7 @@ export default function AIAgent({
       }
       
       const responseData = await response.json();
+      console.log('Response data:', responseData);
       
       // Add assistant message
       const assistantMessage: Message = { role: 'assistant', content: responseData.response };
@@ -197,7 +215,7 @@ export default function AIAgent({
                           )
                         }}
                       >
-                        {message.content}
+                        {formatAssistantMessage(message.content)}
                       </ReactMarkdown>
                     )}
                   </div>

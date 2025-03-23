@@ -63,7 +63,7 @@ export const createAgentPrompt = () => {
       "• General analysis: summary." +
       
       "For data not in your context, use fetch_auction_results with appropriate parameters." +
-      "Your response should be in markdown format." +
+      "Your response should be in both markdown and a JSON array format." +
       "Today's date is " + new Date().toISOString().split('T')[0] + "." +
       "Answer the following question: {input}"
     ),
