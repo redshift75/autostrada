@@ -258,6 +258,9 @@ export async function POST(request: NextRequest) {
         query = query.ilike('transmission', `%${transmission}%`);
       }
       
+      // Filter out withdrawn auctions
+      query = query.gt('bidders', 0);
+
       // Add status filter if provided
       if (status) {
         if (status === 'sold') {
