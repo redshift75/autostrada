@@ -99,6 +99,14 @@ npm run run-scrapers:active
 
 The results will be saved to the `results` directory as JSON files.
 
+### Normalizing Colors
+
+To run color normalization use the following script
+
+```bash
+npx tsx scripts/normalize-colors.ts --batches=10 --upsert
+```
+
 ### Database Operations
 
 #### Uploading Data to Supabase
