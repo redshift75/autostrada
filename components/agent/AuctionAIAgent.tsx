@@ -27,10 +27,11 @@ type AuctionAIAgentProps = {
 export default function AuctionAIAgent({ auctionResults }: AuctionAIAgentProps) {
   // Define suggestions for the AI agent
   const suggestions = [
+    "Compare the prices of yellow and black BMW M3s",
     "What makes have the highest sold percentage?",
+    "What color Ferraris achieve the highest prices?",
     "What are the most common transmission types for Porsches?",
     "Which of these cars is the best deal?",
-    "Is there a trend in these results?",
     "What are the best value manual ferrari from the early 90s"
   ];
 
