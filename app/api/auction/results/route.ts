@@ -202,9 +202,12 @@ export async function POST(request: NextRequest) {
     if (!forceScrape) {
       let query = supabase
         .from('bat_completed_auctions')
-        .select('*')
-        .ilike('make', `%${make}%`);
-        
+        .select('*');
+      
+      if (make) {
+        query = query.ilike('make', `%${make}%`);
+      }
+
       // Apply sorting based on parameters
       if (sortField) {
         query = query.order(sortField, { ascending });

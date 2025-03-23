@@ -18,6 +18,7 @@ export type AuctionResult = {
   watchers?: number;
   comments?: number;
   transmission?: string;
+  price?: number;
 };
 
 type AuctionAIAgentProps = {
