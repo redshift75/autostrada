@@ -60,6 +60,8 @@ export async function POST(request: NextRequest) {
       yearMax, 
       sold_date_min,
       sold_date_max,
+      sold_price_min,
+      sold_price_max,
       maxPages, 
       sortBy, 
       sortOrder, 
@@ -77,6 +79,8 @@ export async function POST(request: NextRequest) {
       yearMax?: number;
       sold_date_min?: string;
       sold_date_max?: string;
+      sold_price_min?: number;
+      sold_price_max?: number;
       maxPages?: number;
       sortBy?: string;
       sortOrder?: 'asc' | 'desc';
@@ -107,6 +111,13 @@ export async function POST(request: NextRequest) {
         query = query.ilike('title', `%${model}%`);
       }
 
+      if (sold_price_min) {
+        query = query.gte('sold_price', sold_price_min);
+      }
+
+      if (sold_price_max) {
+        query = query.lte('sold_price', sold_price_max);
+      }
       if (yearMin) {
         query = query.gte('year', yearMin);
       }
@@ -232,6 +243,14 @@ export async function POST(request: NextRequest) {
       
       if (yearMax) {
         query = query.lte('year', yearMax);
+      }
+
+      if (sold_price_min) {
+        query = query.gte('sold_price', sold_price_min);
+      }
+      
+      if (sold_price_max) {
+        query = query.lte('sold_price', sold_price_max);
       }
       
       // Add transmission filter if provided
