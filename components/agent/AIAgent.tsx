@@ -106,7 +106,6 @@ export default function AIAgent({
       }
       
       const responseData = await response.json();
-      console.log('Response data:', responseData);
       
       // Add assistant message
       const assistantMessage: Message = { role: 'assistant', content: responseData.response };

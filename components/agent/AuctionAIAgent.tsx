@@ -49,7 +49,7 @@ export default function AuctionAIAgent({ auctionResults, onAIResultsChange }: Au
       if (lastProcessedMessageRef.current === response) {
         return null;
       }
-      
+
       // Look for JSON array in the response
       const jsonMatch = response.match(/```json\n([\s\S]*?)\n```/);
 
@@ -84,6 +84,7 @@ export default function AuctionAIAgent({ auctionResults, onAIResultsChange }: Au
   // Custom wrapper around formatData to process responses
   const processAIResponse = (messages: any) => {
     // Process the last assistant message if it exists
+    
     if (messages && messages.length > 0) {
       const lastMessage = messages[messages.length - 1];
       if (lastMessage.role === 'assistant') {
