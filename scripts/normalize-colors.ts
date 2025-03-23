@@ -3,15 +3,11 @@ import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 
 // Load environment variables
 dotenv.config();
-
-// Parse command line arguments
-const args = process.argv.slice(2);
-const maxBatchesArg = args.find(arg => arg.startsWith('--batches='));
-const maxBatches = maxBatchesArg ? parseInt(maxBatchesArg.split('=')[1]) : Infinity;
-const shouldUpsert = args.includes('--upsert');
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -143,14 +139,20 @@ async function upsertNormalizedColors(normalizedColors: Array<{listing_id: strin
 
 /**
  * Fetches car data from Supabase in batches and normalizes colors
+ * @param options Optional configuration parameters
+ * @returns Promise with normalized color data
  */
-async function processCarColors() {
+export async function processCarColors(options: { maxBatches?: number, shouldUpsert?: boolean } = {}) {
   const batchSize = 50;
   let startIndex = 0;
   let hasMoreData = true;
   let allResults: Array<{listing_id: string, exterior_color: string, normalized_color: string}> = [];
   let batchCount = 0;
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  
+  // Use provided options or default values
+  const maxBatches = options.maxBatches ?? Infinity;
+  const shouldUpsert = options.shouldUpsert ?? true;
 
   console.log(`Starting to process up to ${maxBatches === Infinity ? 'all' : maxBatches} batches of car colors from Supabase...`);
   
@@ -245,21 +247,33 @@ async function processCarColors() {
   return allResults;
 }
 
-/**
- * Main function to run the script
- */
-async function main() {
-  try {
-    console.log('Starting car color normalization process...');
-    console.log(`Will process ${maxBatches === Infinity ? 'all available' : maxBatches} batches`);
-    console.log(`Upsert to Supabase: ${shouldUpsert ? 'Enabled' : 'Disabled'}`);
-    
-    const results = await processCarColors();
-    console.log(`Completed with ${results.length} normalized color entries.`);
-  } catch (error) {
-    console.error('Failed to complete the normalization process:', error);
-  }
-}
+// ES module equivalent of __filename and __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
-// Run the script
-main(); 
+// ES module version of "if this is the main module"
+const isMainModule = process.argv[1] === __filename;
+
+if (isMainModule) {
+  // Parse command line arguments
+  const args = process.argv.slice(2);
+  const maxBatchesArg = args.find(arg => arg.startsWith('--batches='));
+  const maxBatches = maxBatchesArg ? parseInt(maxBatchesArg.split('=')[1]) : Infinity;
+  const shouldUpsert = args.includes('--upsert');
+  
+  // Run the script
+  async function main() {
+    try {
+      console.log('Starting car color normalization process...');
+      console.log(`Will process ${maxBatches === Infinity ? 'all available' : maxBatches} batches`);
+      console.log(`Upsert to Supabase: ${shouldUpsert ? 'Enabled' : 'Disabled'}`);
+      
+      const results = await processCarColors({ maxBatches, shouldUpsert });
+      console.log(`Completed with ${results.length} normalized color entries.`);
+    } catch (error) {
+      console.error('Failed to complete the normalization process:', error);
+    }
+  }
+  
+  main();
+} 

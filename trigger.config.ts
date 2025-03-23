@@ -19,7 +19,7 @@ export default defineConfig({
       randomize: true,
     },
   },
-  dirs: ["./src/trigger"],
+  dirs: ["./lib/trigger"],
   build: {
     // Add the syncVercelEnvVars build extension
     extensions: [syncVercelEnvVars()],
