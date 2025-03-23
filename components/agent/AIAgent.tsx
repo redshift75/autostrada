@@ -75,7 +75,8 @@ export default function AIAgent({
     
     // Add user message
     const userMessage: Message = { role: 'user', content: query };
-    setMessages(prev => [...prev, userMessage]);
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
     
     // Clear input
     setQuery('');
@@ -87,7 +88,7 @@ export default function AIAgent({
       // Format data for the API
       const formattedData = formatData(data);
 
-      // Send query to API with current context
+      // Send query to API with current context and message history
       const response = await fetch('/api/agent', {
         method: 'POST',
         headers: {
@@ -96,6 +97,7 @@ export default function AIAgent({
         body: JSON.stringify({
           query,
           context: formattedData,
+          messages: updatedMessages, // Include conversation history
         }),
       });
       

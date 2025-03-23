@@ -11,7 +11,7 @@ declare global {
 export async function POST(request: NextRequest) {
   // Log the received context for debugging
   try {
-    const { query, context } = await request.json();
+    const { query, context, messages } = await request.json();
     
     if (!query || typeof query !== 'string') {
       return NextResponse.json(
@@ -26,6 +26,16 @@ export async function POST(request: NextRequest) {
     // Create a prompt that includes the context if provided
     let enhancedQuery = query;
     
+    // Add conversation history if available
+    if (messages && Array.isArray(messages) && messages.length > 1) {
+      const conversationHistory = messages
+        .slice(0, -1) // Exclude the most recent user message (already in the query)
+        .map(msg => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`)
+        .join('\n');
+      
+      enhancedQuery = `Previous conversation:\n${conversationHistory}\n\nCurrent query: ${query}`;
+    }
+    
     // Handle listings context
     if (context?.listings && Array.isArray(context.listings) && context.listings.length > 0) {
       // Store the listings in the global context for the analyze_current_listings tool
@@ -37,7 +47,7 @@ export async function POST(request: NextRequest) {
       }).join('\n');
 
       // Enhance the query with the listings context
-      enhancedQuery = `The user is viewing the following car listings:\n\n${listingsData}\n\nUser query: ${query}`;
+      enhancedQuery = `The user is viewing the following car listings:\n\n${listingsData}\n\n${enhancedQuery}`;
     } else {
       // Clear the global listings if none are provided
       global.currentListings = [];
@@ -102,7 +112,7 @@ export async function POST(request: NextRequest) {
       }).join('\n');
       
       // Enhance the query with the auction results context
-      enhancedQuery = `The user is viewing the following car auction results:\n\n${auctionData}\n\nUser query: ${query}`;
+      enhancedQuery = `The user is viewing the following car auction results:\n\n${auctionData}\n\n${enhancedQuery}`;
     } else {
       // Clear the global auction results if none are provided
       global.currentAuctionResults = [];
