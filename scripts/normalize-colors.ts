@@ -150,7 +150,8 @@ async function processCarColors() {
   let hasMoreData = true;
   let allResults: Array<{listing_id: string, exterior_color: string, normalized_color: string}> = [];
   let batchCount = 0;
-  
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+
   console.log(`Starting to process up to ${maxBatches === Infinity ? 'all' : maxBatches} batches of car colors from Supabase...`);
   
   while (hasMoreData && batchCount < maxBatches) {
@@ -186,7 +187,7 @@ async function processCarColors() {
         console.log(`Processed ${normalizedBatch.length} valid colors in batch ${batchCount}.`);
         
         // Save batch results to a file
-        const batchFileName = path.join(resultsDir, `batch_${batchCount}_normalized_colors.json`);
+        const batchFileName = path.join(resultsDir, `batch_${batchCount}_normalized_colors_${timestamp}.json`);
         fs.writeFileSync(
           batchFileName, 
           JSON.stringify(normalizedBatch, null, 2)
@@ -230,7 +231,7 @@ async function processCarColors() {
   
   // Save all accumulated results to a file
   if (allResults.length > 0) {
-    const allResultsFileName = path.join(resultsDir, 'all_normalized_colors.json');
+    const allResultsFileName = path.join(resultsDir, `all_normalized_colors_${timestamp}.json`);
     fs.writeFileSync(
       allResultsFileName, 
       JSON.stringify(allResults, null, 2)
