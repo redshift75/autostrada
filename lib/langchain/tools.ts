@@ -28,7 +28,7 @@ export const getAuctionResultsTool = () => {
       sold_date_max: z.string().optional().describe("The maximum sold date to filter results"),
       maxPages: z.number().optional().describe("Maximum number of pages to fetch (default: 2)"),
       maxResults: z.number().optional().describe("Maximum number of results to return (default: 10)"),
-      sortBy: z.enum(["high_to_low", "low_to_high", "aggregation_high_to_low", "aggregation_low_to_high"]).optional().describe("Sort direction. Use with sortField to specify how to order results. For aggregation queries, use the aggregation options (default: low_to_high)"),
+      sortBy: z.enum(["high_to_low", "low_to_high", "aggregation_high_to_low", "aggregation_low_to_high"]).optional().describe("Sort direction. Use with sortField to specify how to order results. For aggregation queries, use the aggregation options and default to high_to_low)"),
       sortField: z.string().optional().describe("Field to sort by (e.g., 'sold_price', 'sold_date', 'mileage', 'bidders'). Default is 'sold_date'"),
       status: z.enum(["sold", "unsold", "all"]).optional().describe("What sales result to filter by. Default is all"),
       // New aggregation parameters
@@ -51,7 +51,7 @@ export const getAuctionResultsTool = () => {
       normalized_color,
       maxPages, 
       maxResults = 25, 
-      sortBy = "low_to_high", 
+      sortBy = "high_to_low", 
       sortField = "sold_date",
       status = "all",
       groupBy,
@@ -137,7 +137,7 @@ export const getAuctionResultsTool = () => {
         }
         
         const data = await response.json();
-        
+
         // Handle aggregation results differently
         if (groupBy && aggregation) {
           return JSON.stringify({

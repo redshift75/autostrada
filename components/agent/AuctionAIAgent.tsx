@@ -52,7 +52,7 @@ export default function AuctionAIAgent({ auctionResults, onAIResultsChange }: Au
       
       // Look for JSON array in the response
       const jsonMatch = response.match(/```json\n([\s\S]*?)\n```/);
-      
+
       if (jsonMatch && jsonMatch[1]) {
         const parsedResults = JSON.parse(jsonMatch[1]) as AuctionResult[];
         

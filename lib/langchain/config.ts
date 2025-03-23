@@ -56,7 +56,6 @@ export const createAgentPrompt = () => {
       "• For auction results questions: Use analyze_auction_results with appropriate analysisType." +
       "• For car listings questions: Use analyze_current_listings with appropriate analysisType." +
       "• Always include location and clickable URL when discussing specific listings." +
-      "• Do not include image_url in your response." +
       
       "Analysis types:" +
       "• Value analysis: best_value, best_deal." +

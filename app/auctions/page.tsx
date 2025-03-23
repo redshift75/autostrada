@@ -1098,23 +1098,23 @@ function AuctionsContent() {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mileage</th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {aiResults.map((result, index) => (
                       <tr key={index} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"><img src={result.image_url} alt={result.title} className="w-10 h-10 rounded-md" /></td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{result.title}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{result.sold_price || result.bid_amount}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{result.sold_date}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {result.mileage && <span className="mr-2">{result.mileage.toLocaleString()} mi</span>}
-                          {result.transmission && <span className="mr-2">{result.transmission}</span>}
-                          {result.bidders && <span className="mr-2">{result.bidders} bids</span>}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {result.url && (
