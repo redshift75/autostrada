@@ -1133,7 +1133,7 @@ function AuctionsContent() {
                         <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
                           {result.mileage && <span className="mr-2">{result.mileage.toLocaleString()} mi</span>}
                         </td>
-                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{result.status === 'sold' ? 'Sold' : 'Not Sold'}</td>
+                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{result.sold_price ? 'Sold' : 'Not Sold'}</td>
                       </tr>
                     ))}
                   </tbody>
