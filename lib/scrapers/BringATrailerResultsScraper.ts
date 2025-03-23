@@ -21,7 +21,7 @@ export interface BaTCompletedListing {
   title: string;
   image_url: string;
   sold_price: string;
-  sold_date: string;
+  end_date: string;
   bid_amount: string;
   bid_date: string;
   status: string;
@@ -275,7 +275,7 @@ export class BringATrailerResultsScraper extends BaseBATScraper {
           
           // Extract sold price and date from sold_text
           let soldPrice = '';
-          let soldDate = '';
+          let endDate = '';
           let status = 'unsold';
           let bidAmount = '';
           
@@ -286,12 +286,12 @@ export class BringATrailerResultsScraper extends BaseBATScraper {
             
             if (soldMatch) {
               soldPrice = soldMatch[1].replace(/,/g, '');
-              soldDate = soldMatch[2];
+              endDate = soldMatch[2];
               bidAmount = soldPrice; // For sold items, bid amount equals sold price
               status = 'sold';
             } else if (bidMatch) {
               bidAmount = bidMatch[1].replace(/,/g, '');
-              soldDate = bidMatch[2];
+              endDate = bidMatch[2];
               status = 'unsold';
             }
           }
@@ -339,9 +339,9 @@ export class BringATrailerResultsScraper extends BaseBATScraper {
             title: item.title || '',
             image_url: item.thumbnail_url || '',
             sold_price: soldPrice,
-            sold_date: soldDate,
+            end_date: endDate,
             bid_amount: bidAmount,
-            bid_date: soldDate, // Using sold date as bid date since they're the same in the API
+            bid_date: endDate, // Using end date as bid date since they're the same in the API
             status: status,
             year: itemYear,
             make: itemMake,

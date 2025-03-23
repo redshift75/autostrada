@@ -58,8 +58,8 @@ export async function POST(request: NextRequest) {
       model, 
       yearMin, 
       yearMax, 
-      sold_date_min,
-      sold_date_max,
+      end_date_min,
+      end_date_max,
       sold_price_min,
       sold_price_max,
       maxPages, 
@@ -77,8 +77,8 @@ export async function POST(request: NextRequest) {
       model?: string;
       yearMin?: number;
       yearMax?: number;
-      sold_date_min?: string;
-      sold_date_max?: string;
+      end_date_min?: string;
+      end_date_max?: string;
       sold_price_min?: number;
       sold_price_max?: number;
       maxPages?: number;
@@ -134,12 +134,12 @@ export async function POST(request: NextRequest) {
         query = query.ilike('normalized_color', `%${normalized_color}%`);
       }
 
-      if (sold_date_min) {
-        query = query.gte('sold_date', sold_date_min);
+      if (end_date_min) {
+        query = query.gte('end_date', end_date_min);
       }
 
-      if (sold_date_max) {
-        query = query.lte('sold_date', sold_date_max);
+      if (end_date_max) {
+        query = query.lte('end_date', end_date_max);
       }
 
       if (status) {
@@ -204,7 +204,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Determine sort field and direction
-    const sortField = sortBy || 'sold_date';
+    const sortField = sortBy || 'end_date';
     const ascending = sortOrder === 'asc';
     let results = [];
     let parsedResult: any = null;
@@ -224,7 +224,7 @@ export async function POST(request: NextRequest) {
         query = query.order(sortField, { ascending });
       } else {
         // Default sort
-        query = query.order('sold_date', { ascending: false });
+        query = query.order('end_date', { ascending: false });
       }
       
       if (normalized_color && normalized_color !== 'Any') {
@@ -287,7 +287,7 @@ export async function POST(request: NextRequest) {
           model: item.model,
           sold_price: item.sold_price ? `$${item.sold_price}` : 'Not sold',
           bid_amount: item.bid_amount ? `$${item.bid_amount}` : 'No bids',
-          sold_date: item.sold_date,
+          end_date: item.end_date,
           status: item.status,
           url: item.url,
           mileage: item.mileage,
@@ -298,7 +298,9 @@ export async function POST(request: NextRequest) {
           transmission: item.transmission,
           normalized_color: item.normalized_color
         }));
-        
+      
+        console.log('results', results);
+
         // Create a result object
         parsedResult = {
           query: {
@@ -352,7 +354,7 @@ export async function POST(request: NextRequest) {
           model: item.model,
           sold_price: item.sold_price,
           bid_amount: item.bid_amount,
-          sold_date: item.sold_date,
+          end_date: item.end_date,
           status: item.status,
           url: item.url,
           mileage: item.mileage,
@@ -362,7 +364,7 @@ export async function POST(request: NextRequest) {
           image_url: item.image_url,
           transmission: item.transmission
         }));
-        
+
         // Apply status filter if provided
         if (status !== 'all') {
           if (status === 'sold') {
@@ -436,9 +438,9 @@ export async function POST(request: NextRequest) {
       const ascending = sortOrder === 'asc' ? 1 : -1;
       
       processedResults.sort((a: any, b: any) => {
-        if (sortBy === 'sold_date') {
-          const dateA = new Date(a.sold_date || 0);
-          const dateB = new Date(b.sold_date || 0);
+        if (sortBy === 'end_date') {
+          const dateA = new Date(a.end_date || 0);
+          const dateB = new Date(b.end_date || 0);
           return ascending * (dateA.getTime() - dateB.getTime());
         } else if (sortBy === 'mileage') {
           const mileageA = a.mileage || 0;
@@ -467,7 +469,7 @@ export async function POST(request: NextRequest) {
       results: processedResults,
       source: parsedResult?.source || 'unknown',
       sorting: {
-        sortBy: sortBy || 'sold_date',
+        sortBy: sortBy || 'end_date',
         sortOrder: sortOrder || 'desc'
       },
       filters: {

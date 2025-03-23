@@ -39,7 +39,7 @@ type Deal = {
     recentSales: Array<{
       title: string;
       sold_price?: string;
-      sold_date: string;
+      end_date: string;
       mileage: number;
       url: string;
       image_url?: string;
@@ -439,13 +439,13 @@ export default function DealFinder() {
       let formattedDate: string;
       try {
         // Try to parse and format the date consistently
-        const dateObj = new Date(sale.sold_date);
+        const dateObj = new Date(sale.end_date);
         if (isNaN(dateObj.getTime())) {
           throw new Error('Invalid date');
         }
         formattedDate = dateObj.toISOString().split('T')[0]; // YYYY-MM-DD format
       } catch (error) {
-        console.error(`Invalid date format for ${sale.title}: ${sale.sold_date}`);
+        console.error(`Invalid date format for ${sale.title}: ${sale.end_date}`);
         return null;
       }
   
@@ -980,7 +980,7 @@ export default function DealFinder() {
                                     {formatPrice(sale.sold_price)}
                                   </td>
                                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                                    {new Date(sale.sold_date).toLocaleDateString()}
+                                    {new Date(sale.end_date).toLocaleDateString()}
                                   </td>
                                 </tr>
                               ))}

@@ -51,13 +51,13 @@ export async function generatePriceTimeSeriesChart(
     const validListings = listings.filter(
       listing => (listing.status === 'sold' || listing.status === 'unsold') && 
                 (listing.sold_price || listing.bid_amount) && 
-                listing.sold_date
+                listing.end_date
     );
 
     // Sort by date
     validListings.sort((a, b) => {
-      const dateA = new Date(a.sold_date);
-      const dateB = new Date(b.sold_date);
+      const dateA = new Date(a.end_date);
+      const dateB = new Date(b.end_date);
       return dateA.getTime() - dateB.getTime();
     });
 
@@ -75,7 +75,7 @@ export async function generatePriceTimeSeriesChart(
       }
       
       return {
-        date: listing.sold_date,
+        date: listing.end_date,
         price: parsedPrice,
         title: listing.title,
         url: listing.url,

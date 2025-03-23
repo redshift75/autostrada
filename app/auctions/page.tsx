@@ -24,7 +24,7 @@ type AuctionResult = {
   title: string;
   sold_price: string;
   bid_amount: string;
-  sold_date: string;
+  end_date: string;
   status: string;
   url: string;
   image_url?: string;
@@ -952,9 +952,9 @@ function AuctionsContent() {
                                           </span>
                                         )}
                                       </div>
-                                      {result.sold_date && (
+                                      {result.end_date && (
                                         <p className="text-xs text-gray-500 mt-1">
-                                          {new Date(result.sold_date).toLocaleDateString('en-US', {
+                                          {new Date(result.end_date).toLocaleDateString('en-US', {
                                             month: '2-digit',
                                             day: '2-digit',
                                             year: 'numeric'
@@ -1041,7 +1041,7 @@ function AuctionsContent() {
                     let categoryKey = '';
                     let categoryValue = '';
                     const keys = Object.keys(result);
-                    const ignoredKeys = ['price', 'sold_price', 'bid_amount', 'url', 'images', 'bidders', 'watchers', 'comments', 'mileage', 'status', 'sold_date'];
+                    const ignoredKeys = ['price', 'sold_price', 'bid_amount', 'url', 'images', 'bidders', 'watchers', 'comments', 'mileage', 'status', 'end_date'];
                     
                     // Try to find a good category key (like color, make, model, year, etc.)
                     for (const key of keys) {
@@ -1127,7 +1127,7 @@ function AuctionsContent() {
                           )}
                         </td>
                         <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{result.sold_price || result.bid_amount}</td>
-                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{result.sold_date}</td>
+                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{result.end_date}</td>
                         <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
                           {result.mileage && <span className="mr-2">{result.mileage.toLocaleString()} mi</span>}
                         </td>

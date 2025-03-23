@@ -5,7 +5,7 @@ create table public.bat_completed_auctions (
   title text not null,
   image_url text null,
   sold_price integer null,
-  sold_date timestamp without time zone null,
+  end_date timestamp without time zone null,
   bid_amount integer null,
   bid_date timestamp without time zone null,
   status text null,

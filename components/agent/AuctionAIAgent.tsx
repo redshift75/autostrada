@@ -7,7 +7,7 @@ export type AuctionResult = {
   title: string;
   sold_price: string;
   bid_amount: string;
-  sold_date: string;
+  end_date: string;
   status: string;
   url: string;
   image_url?: string;

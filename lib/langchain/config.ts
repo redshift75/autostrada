@@ -38,14 +38,14 @@ export const createAgentPrompt = () => {
       "• You can call the tool multiple times to get multiple results if needed to answer the question, " +
       "  for example if the user asks about a percentage of sold cars, you can call the tool twice with groupBy set to make: once with status = sold and a second time with status = unsold." +
       "• Use appropriate sorting parameters:" +
-        " - sortField: Specify which field to sort by (e.g., 'sold_price', 'sold_date', 'mileage', 'bidders')." +
+        " - sortField: Specify which field to sort by (e.g., 'sold_price', 'end_date', 'mileage', 'bidders')." +
         " - sortBy: Specify the sort direction:" +
         "   * 'high_to_low': For descending sorts (highest values first)" +
         "   * 'low_to_high': For ascending sorts (lowest values first)" +
         "   * For aggregation queries, use 'aggregation_high_to_low' or 'aggregation_low_to_high'" +
         " - Examples:" +
         "   * For expensive cars first: sortField='sold_price', sortBy='high_to_low'" + 
-        "   * For newest auctions: sortField='sold_date', sortBy='high_to_low'" +
+        "   * For newest auctions: sortField='end_date', sortBy='high_to_low'" +
         "   * For lowest mileage: sortField='mileage', sortBy='low_to_high'" +
         "   * For most popular: sortField='bidders', sortBy='high_to_low'" +
       "• For aggregation queries:" +

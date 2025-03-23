@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
             sold_price: price,
             title: item.title,
             url: item.url,
-            sold_date: item.sold_date
+            end_date: item.end_date
           };
         })
         .filter(item => {
@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
             { field: 'title', title: 'Vehicle', type: 'nominal' },
             { field: 'sold_price', title: 'Price', format: '$,.0f', type: 'quantitative' },
             { field: 'mileage', title: 'Mileage', format: ',.0f', type: 'quantitative' },
-            { field: 'sold_date', title: 'Date', type: 'temporal', format: '%b %d, %Y' }
+            { field: 'end_date', title: 'Date', type: 'temporal', format: '%b %d, %Y' }
           ]
         }
       );

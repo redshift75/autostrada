@@ -56,7 +56,7 @@ export const auctionFormatter: DataFormatter<AuctionResult> = {
           sold_price: result.status === 'sold' ? result.sold_price : null,
           bid_amount: result.status !== 'sold' ? result.bid_amount : null,
           status: result.status,
-          sold_date: result.sold_date || null,
+          end_date: result.end_date || null,
           url: result.url,
           make: result.make || result.title.split(' ')[0] || '',
           model: result.model || result.title.split(' ')[1] || '',

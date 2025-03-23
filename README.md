@@ -129,7 +129,7 @@ The `bat_completed_auctions` table stores data about completed auctions:
 - `title`: Title of the auction listing
 - `image_url`: URL of the main image
 - `sold_price`: Final sale price (if sold)
-- `sold_date`: Date when the auction ended
+- `end_date`: Date when the auction ended
 - `bid_amount`: Highest bid amount
 - `bid_date`: Date of the highest bid
 - `status`: Status of the auction (sold or unsold)

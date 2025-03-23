@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
           result.status === 'sold' ? 
             `Sold Price: ${soldPrice}` : 
             `Bid Amount: ${bidAmount}`
-        }, Status: ${result.status}, Date: ${result.sold_date || 'Not available'}${
+        }, Status: ${result.status}, Date: ${result.end_date || 'Not available'}${
           result.url ? `, URL: ${result.url}` : ''
         }, ${mileage}, ${bidders}, ${comments}, ${watchers}`;
         
