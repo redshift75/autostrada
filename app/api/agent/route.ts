@@ -107,7 +107,6 @@ export async function POST(request: NextRequest) {
         }, Status: ${result.status}, Date: ${result.end_date || 'Not available'}${
           result.url ? `, URL: ${result.url}` : ''
         }, ${mileage}, ${bidders}, ${comments}, ${watchers}`;
-        
         return formattedResult;
       }).join('\n');
       

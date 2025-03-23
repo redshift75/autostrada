@@ -167,7 +167,6 @@ export const getAuctionResultsTool = () => {
           console.log(`Limiting results from ${data.results.length} to ${maxResults}`);
 
           data.results = data.results.slice(0, maxResults);
-          
           // Update the summary to reflect the limited results
           if (data.summary) {
             data.summary = `${data.summary} (showing ${maxResults} of ${data.results.length} results, sorted by ${sortBy})`;

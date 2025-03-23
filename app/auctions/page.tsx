@@ -9,6 +9,7 @@ import VegaChart from '@/components/shared/VegaChart';
 // Import utility functions
 import { formatPrice } from '@/lib/utils/index';
 import { validateVegaLiteSpec } from '@/lib/utils/visualization';
+import { isNumber } from 'util';
 
 // Define types for car data from Supabase
 type CarMake = {
@@ -1103,6 +1104,7 @@ function AuctionsContent() {
                       <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
                       <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                       <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mileage</th>
+                      <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -1131,6 +1133,7 @@ function AuctionsContent() {
                         <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
                           {result.mileage && <span className="mr-2">{result.mileage.toLocaleString()} mi</span>}
                         </td>
+                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{isNumber(result.sold) ? 'Sold' : 'Unsold'}</td>
                       </tr>
                     ))}
                   </tbody>
