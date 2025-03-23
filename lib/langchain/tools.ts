@@ -56,9 +56,8 @@ export const getAuctionResultsTool = () => {
     }) => {
       try {
         // Get the token from session
-        //const { getToken } = await auth()
-        //const token = await getToken()
-        const token = process.env.CLERK_SECRET_KEY
+        const { getToken } = await auth()
+        const token = await getToken()
         console.log(`Fetching auction results for ${make} ${model || 'Any'} (${yearMin || 'any'}-${yearMax || 'any'}), status: ${status}`);
         
         // Map the tool's sort options to the API's sort parameters
