@@ -180,12 +180,6 @@ When querying the database, you can use the following parameters:
 - `yearMax`: The maximum year to filter results
 - `maxResults`: Maximum number of results to return (default: 100)
 - `sortBy`: How to sort the results before limiting them (default: date_newest_first)
-  - `price_high_to_low`: Sort by price from highest to lowest
-  - `price_low_to_high`: Sort by price from lowest to highest
-  - `date_newest_first`: Sort by date with newest first
-  - `date_oldest_first`: Sort by date with oldest first
-  - `mileage_lowest_first`: Sort by mileage from lowest to highest
-  - `mileage_highest_first`: Sort by mileage from highest to lowest
 
 ## Handling Large Result Sets
 
@@ -195,15 +189,6 @@ Example:
 ```
 "What's the highest price ever paid for a Ferrari? Please sort by price from highest to lowest and limit to 20 results."
 ```
-
-## Sorting Results
-
-When asking for specific information like highest prices, lowest mileage, or most recent sales, you should specify how to sort the results. The agent will automatically choose an appropriate sorting method based on your query, but you can also explicitly specify it.
-
-Examples:
-- For highest prices: "Sort by price from highest to lowest"
-- For lowest mileage: "Sort by mileage from lowest to highest"
-- For newest listings: "Sort by date with newest first"
 
 ## Implementation Details
 

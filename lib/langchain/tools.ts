@@ -27,10 +27,9 @@ export const getAuctionResultsTool = () => {
       sold_date_max: z.string().optional().describe("The maximum sold date to filter results"),
       maxPages: z.number().optional().describe("Maximum number of pages to fetch (default: 2)"),
       maxResults: z.number().optional().describe("Maximum number of results to return (default: 10)"),
-      sortBy: z.enum(["price_high_to_low", "price_low_to_high", "date_newest_first", "date_oldest_first",
-        "mileage_lowest_first", "mileage_highest_first", "bidders_highest_first", "bidders_lowest_first", 
-        "aggregation_lowest_first", "aggregation_highest_first"]).optional().describe("How to sort the results before limiting them. When groupBy is specified, always use aggregation_lowest_first or aggregation_highest_first (default: date_newest_first)"),
-      status: z.enum(["sold", "unsold", "all"]).optional().describe("What sales result to filter by (default: all)"),
+      sortBy: z.enum(["high_to_low", "low_to_high", "aggregation_high_to_low", "aggregation_low_to_high"]).optional().describe("Sort direction. Use with sortField to specify how to order results. For aggregation queries, use the aggregation options (default: low_to_high)"),
+      sortField: z.string().optional().describe("Field to sort by (e.g., 'sold_price', 'sold_date', 'mileage', 'bidders'). Default is 'sold_date'"),
+      status: z.enum(["sold", "unsold", "all"]).optional().describe("What sales result to filter by (default: sold)"),
       // New aggregation parameters
       groupBy: z.string().optional().describe("Field to group results by. If provided, enables aggregation mode."),
       aggregation: z.array(z.object({
@@ -49,73 +48,32 @@ export const getAuctionResultsTool = () => {
       normalized_color,
       maxPages, 
       maxResults = 25, 
-      sortBy = "date_newest_first", 
+      sortBy = "low_to_high", 
+      sortField = "sold_date",
       status = "all",
       groupBy,
       aggregation
     }) => {
       try {
         // Get the token from session
-        const { getToken } = await auth()
-        const token = await getToken()
+        //const { getToken } = await auth()
+        //const token = await getToken()
+        const token = process.env.CLERK_SECRET_KEY
         console.log(`Fetching auction results for ${make} ${model || 'Any'} (${yearMin || 'any'}-${yearMax || 'any'}), status: ${status}`);
         
         // Map the tool's sort options to the API's sort parameters
-        let apiSortBy: string = "sold_date";
+        let apiSortBy: string = sortField;
         let apiSortOrder: string = "desc";
         
-        // Only process sort parameters if not in aggregation mode
-        if (!groupBy) {
-          switch (sortBy) {
-            case "price_high_to_low":
-              apiSortBy = "sold_price";
-              apiSortOrder = "desc";
-              break;
-            case "price_low_to_high":
-              apiSortBy = "sold_price";
-              apiSortOrder = "asc";
-              break;
-            case "date_newest_first":
-              apiSortBy = "sold_date";
-              apiSortOrder = "desc";
-              break;
-            case "date_oldest_first":
-              apiSortBy = "sold_date";
-              apiSortOrder = "asc";
-              break;
-            case "mileage_lowest_first":
-              apiSortBy = "mileage";
-              apiSortOrder = "asc";
-              break;
-            case "mileage_highest_first":
-              apiSortBy = "mileage";
-              apiSortOrder = "desc";
-              break;
-            case "bidders_highest_first":
-              apiSortBy = "bidders";
-              apiSortOrder = "desc";
-              break;
-            case "bidders_lowest_first":
-              apiSortBy = "bidders";
-              apiSortOrder = "asc";
-            default:
-              apiSortBy = "sold_date";
-              apiSortOrder = "desc";
-          }
+        // Determine sort order based on sortBy value
+        if (groupBy) {
+          // Aggregation mode
+          apiSortBy = "aggregation";
+          apiSortOrder = sortBy === "aggregation_high_to_low" ? "desc" : "asc";
         } else {
-          switch (sortBy) {
-            case "aggregation_lowest_first":
-              apiSortBy = "aggregation";
-              apiSortOrder = "asc";
-              break;
-            case "aggregation_highest_first":
-              apiSortBy = "aggregation";
-              apiSortOrder = "desc";
-              break;
-            default:
-              apiSortBy = "aggregation";
-              apiSortOrder = "desc";
-          }
+          // Regular mode
+          apiSortBy = sortField;
+          apiSortOrder = sortBy === "high_to_low" ? "desc" : "asc";
         }
         
         // Ensure we have a valid base URL
@@ -123,7 +81,7 @@ export const getAuctionResultsTool = () => {
         const apiUrl = new URL('/api/auction/results', baseUrl).toString();
         
         // Only pass status if it's not 'all'
-        const statusParam = status !== 'all' ? status : undefined;
+        const statusParam = status !== 'all' ? status : 'sold';
 
         // Prepare request body based on whether we're doing aggregation or not
         const body = JSON.stringify(groupBy && aggregation ? {
@@ -193,7 +151,7 @@ export const getAuctionResultsTool = () => {
         // Regular results processing
         if (data.results && data.results.length > 0) {
           // Only filter out non-sold items for price-based sorts
-          if (sortBy === "price_high_to_low" || sortBy === "price_low_to_high") {
+          if (sortBy === "high_to_low" || sortBy === "low_to_high") {
             data.results = data.results.filter((result: any) => result.sold_price !== '');
           }
         }

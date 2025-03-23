@@ -341,7 +341,7 @@ export async function POST(request: NextRequest) {
         }));
         
         // Apply status filter if provided
-        if (status) {
+        if (status !== 'all') {
           if (status === 'sold') {
             results = results.filter(item => item.status === 'sold');
           } else if (status === 'unsold') {

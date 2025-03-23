@@ -32,19 +32,25 @@ export const createAgentPrompt = () => {
       "The tool can be called with groupBy to get summarized results by a specific field. " +
       "Tool usage guidelines:" +
       "• For broad queries, use maxResults=10-20 to limit results." +
+      "• For unsold queries use bid_amount to get the highest bid amount instead of sold_price." +
       "• When queries mention vehicle colors (like red, blue, yellow, etc.), use the normalized_color parameter in your search." +
       "• You can call the tool multiple times to get multiple results if needed to answer the question, " +
       "  for example if the user asks about a percentage of sold cars, you can call the tool twice with groupBy set to make: once with status = sold and a second time with status = unsold." +
-      "• Use appropriate sortBy parameters:" +
-        " - price_high_to_low/price_low_to_high: For price sorting." +
-        " - date_newest_first/date_oldest_first: For date sorting." +  
-        " - mileage_lowest_first/mileage_highest_first: For mileage sorting." +
-        " - bidders_highest_first/bidders_lowest_first: For popularity sorting." +
-        " - aggregation_lowest_first/aggregation_highest_first: For aggregation sorting." +
-        " - when using by aggregation, the sortBy parameter should be set to aggregation." +
-        " - when using by aggregation, the field parameter should be set to the field you want to aggregate by " + 
-           "and only use the following fields: status, make, model, year, normalized_color, transmission" +
-        " - when using by aggregation, only specify a single aggregation function." +
+      "• Use appropriate sorting parameters:" +
+        " - sortField: Specify which field to sort by (e.g., 'sold_price', 'sold_date', 'mileage', 'bidders')." +
+        " - sortBy: Specify the sort direction:" +
+        "   * 'high_to_low': For descending sorts (highest values first)" +
+        "   * 'low_to_high': For ascending sorts (lowest values first)" +
+        "   * For aggregation queries, use 'aggregation_high_to_low' or 'aggregation_low_to_high'" +
+        " - Examples:" +
+        "   * For expensive cars first: sortField='sold_price', sortBy='high_to_low'" + 
+        "   * For newest auctions: sortField='sold_date', sortBy='high_to_low'" +
+        "   * For lowest mileage: sortField='mileage', sortBy='low_to_high'" +
+        "   * For most popular: sortField='bidders', sortBy='high_to_low'" +
+      "• For aggregation queries:" +
+        " - When using aggregation, the sortBy parameter should be set to either 'aggregation_high_to_low' or 'aggregation_low_to_high'" +
+        " - When using aggregation, only use the following fields for groupBy: status, make, model, year, normalized_color, transmission" +
+        " - When using aggregation, only specify a single aggregation function." +
       "For users viewing specific content:" +
       "• For auction results questions: Use analyze_auction_results with appropriate analysisType." +
       "• For car listings questions: Use analyze_current_listings with appropriate analysisType." +
