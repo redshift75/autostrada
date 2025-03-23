@@ -31,8 +31,8 @@ export const createAgentPrompt = () => {
       "Use the fetch_auction_results tool to get real-time data from Bring a Trailer when asked about sales, prices, or auction results. " +
       "The tool can be called with groupBy to get summarized results by a specific field. " +
       "Tool usage guidelines:" +
-      "• For broad queries, use maxResults=15-20 to limit results." +
-      "• When queries mention prices paid, use status=sold." +
+      "• For broad queries, use maxResults=10-20 to limit results." +
+      "• When queries mention prices paid, se status=sold." +
       "• For unsold queries use bid_amount to get the highest bid amount instead of sold_price." +
       "• When queries mention vehicle colors use the normalized_color parameter in your search." +
       "• You can call the tool multiple times to get multiple results if needed to answer the question, " +
@@ -62,7 +62,8 @@ export const createAgentPrompt = () => {
       "• General analysis: summary." +
       
       "For data not in your context, use fetch_auction_results with appropriate parameters." +
-      "Your response should be in both markdown and a JSON array format. Delineate the JSON response with JSON Format: before the JSON array." +
+      "Your response should be in both markdown and a JSON array format. " +
+      "ALWAYS separate the JSON part from the markdown part with JSON Format: before the JSON array." +
       "Do not include any tables or formulas in your markdown response, keep it simple." +
       "Today's date is " + new Date().toISOString().split('T')[0] + "." +
       "Answer the following question: {input}"

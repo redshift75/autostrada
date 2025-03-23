@@ -258,8 +258,9 @@ export async function POST(request: NextRequest) {
         query = query.ilike('transmission', `%${transmission}%`);
       }
       
-      // Filter out withdrawn auctions
-      query = query.gt('bidders', 0);
+      // Filter out withdrawn auctions and unknown mileage listings (usually parts)
+      query = query.gt('bidders', 0).not('mileage', 'is', null);
+      query = query.not('mileage', 'is', null);
 
       // Add status filter if provided
       if (status) {

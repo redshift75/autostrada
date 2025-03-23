@@ -27,8 +27,8 @@ interface AIAgentProps {
  * @returns Formatted content with JSON blocks removed
  */
 const formatAssistantMessage = (content: string): string => {
-  // Remove JSON blocks from display
-  return content.replace(/(?:### JSON Format:\n```json\n)[\s\S]*?\n```/g, '');
+  // Remove everything after the string JSON
+  return content.split('JSON')[0];
 };
 
 /**
