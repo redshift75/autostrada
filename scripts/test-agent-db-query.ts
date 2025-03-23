@@ -32,11 +32,14 @@ async function testDatabaseQuery(specificQuery?: string) {
 
   // Otherwise run all predefined queries
   const queries = [
+    "What is the average price of yellow Ferraris?",
     "What is the average selling price of auctions with more than 50 bidders?",
     "Compare the average selling prices of manual and automatic Ferraris",
     "What are the most popular manual transmission cars sold in this year?",
     "What's the highest price ever paid for a Ferrari?",
     "What Porsche models are most likely to be sold?",
+    "What are the most popular colors for Porsche 911s?",
+    "What are some recent yellow Porsche 911 sales?",
     "What makes have the highest sold percentage?",
     "What makes have the lowest sold percentage?",
     "Which model year Porsche has the lowest sold percentage?",

@@ -179,7 +179,6 @@ When querying the database, you can use the following parameters:
 - `yearMin`: The minimum year to filter results
 - `yearMax`: The maximum year to filter results
 - `maxResults`: Maximum number of results to return (default: 100)
-- `generateVisualizations`: Whether to generate visualizations of the results (default: false)
 - `sortBy`: How to sort the results before limiting them (default: date_newest_first)
   - `price_high_to_low`: Sort by price from highest to lowest
   - `price_low_to_high`: Sort by price from lowest to highest

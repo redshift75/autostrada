@@ -48,9 +48,6 @@ export const auctionFormatter: DataFormatter<AuctionResult> = {
           // Extract numeric value from bid_amount string
           const numericPrice = result.bid_amount.replace(/[^0-9.]/g, '');
           price = numericPrice ? parseFloat(numericPrice) : null;
-        } else if (result.price) {
-          // Use price field if available
-          price = result.price;
         }
         
         return {
@@ -64,6 +61,7 @@ export const auctionFormatter: DataFormatter<AuctionResult> = {
           make: result.make || result.title.split(' ')[0] || '',
           model: result.model || result.title.split(' ')[1] || '',
           mileage: result.mileage || null,
+          normalized_color: result.normalized_color || null,
           bidders: result.bidders || null,
           watchers: result.watchers || null,
           comments: result.comments || null,

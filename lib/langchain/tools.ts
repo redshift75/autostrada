@@ -5,12 +5,17 @@ import { auth } from '@clerk/nextjs/server'
 export const getAuctionResultsTool = () => {
   return new DynamicStructuredTool({
     name: "fetch_auction_results",
-    description: "Fetch and analyze auction results from Bring a Trailer. Can perform both detailed listing queries or aggregation by group. For regular queries, returns detailed auction data. For aggregation queries, returns grouped statistics like counts, averages, and sums. Use aggregation to answer questions about groups of vehicles.",
+    description: "Fetch and analyze auction results from Bring a Trailer. " +
+      "Can perform both detailed listing queries or aggregation by group. " +
+      "For regular queries, returns detailed auction data. " +
+      "For aggregation queries, returns grouped statistics like counts, averages, and sums. " +
+      "Use aggregation to answer questions about groups of vehicles.",
     schema: z.object({
       make: z.string().optional().describe("The manufacturer of the vehicle"),
       model: z.string().optional().describe("The model of the vehicle"),
       yearMin: z.number().optional().describe("The minimum model year"),
       yearMax: z.number().optional().describe("The maximum model year"),
+      normalized_color: z.string().optional().describe("The color of the vehicle"),
       transmission: z.enum(["manual", "automatic", "all"]).optional().describe("The transmission type of the vehicle (default: all)"),
       sold_date_min: z.string().optional().describe("The minimum sold date to filter results"),
       sold_date_max: z.string().optional().describe("The maximum sold date to filter results"),
@@ -34,6 +39,8 @@ export const getAuctionResultsTool = () => {
       yearMax, 
       sold_date_min,
       sold_date_max,
+      transmission,
+      normalized_color,
       maxPages, 
       maxResults = 25, 
       sortBy = "date_newest_first", 
@@ -43,8 +50,9 @@ export const getAuctionResultsTool = () => {
     }) => {
       try {
         // Get the token from session
-        const { getToken } = await auth()
-        const token = await getToken()
+        //const { getToken } = await auth()
+        //const token = await getToken()
+        const token = process.env.CLERK_SECRET_KEY
         console.log(`Fetching auction results for ${make} ${model || 'Any'} (${yearMin || 'any'}-${yearMax || 'any'}), status: ${status}`);
         
         // Map the tool's sort options to the API's sort parameters
@@ -122,6 +130,8 @@ export const getAuctionResultsTool = () => {
           sold_date_min,
           sold_date_max,
           status: statusParam,
+          transmission,
+          normalized_color,
           groupBy,
           aggregation,
           sortBy: apiSortBy,
@@ -134,6 +144,8 @@ export const getAuctionResultsTool = () => {
           yearMax,
           sold_date_min,
           sold_date_max,
+          transmission,
+          normalized_color,
           maxPages: maxPages || 2,
           sortBy: apiSortBy,
           sortOrder: apiSortOrder,

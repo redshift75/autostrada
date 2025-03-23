@@ -13,11 +13,11 @@ export type AuctionResult = {
   make?: string;
   model?: string;
   mileage?: number;
+  normalized_color?: string;
   bidders?: number;
   watchers?: number;
   comments?: number;
   transmission?: string;
-  price?: number;
 };
 
 type AuctionAIAgentProps = {

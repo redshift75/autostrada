@@ -29,11 +29,10 @@ export const createAgentPrompt = () => {
       "The user may be reviewing auction results, car listings, asking about a specific car, or asking about the market in general. " +
       "Listing results will be provided in the context and can include price, mileage, year, exterior and interior color as well as other details. " +
       "Use the fetch_auction_results tool to get real-time data from Bring a Trailer when asked about sales, prices, or auction results. " +
-      "This tool returns comprehensive auction data including: url, title, sold_price, sold_date, bid_amount, " +
-      "bid_date, status, year, make, model, mileage, bidders, watchers, comments, and transmission. " +
       "The tool can be called with groupBy to get summarized results by a specific field. " +
       "Tool usage guidelines:" +
       "• For broad queries, use maxResults=10-20 to limit results." +
+      "• When queries mention vehicle colors (like red, blue, yellow, etc.), use the normalized_color parameter in your search." +
       "• You can call the tool multiple times to get multiple results if needed to answer the question, " +
       "  for example if the user asks about a percentage of sold cars, you can call the tool twice with groupBy set to make: once with status = sold and a second time with status = unsold." +
       "• Use appropriate sortBy parameters:" +
@@ -44,7 +43,7 @@ export const createAgentPrompt = () => {
         " - aggregation_lowest_first/aggregation_highest_first: For aggregation sorting." +
         " - when using by aggregation, the sortBy parameter should be set to aggregation." +
         " - when using by aggregation, the field parameter should be set to the field you want to aggregate by " + 
-           "and only use the following fields: status, make, model, year, price, mileage, bidders, watchers, comments, transmission" +
+           "and only use the following fields: status, make, model, year, normalized_color, transmission" +
         " - when using by aggregation, only specify a single aggregation function." +
       "For users viewing specific content:" +
       "• For auction results questions: Use analyze_auction_results with appropriate analysisType." +
@@ -79,8 +78,7 @@ export const createAgent = async (
 
   return AgentExecutor.fromAgentAndTools({
     agent,
-    tools,
-    verbose: false,
+    tools
   });
 };
 
@@ -100,24 +98,3 @@ export const createRunnableSequence = (
     llm,
   ]);
 };
-
-// Default model configuration
-export const defaultModel = new ChatOpenAI({
-  modelName: "gpt-4o-mini",
-  temperature: 0.2,
-  openAIApiKey: process.env.OPENAI_API_KEY,
-});
-
-// Model for creative tasks (higher temperature)
-export const creativeModel = new ChatOpenAI({
-  modelName: "gpt-4o",
-  temperature: 0.7,
-  openAIApiKey: process.env.OPENAI_API_KEY,
-});
-
-// Model for precise analysis (lower temperature)
-export const analyticalModel = new ChatOpenAI({
-  modelName: "gpt-4o",
-  temperature: 0,
-  openAIApiKey: process.env.OPENAI_API_KEY,
-}); 

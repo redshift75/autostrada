@@ -64,7 +64,8 @@ export async function POST(request: NextRequest) {
       sortBy, 
       sortOrder, 
       status, 
-      transmission, 
+      transmission,
+      normalized_color,
       forceScrape = false,
       // New aggregation parameters
       groupBy,
@@ -81,6 +82,7 @@ export async function POST(request: NextRequest) {
       sortOrder?: 'asc' | 'desc';
       status?: string;
       transmission?: string;
+      normalized_color?: string;
       forceScrape?: boolean;
       groupBy?: string;
       aggregation?: AggregationConfig[];
@@ -116,7 +118,11 @@ export async function POST(request: NextRequest) {
       if (transmission && transmission !== 'Any') {
         query = query.ilike('transmission', `%${transmission}%`);
       }
-      
+
+      if (normalized_color && normalized_color !== 'Any') {
+        query = query.ilike('normalized_color', `%${normalized_color}%`);
+      }
+
       if (sold_date_min) {
         query = query.gte('sold_date', sold_date_min);
       }
@@ -207,6 +213,10 @@ export async function POST(request: NextRequest) {
         query = query.order('sold_date', { ascending: false });
       }
       
+      if (normalized_color && normalized_color !== 'Any') {
+        query = query.ilike('normalized_color', `%${normalized_color}%`);
+      }
+      
       // Add model filter if provided
       if (model && model !== 'Any') {
         query = query.ilike('title', `%${model}%`);
@@ -259,7 +269,8 @@ export async function POST(request: NextRequest) {
           watchers: item.watchers,
           comments: item.comments,
           image_url: item.image_url,
-          transmission: item.transmission
+          transmission: item.transmission,
+          normalized_color: item.normalized_color
         }));
         
         // Create a result object
