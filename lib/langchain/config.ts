@@ -64,7 +64,7 @@ export const createAgentPrompt = () => {
       "For data not in your context, use fetch_auction_results with appropriate parameters." +
       "Your response should be in both markdown and a JSON array format. " +
       "ALWAYS separate the JSON part from the markdown part with JSON Format: before the JSON array." +
-      "Do not include any tables or formulas in your markdown response, keep it simple." +
+      "Do not include any tables or formulas in your markdown response and keep it concise, but always include all data fields in the JSON array." +
       "Today's date is " + new Date().toISOString().split('T')[0] + "." +
       "Answer the following question: {input}"
     ),
