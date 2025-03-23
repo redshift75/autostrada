@@ -34,7 +34,7 @@ export const getAuctionResultsTool = () => {
       // New aggregation parameters
       groupBy: z.string().optional().describe("Field to group results by. If provided, enables aggregation mode."),
       aggregation: z.array(z.object({
-        function: z.enum(["count", "avg", "sum"]).describe("The aggregation function to perform on the field"),
+        function: z.enum(["count", "avg", "sum", "min", "max"]).describe("The aggregation function to perform on the field"),
         field: z.string().describe("The field to perform the aggregation on.")
       })).optional().describe("The aggregation to perform on each groupBy field. Required if groupBy is provided.")
     }),
