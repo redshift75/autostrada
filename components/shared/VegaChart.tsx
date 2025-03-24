@@ -24,6 +24,28 @@ export default function VegaChart({ spec, className, onSignalClick }: VegaChartP
     // Clear any previous errors
     setError(null);
 
+    // Create an IntersectionObserver to check when the chart becomes visible
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach(entry => {
+          // If the chart is visible and we have a pending render
+          if (entry.isIntersecting && viewRef.current?.pendingSpec) {
+            const { pendingSpec, pendingVegaEmbed } = viewRef.current;
+            // Clear pending data
+            viewRef.current = null;
+            // Render the chart
+            renderChart(pendingSpec, pendingVegaEmbed);
+          }
+        });
+      },
+      { threshold: 0.1 } // Trigger when at least 10% of the element is visible
+    );
+
+    // Start observing the container
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
     // Dynamically import vega-embed to avoid SSR issues
     import('vega-embed').then(({ default: vegaEmbed }) => {
       console.log('vega-embed loaded successfully');
@@ -55,6 +77,17 @@ export default function VegaChart({ spec, className, onSignalClick }: VegaChartP
 
     function renderChart(chartSpec: any, vegaEmbed: any) {
       try {
+        // Check if the container is visible and still in the DOM
+        if (!containerRef.current || 
+            containerRef.current.offsetParent === null || 
+            containerRef.current.clientHeight === 0 || 
+            !document.body.contains(containerRef.current)) {
+          console.log('Container is not visible or not in DOM, skipping chart render');
+          // Store the spec for later use when container becomes visible
+          viewRef.current = { pendingSpec: chartSpec, pendingVegaEmbed: vegaEmbed };
+          return;
+        }
+
         // Check if the spec has required Vega-Lite properties
         const specAny = chartSpec as any;
         if (!specAny.mark && !specAny.layer && !specAny.facet && !specAny.hconcat && 
@@ -213,8 +246,16 @@ export default function VegaChart({ spec, className, onSignalClick }: VegaChartP
             }
           }).catch((error: Error) => {
             console.error('Error rendering Vega chart:', error);
-            console.error('Problematic spec:', JSON.stringify(histogramSpec));
-            setError('Error rendering chart');
+            // Check if the component is still mounted and visible before logging the spec
+            if (containerRef.current && 
+                containerRef.current.offsetParent !== null && 
+                containerRef.current.clientHeight > 0 &&
+                document.body.contains(containerRef.current)) {
+              console.error('Problematic spec:', JSON.stringify(histogramSpec));
+              setError('Error rendering chart');
+            } else {
+              console.log('Container no longer visible or mounted, suppressing error');
+            }
           });
         } else {
           // Check if this is a time series chart
@@ -260,8 +301,16 @@ export default function VegaChart({ spec, className, onSignalClick }: VegaChartP
             }
           }).catch((error: Error) => {
             console.error('Error rendering Vega chart:', error);
-            console.error('Problematic spec:', JSON.stringify(responsiveSpec));
-            setError('Error rendering chart');
+            // Check if the component is still mounted and visible before logging the spec
+            if (containerRef.current && 
+                containerRef.current.offsetParent !== null && 
+                containerRef.current.clientHeight > 0 &&
+                document.body.contains(containerRef.current)) {
+              console.error('Problematic spec:', JSON.stringify(responsiveSpec));
+              setError('Error rendering chart');
+            } else {
+              console.log('Container no longer visible or mounted, suppressing error');
+            }
           });
         }
       } catch (error) {
@@ -272,7 +321,12 @@ export default function VegaChart({ spec, className, onSignalClick }: VegaChartP
 
     // Cleanup function
     return () => {
-      if (viewRef.current) {
+      // Clean up the observer when component unmounts
+      if (containerRef.current) {
+        observer.unobserve(containerRef.current);
+      }
+      // Clean up the Vega view if it exists
+      if (viewRef.current && viewRef.current.finalize) {
         viewRef.current.finalize();
       }
       if (containerRef.current) {

@@ -8,8 +8,6 @@ import AuctionAIAgent from '../../components/agent/AuctionAIAgent';
 import VegaChart from '@/components/shared/VegaChart';
 // Import utility functions
 import { formatPrice } from '@/lib/utils/index';
-import { validateVegaLiteSpec } from '@/lib/utils/visualization';
-import { isNumber } from 'util';
 // Import the auction results table
 import { AuctionResultsTable } from '@/components/ui/table/auction-results-table';
 // Import Shadcn UI components
@@ -17,10 +15,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Form, FormSection, FormItem, FormLabel, FormControl } from '@/components/ui/form';
-import { Select, SelectValue, SelectTrigger, SelectContent, SelectItem } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
 
 // Define types for car data from Supabase
 type CarMake = {
@@ -80,6 +82,9 @@ function AuctionsContent() {
   // Add state for makes
   const [makes, setMakes] = useState<string[]>([]);
   const [loadingMakes, setLoadingMakes] = useState(true);
+  
+  // Add state for accordion value
+  const [accordionValue, setAccordionValue] = useState<string>("auction-results");
   
   // Form refs for uncontrolled inputs
   const makeInputRef = useRef<HTMLInputElement>(null);
@@ -362,6 +367,9 @@ function AuctionsContent() {
     // Update form data state
     setFormData(submissionData);
     
+    // Reset accordion to show auction results
+    setAccordionValue("auction-results");
+    
     setLoading(true);
     setLoadingMessage('Checking database for results...');
     setError(null);
@@ -564,6 +572,8 @@ function AuctionsContent() {
     if (results && results.length > 0) {
       setAiResults(results);
       setShowAiResults(true);
+      // Open the AI results accordion when new results arrive
+      setAccordionValue("ai-results");
     }
   };
   
@@ -737,285 +747,385 @@ function AuctionsContent() {
             </CardContent>
           </Card>
         ) : results && results.length > 0 ? (
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <CardTitle>
-                  {currentSearch?.make} {currentSearch?.model} Auction Results
-                  {activeFilter && (
-                    <span className="ml-2 text-sm font-normal text-gray-500">
-                      (Filtered: {formatPrice(activeFilter.min.toString())} - {formatPrice(activeFilter.max.toString())})
-                    </span>
-                  )}
-                </CardTitle>
-              </div>
-              
-              {/* Data Source Indicator */}
-              <div className="mb-4 text-sm text-gray-600">
-                Data source: <span className="font-semibold">{dataSource === 'supabase' ? 'Database' : 'Live Scraper'}</span>
-                {dataSource === 'supabase' && (
-                  <Badge variant="success" className="ml-2 bg-green-100 text-green-800 text-xs px-2 py-1 rounded">Faster response</Badge>
-                )}
-                {dataSource === 'scraper' && (
-                  <Badge variant="warning" className="ml-2 bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">Fresh data</Badge>
-                )}
-              </div>
-              
-              {summary && (
-                <Card className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
-                  <CardHeader className="px-0 pt-0">
-                    <CardTitle className="text-xl font-semibold">Market Summary</CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                      <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md">
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Total Results</p>
-                        <p className="text-2xl font-bold">{summary.totalResults}</p>
-                      </div>
-                      <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md">
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Average Sold Price</p>
-                        <p className="text-2xl font-bold">{formatPrice(summary.averageSoldPrice)}</p>
-                      </div>
-                      <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md">
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Highest Sold Price</p>
-                        <p className="text-2xl font-bold">{formatPrice(summary.highestSoldPrice)}</p>
-                      </div>                    
-                      <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md">
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Avg Mileage</p>
-                        <p className="text-2xl font-bold">{summary.averageMileage}</p>
-                      </div>
-                      <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md">
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Sold Percentage</p>
-                        <p className="text-2xl font-bold">{summary.soldPercentage}</p>
-                      </div>
+          <Accordion 
+            type="single" 
+            collapsible 
+            className="w-full"
+            value={accordionValue}
+            onValueChange={setAccordionValue}
+          >
+            <AccordionItem value="auction-results">
+              <AccordionTrigger className="text-xl font-semibold">
+                Auction Results
+              </AccordionTrigger>
+              <AccordionContent>
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex justify-between items-center mb-4">
+                      <CardTitle>
+                        {currentSearch?.make} {currentSearch?.model} Auction Results
+                        {activeFilter && (
+                          <span className="ml-2 text-sm font-normal text-gray-500">
+                            (Filtered: {formatPrice(activeFilter.min.toString())} - {formatPrice(activeFilter.max.toString())})
+                          </span>
+                        )}
+                      </CardTitle>
                     </div>
-                  </CardContent>
-                </Card>
-              )}
-              
-              {/* Restructured layout with side-by-side charts and results */}
-              <div className="flex flex-col lg:flex-row gap-6">
-                {/* Charts section */}
-                <div className="lg:w-2/3 flex-shrink-0 overflow-hidden">
-                  {visualizations ? (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4">
-                      <div className="lg:col-span-2">
-                        {(filteredVisualizations?.timeSeriesChart || visualizations.timeSeriesChart) ? (
-                          <div className="bg-gray-50 p-4 rounded-md">
-                            <h3 className="text-lg font-semibold mb-2">
-                              Price Trends
-                              <span className="ml-2 text-sm font-normal text-gray-500">
-                                (Click to view listing)
-                              </span>
-                            </h3>
-                            <div className="w-full" style={{ maxWidth: '100%', minHeight: '400px' }}>
-                              <VegaChart 
-                                spec={filteredVisualizations?.timeSeriesChart || visualizations.timeSeriesChart!} 
-                                className="w-full h-auto"
-                                onSignalClick={handleTimeSeriesClick}
-                              />
+                    
+                    {/* Data Source Indicator */}
+                    <div className="mb-4 text-sm text-gray-600">
+                      Data source: <span className="font-semibold">{dataSource === 'supabase' ? 'Database' : 'Live Scraper'}</span>
+                      {dataSource === 'supabase' && (
+                        <Badge variant="success" className="ml-2 bg-green-100 text-green-800 text-xs px-2 py-1 rounded">Faster response</Badge>
+                      )}
+                      {dataSource === 'scraper' && (
+                        <Badge variant="warning" className="ml-2 bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">Fresh data</Badge>
+                      )}
+                    </div>
+                    
+                    {summary && (
+                      <Card className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
+                        <CardHeader className="px-0 pt-0">
+                          <CardTitle className="text-xl font-semibold">Market Summary</CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                            <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md">
+                              <p className="text-sm text-gray-500 dark:text-gray-400">Total Results</p>
+                              <p className="text-2xl font-bold">{summary.totalResults}</p>
+                            </div>
+                            <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md">
+                              <p className="text-sm text-gray-500 dark:text-gray-400">Average Sold Price</p>
+                              <p className="text-2xl font-bold">{formatPrice(summary.averageSoldPrice)}</p>
+                            </div>
+                            <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md">
+                              <p className="text-sm text-gray-500 dark:text-gray-400">Highest Sold Price</p>
+                              <p className="text-2xl font-bold">{formatPrice(summary.highestSoldPrice)}</p>
+                            </div>                    
+                            <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md">
+                              <p className="text-sm text-gray-500 dark:text-gray-400">Avg Mileage</p>
+                              <p className="text-2xl font-bold">{summary.averageMileage}</p>
+                            </div>
+                            <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md">
+                              <p className="text-sm text-gray-500 dark:text-gray-400">Sold Percentage</p>
+                              <p className="text-2xl font-bold">{summary.soldPercentage}</p>
                             </div>
                           </div>
-                        ) : (
-                          <div className="bg-gray-50 p-4 rounded-md">
-                            <h3 className="text-lg font-semibold mb-2">Price Trends</h3>
-                            <div className="w-full flex items-center justify-center" style={{ minHeight: '200px' }}>
-                              <div className="text-center p-6">
-                                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                </svg>
-                                <h3 className="mt-2 text-sm font-medium text-gray-900">No price trend data available</h3>
-                                <p className="mt-1 text-sm text-gray-500">
-                                  We couldn't generate a price trend chart for this search. This may be because there are too few results or the data is inconsistent.
-                                </p>
+                        </CardContent>
+                      </Card>
+                    )}
+                    
+                    {/* Restructured layout with side-by-side charts and results */}
+                    <div className="flex flex-col lg:flex-row gap-6">
+                      {/* Charts section */}
+                      <div className="lg:w-2/3 flex-shrink-0 overflow-hidden">
+                        {visualizations ? (
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4">
+                            <div className="lg:col-span-2">
+                              {(filteredVisualizations?.timeSeriesChart || visualizations.timeSeriesChart) ? (
+                                <div className="bg-gray-50 p-4 rounded-md">
+                                  <h3 className="text-lg font-semibold mb-2">
+                                    Price Trends
+                                    <span className="ml-2 text-sm font-normal text-gray-500">
+                                      (Click to view listing)
+                                    </span>
+                                  </h3>
+                                  <div className="w-full" style={{ maxWidth: '100%', minHeight: '400px' }}>
+                                    <VegaChart 
+                                      spec={filteredVisualizations?.timeSeriesChart || visualizations.timeSeriesChart!} 
+                                      className="w-full h-auto"
+                                      onSignalClick={handleTimeSeriesClick}
+                                    />
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="bg-gray-50 p-4 rounded-md">
+                                  <h3 className="text-lg font-semibold mb-2">Price Trends</h3>
+                                  <div className="w-full flex items-center justify-center" style={{ minHeight: '200px' }}>
+                                    <div className="text-center p-6">
+                                      <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                      </svg>
+                                      <h3 className="mt-2 text-sm font-medium text-gray-900">No price trend data available</h3>
+                                      <p className="mt-1 text-sm text-gray-500">
+                                        We couldn't generate a price trend chart for this search. This may be because there are too few results or the data is inconsistent.
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                            
+                            {visualizations.priceHistogram ? (
+                              <div className="bg-gray-50 p-4 rounded-md">
+                                <div className="flex justify-between items-center mb-2">
+                                  <h3 className="text-lg font-semibold">
+                                    Price Distribution
+                                    <span className="ml-2 text-sm font-normal text-gray-500">
+                                      (Click to filter)
+                                    </span>
+                                  </h3>
+                                  {activeFilter && (
+                                    <button
+                                      onClick={clearFilters}
+                                      className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md text-sm transition duration-200"
+                                    >
+                                      Clear
+                                    </button>
+                                  )}
+                                </div>
+                                <div className="w-full" style={{ maxWidth: '100%', minHeight: '300px' }}>
+                                  <VegaChart 
+                                    spec={visualizations.priceHistogram} 
+                                    className="w-full h-auto"
+                                    onSignalClick={handleHistogramClick}
+                                  />
+                                </div>
                               </div>
+                            ) : (
+                              <div className="bg-gray-50 p-4 rounded-md">
+                                <h3 className="text-lg font-semibold mb-2">Price Distribution</h3>
+                                <div className="w-full flex items-center justify-center" style={{ minHeight: '200px' }}>
+                                  <div className="text-center p-6">
+                                    <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                    </svg>
+                                    <h3 className="mt-2 text-sm font-medium text-gray-900">No price distribution data available</h3>
+                                    <p className="mt-1 text-sm text-gray-500">
+                                      We couldn't generate a price distribution chart for this search. This may be because there are too few results or the data is inconsistent.
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {visualizations.priceMileageScatter ? (
+                              <div className="bg-gray-50 p-4 rounded-md">
+                                <div className="flex justify-between items-center mb-2">
+                                  <h3 className="text-lg font-semibold">
+                                    Price vs Mileage
+                                    <span className="ml-2 text-sm font-normal text-gray-500">
+                                      (Click on a point to view listing)
+                                    </span>
+                                  </h3>
+                                </div>
+                                <div className="w-full" style={{ maxWidth: '100%', minHeight: '300px' }}>
+                                  <VegaChart 
+                                    spec={filteredVisualizations?.priceMileageScatter || visualizations.priceMileageScatter} 
+                                    className="w-full h-auto"
+                                    onSignalClick={handleTimeSeriesClick}
+                                  />
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="bg-gray-50 p-4 rounded-md">
+                                <h3 className="text-lg font-semibold mb-2">Price vs Mileage</h3>
+                                <div className="w-full flex items-center justify-center" style={{ minHeight: '200px' }}>
+                                  <div className="text-center p-6">
+                                    <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                    </svg>
+                                    <h3 className="mt-2 text-sm font-medium text-gray-900">No mileage data available</h3>
+                                    <p className="mt-1 text-sm text-gray-500">
+                                      We couldn't generate a price vs mileage chart for this search. This may be because mileage data is missing or inconsistent.
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="bg-gray-50 p-6 rounded-md">
+                            <div className="text-center">
+                              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                              <h3 className="mt-2 text-sm font-medium text-gray-900">No visualizations available</h3>
+                              <p className="mt-1 text-sm text-gray-500">
+                                We couldn't generate visualizations for this search. This may be because there are no results matching your criteria.
+                              </p>
+                              <p className="mt-2 text-sm text-gray-500">
+                                Try adjusting your search parameters or selecting a different make/model.
+                              </p>
                             </div>
                           </div>
                         )}
                       </div>
                       
-                      {visualizations.priceHistogram ? (
-                        <div className="bg-gray-50 p-4 rounded-md">
-                          <div className="flex justify-between items-center mb-2">
-                            <h3 className="text-lg font-semibold">
-                              Price Distribution
-                              <span className="ml-2 text-sm font-normal text-gray-500">
-                                (Click to filter)
-                              </span>
+                      {/* Scrollable side panel for results */}
+                      <div className="lg:w-1/3 flex-shrink-0">
+                        <div className="bg-white rounded-lg border border-gray-200 h-full">
+                          <div className="p-4 border-b border-gray-200">
+                            <h3 className="text-xl font-semibold">
+                              Recent Results
+                              {activeFilter && (
+                                <span className="ml-2 text-sm font-normal text-gray-500">
+                                  ({filteredResults.length} of {results.length})
+                                </span>
+                              )}
                             </h3>
-                            {activeFilter && (
-                              <button
-                                onClick={clearFilters}
-                                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md text-sm transition duration-200"
-                              >
-                                Clear
-                              </button>
+                          </div>
+                          <div className="overflow-y-auto" style={{ maxHeight: "calc(115vh)" }}>
+                            {(activeFilter ? filteredResults : results).length === 0 ? (
+                              <p className="text-gray-500 p-4">No results found.</p>
+                            ) : (
+                              <div className="p-4 space-y-4">
+                                {(activeFilter ? filteredResults : results).map((result, index) => {
+                                  // Extract make and model from the title if not provided
+                                  const titleParts = result.title.split(' ');
+                                  const make = result.make || titleParts[0];
+                                  const model = result.model || titleParts[1];
+                                  
+                                  return (
+                                    <div key={index} className="border rounded-lg overflow-hidden bg-gray-50 hover:shadow-md transition-shadow duration-200">
+                                      <div className="p-4">
+                                        <div className="flex items-start space-x-4">
+                                          <div className="flex-shrink-0 w-20 h-20 bg-gray-200 rounded-md overflow-hidden">
+                                            <img 
+                                              src={result.image_url || result.images?.small?.url || '/placeholder-car.jpg'} 
+                                              alt={result.title}
+                                              className="w-full h-full object-cover"
+                                            />
+                                          </div>
+                                          <div className="flex-1 min-w-0">
+                                            <h3 className="font-medium text-sm truncate" title={result.title}>
+                                              {result.title}
+                                            </h3>
+                                            <div className="flex items-center mt-1">
+                                              <span className={`text-sm font-semibold ${result.status === 'sold' ? 'text-green-600' : 'text-red-600'}`}>
+                                                {result.status === 'sold' ? formatPrice(result.sold_price) : formatPrice(result.bid_amount)}
+                                              </span>
+                                              <span className="text-xs px-2 py-0.5 rounded-full">
+                                                {result.mileage ? `${result.mileage.toLocaleString()}mi` : ''}
+                                              </span>
+                    
+                                              {result.bidders && (
+                                                <span className="text-xs px-2 py-0.5 ml-1 bg-blue-100 text-blue-800 rounded-full">
+                                                  {result.bidders} {result.bidders === 1 ? 'bid' : 'bids'}
+                                                </span>
+                                              )}
+                                            </div>
+                                            {result.end_date && (
+                                              <p className="text-xs text-gray-500 mt-1">
+                                                {new Date(result.end_date).toLocaleDateString('en-US', {
+                                                  month: '2-digit',
+                                                  day: '2-digit',
+                                                  year: 'numeric'
+                                                })}
+                                              </p>
+                                            )}
+                                            <div className="flex items-center mt-1 space-x-2">
+                                              <a 
+                                                href={result.url} 
+                                                target="_blank" 
+                                                rel="noopener noreferrer"
+                                                className="text-xs text-blue-600 hover:underline inline-block"
+                                              >
+                                                View Original
+                                              </a>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
                             )}
                           </div>
-                          <div className="w-full" style={{ maxWidth: '100%', minHeight: '300px' }}>
-                            <VegaChart 
-                              spec={visualizations.priceHistogram} 
-                              className="w-full h-auto"
-                              onSignalClick={handleHistogramClick}
-                            />
-                          </div>
                         </div>
-                      ) : (
-                        <div className="bg-gray-50 p-4 rounded-md">
-                          <h3 className="text-lg font-semibold mb-2">Price Distribution</h3>
-                          <div className="w-full flex items-center justify-center" style={{ minHeight: '200px' }}>
-                            <div className="text-center p-6">
-                              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                              </svg>
-                              <h3 className="mt-2 text-sm font-medium text-gray-900">No price distribution data available</h3>
-                              <p className="mt-1 text-sm text-gray-500">
-                                We couldn't generate a price distribution chart for this search. This may be because there are too few results or the data is inconsistent.
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {visualizations.priceMileageScatter ? (
-                        <div className="bg-gray-50 p-4 rounded-md">
-                          <div className="flex justify-between items-center mb-2">
-                            <h3 className="text-lg font-semibold">
-                              Price vs Mileage
-                              <span className="ml-2 text-sm font-normal text-gray-500">
-                                (Click on a point to view listing)
-                              </span>
-                            </h3>
-                          </div>
-                          <div className="w-full" style={{ maxWidth: '100%', minHeight: '300px' }}>
-                            <VegaChart 
-                              spec={filteredVisualizations?.priceMileageScatter || visualizations.priceMileageScatter} 
-                              className="w-full h-auto"
-                              onSignalClick={handleTimeSeriesClick}
-                            />
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="bg-gray-50 p-4 rounded-md">
-                          <h3 className="text-lg font-semibold mb-2">Price vs Mileage</h3>
-                          <div className="w-full flex items-center justify-center" style={{ minHeight: '200px' }}>
-                            <div className="text-center p-6">
-                              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                              </svg>
-                              <h3 className="mt-2 text-sm font-medium text-gray-900">No mileage data available</h3>
-                              <p className="mt-1 text-sm text-gray-500">
-                                We couldn't generate a price vs mileage chart for this search. This may be because mileage data is missing or inconsistent.
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="bg-gray-50 p-6 rounded-md">
-                      <div className="text-center">
-                        <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        <h3 className="mt-2 text-sm font-medium text-gray-900">No visualizations available</h3>
-                        <p className="mt-1 text-sm text-gray-500">
-                          We couldn't generate visualizations for this search. This may be because there are no results matching your criteria.
-                        </p>
-                        <p className="mt-2 text-sm text-gray-500">
-                          Try adjusting your search parameters or selecting a different make/model.
-                        </p>
                       </div>
                     </div>
-                  )}
-                </div>
-                
-                {/* Scrollable side panel for results */}
-                <div className="lg:w-1/3 flex-shrink-0">
-                  <div className="bg-white rounded-lg border border-gray-200 h-full">
-                    <div className="p-4 border-b border-gray-200">
-                      <h3 className="text-xl font-semibold">
-                        Recent Results
-                        {activeFilter && (
-                          <span className="ml-2 text-sm font-normal text-gray-500">
-                            ({filteredResults.length} of {results.length})
-                          </span>
-                        )}
-                      </h3>
-                    </div>
-                    <div className="overflow-y-auto" style={{ maxHeight: "calc(115vh)" }}>
-                      {(activeFilter ? filteredResults : results).length === 0 ? (
-                        <p className="text-gray-500 p-4">No results found.</p>
-                      ) : (
-                        <div className="p-4 space-y-4">
-                          {(activeFilter ? filteredResults : results).map((result, index) => {
-                            // Extract make and model from the title if not provided
-                            const titleParts = result.title.split(' ');
-                            const make = result.make || titleParts[0];
-                            const model = result.model || titleParts[1];
-                            
-                            return (
-                              <div key={index} className="border rounded-lg overflow-hidden bg-gray-50 hover:shadow-md transition-shadow duration-200">
-                                <div className="p-4">
-                                  <div className="flex items-start space-x-4">
-                                    <div className="flex-shrink-0 w-20 h-20 bg-gray-200 rounded-md overflow-hidden">
-                                      <img 
-                                        src={result.image_url || result.images?.small?.url || '/placeholder-car.jpg'} 
-                                        alt={result.title}
-                                        className="w-full h-full object-cover"
-                                      />
+                  </CardContent>
+                </Card>
+              </AccordionContent>
+            </AccordionItem>
+
+            {/* Display AI Results if they exist and showAiResults is true */}
+            {showAiResults && aiResults.length > 0 && (
+              <AccordionItem value="ai-results">
+                <AccordionTrigger className="text-xl font-semibold">
+                  AI Analysis Results
+                </AccordionTrigger>
+                <AccordionContent>
+                  <Card>
+                    <CardContent className="p-6">
+                      {isAggregateData(aiResults) ? (
+                        // Display for aggregate/summary data
+                        <div className="bg-gray-50 rounded-lg p-4">
+                          <h3 className="text-lg font-medium mb-3">Data Summary</h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {aiResults.map((result, index) => {
+                              // Find the first property that could be a category identifier 
+                              // (excluding price, counts and metadata fields)
+                              let categoryKey = '';
+                              let categoryValue = '';
+                              const keys = Object.keys(result);
+                              const ignoredKeys = ['price', 'sold_price', 'bid_amount', 'url', 'images', 'bidders', 'watchers', 'comments', 'mileage', 'end_date'];
+                              
+                              // Try to find a good category key (like color, make, model, year, etc.)
+                              for (const key of keys) {
+                                if (!ignoredKeys.includes(key) && result[key] !== undefined && result[key] !== null) {
+                                  categoryKey = key;
+                                  categoryValue = String(result[key]);
+                                  break;
+                                }
+                              }
+                              
+                              // Use category value if available, otherwise fallback to title/make or generic category
+                              const cardTitle = categoryValue || result.title || result.make || `Category ${index + 1}`;
+                              const cardValue = result.sold_price || result.bid_amount || (result.price ? `${result.price.toLocaleString()}` : '');
+                              
+                              return (
+                                <Card key={index} className="bg-white">
+                                  <CardHeader className="p-4 pb-2">
+                                    <CardTitle className="text-md">{cardTitle}</CardTitle>
+                                    {cardValue && <p className="text-xl font-bold">{cardValue}</p>}
+                                  </CardHeader>
+                                  
+                                  <CardContent className="p-4 pt-0">
+                                    {/* Display any additional fields that might be present */}
+                                    <div className="text-sm text-gray-600">
+                                      {Object.entries(result).map(([key, val]) => {
+                                        // Skip already displayed fields, the category key we used for the title, and empty values
+                                        if (['title', 'make', 'sold_price', 'bid_amount', 'price', 'url', 'images'].includes(key) || 
+                                            key === categoryKey || !val) return null;
+                                        
+                                        // Handle different value types
+                                        let displayValue: React.ReactNode;
+                                        if (typeof val === 'object') {
+                                          // For complex objects, display a simplified representation
+                                          displayValue = JSON.stringify(val).substring(0, 30) + '...';
+                                        } else if (typeof val === 'number') {
+                                          displayValue = val.toLocaleString();
+                                        } else {
+                                          displayValue = String(val);
+                                        }
+                                        
+                                        return (
+                                          <div key={key} className="flex justify-between items-center mt-1">
+                                            <span className="capitalize">{key.replace(/_/g, ' ')}:</span>
+                                            <span className="font-medium">{displayValue}</span>
+                                          </div>
+                                        );
+                                      })}
                                     </div>
-                                    <div className="flex-1 min-w-0">
-                                      <h3 className="font-medium text-sm truncate" title={result.title}>
-                                        {result.title}
-                                      </h3>
-                                      <div className="flex items-center mt-1">
-                                        <span className={`text-sm font-semibold ${result.status === 'sold' ? 'text-green-600' : 'text-red-600'}`}>
-                                          {result.status === 'sold' ? formatPrice(result.sold_price) : formatPrice(result.bid_amount)}
-                                        </span>
-                                        <span className="text-xs px-2 py-0.5 rounded-full">
-                                          {result.mileage ? `${result.mileage.toLocaleString()}mi` : ''}
-                                        </span>
-                    
-                                        {result.bidders && (
-                                          <span className="text-xs px-2 py-0.5 ml-1 bg-blue-100 text-blue-800 rounded-full">
-                                            {result.bidders} {result.bidders === 1 ? 'bid' : 'bids'}
-                                          </span>
-                                        )}
-                                      </div>
-                                      {result.end_date && (
-                                        <p className="text-xs text-gray-500 mt-1">
-                                          {new Date(result.end_date).toLocaleDateString('en-US', {
-                                            month: '2-digit',
-                                            day: '2-digit',
-                                            year: 'numeric'
-                                          })}
-                                        </p>
-                                      )}
-                                      <div className="flex items-center mt-1 space-x-2">
-                                        <a 
-                                          href={result.url} 
-                                          target="_blank" 
-                                          rel="noopener noreferrer"
-                                          className="text-xs text-blue-600 hover:underline inline-block"
-                                        >
-                                          View Original
-                                        </a>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
+                                  </CardContent>
+                                </Card>
+                              );
+                            })}
+                          </div>
                         </div>
+                      ) : (
+                        // Use the sortable table component for individual auction listings
+                        <AuctionResultsTable results={aiResults} />
                       )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                    </CardContent>
+                  </Card>
+                </AccordionContent>
+              </AccordionItem>
+            )}
+          </Accordion>
         ) : !currentSearch ? (
           <Card className="text-center py-12">
             <CardContent>
@@ -1043,101 +1153,6 @@ function AuctionsContent() {
                   </ul>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        )}
-        
-        {/* Display AI Results if they exist and showAiResults is true */}
-        {showAiResults && aiResults.length > 0 && (
-          <Card className="mt-8">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <div>
-                <CardTitle>AI Analysis Results</CardTitle>
-                <CardDescription>Results generated by the AI assistant</CardDescription>
-              </div>
-              <Button 
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0"
-                onClick={() => setShowAiResults(false)}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-              </Button>
-            </CardHeader>
-            
-            <CardContent>
-              {isAggregateData(aiResults) ? (
-                // Display for aggregate/summary data
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="text-lg font-medium mb-3">Data Summary</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {aiResults.map((result, index) => {
-                      // Find the first property that could be a category identifier 
-                      // (excluding price, counts and metadata fields)
-                      let categoryKey = '';
-                      let categoryValue = '';
-                      const keys = Object.keys(result);
-                      const ignoredKeys = ['price', 'sold_price', 'bid_amount', 'url', 'images', 'bidders', 'watchers', 'comments', 'mileage', 'end_date'];
-                      
-                      // Try to find a good category key (like color, make, model, year, etc.)
-                      for (const key of keys) {
-                        if (!ignoredKeys.includes(key) && result[key] !== undefined && result[key] !== null) {
-                          categoryKey = key;
-                          categoryValue = String(result[key]);
-                          break;
-                        }
-                      }
-                      
-                      // Use category value if available, otherwise fallback to title/make or generic category
-                      const cardTitle = categoryValue || result.title || result.make || `Category ${index + 1}`;
-                      const cardValue = result.sold_price || result.bid_amount || (result.price ? `${result.price.toLocaleString()}` : '');
-                      
-                      return (
-                        <Card key={index} className="bg-white">
-                          <CardHeader className="p-4 pb-2">
-                            <CardTitle className="text-md">{cardTitle}</CardTitle>
-                            {cardValue && <p className="text-xl font-bold">{cardValue}</p>}
-                          </CardHeader>
-                          
-                          <CardContent className="p-4 pt-0">
-                            {/* Display any additional fields that might be present */}
-                            <div className="text-sm text-gray-600">
-                              {Object.entries(result).map(([key, val]) => {
-                                // Skip already displayed fields, the category key we used for the title, and empty values
-                                if (['title', 'make', 'sold_price', 'bid_amount', 'price', 'url', 'images'].includes(key) || 
-                                    key === categoryKey || !val) return null;
-                                
-                                // Handle different value types
-                                let displayValue: React.ReactNode;
-                                if (typeof val === 'object') {
-                                  // For complex objects, display a simplified representation
-                                  displayValue = JSON.stringify(val).substring(0, 30) + '...';
-                                } else if (typeof val === 'number') {
-                                  displayValue = val.toLocaleString();
-                                } else {
-                                  displayValue = String(val);
-                                }
-                                
-                                return (
-                                  <div key={key} className="flex justify-between items-center mt-1">
-                                    <span className="capitalize">{key.replace(/_/g, ' ')}:</span>
-                                    <span className="font-medium">{displayValue}</span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
-                  </div>
-                </div>
-              ) : (
-                // Use the sortable table component for individual auction listings
-                <AuctionResultsTable results={aiResults} />
-              )}
             </CardContent>
           </Card>
         )}
