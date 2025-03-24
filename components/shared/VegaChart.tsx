@@ -48,8 +48,6 @@ export default function VegaChart({ spec, className, onSignalClick }: VegaChartP
 
     // Dynamically import vega-embed to avoid SSR issues
     import('vega-embed').then(({ default: vegaEmbed }) => {
-      console.log('vega-embed loaded successfully');
-      
       try {
         // Ensure we're working with a proper Vega-Lite specification
         if (typeof spec === 'string') {
@@ -82,7 +80,6 @@ export default function VegaChart({ spec, className, onSignalClick }: VegaChartP
             containerRef.current.offsetParent === null || 
             containerRef.current.clientHeight === 0 || 
             !document.body.contains(containerRef.current)) {
-          console.log('Container is not visible or not in DOM, skipping chart render');
           // Store the spec for later use when container becomes visible
           viewRef.current = { pendingSpec: chartSpec, pendingVegaEmbed: vegaEmbed };
           return;
@@ -244,7 +241,6 @@ export default function VegaChart({ spec, className, onSignalClick }: VegaChartP
             if (onSignalClick) {
               result.view.addEventListener('click', (event: any, item: any) => {
                 if (item && item.datum) {
-                  console.log('Chart click event:', item.datum);
                   
                   // Normalize the data format for consistent handling in parent components
                   let normalizedData = item.datum;
@@ -312,14 +308,12 @@ export default function VegaChart({ spec, className, onSignalClick }: VegaChartP
                     }
                   }
                   
-                  console.log('Normalized click data:', normalizedData);
                   onSignalClick('barClick', normalizedData);
                 }
               });
               
               // Add double-click event listener to clear filters
               result.view.addEventListener('dblclick', () => {
-                console.log('Chart double-click event detected');
                 onSignalClick('clearFilters', null);
               });
             }
