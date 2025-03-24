@@ -992,11 +992,6 @@ function AuctionsContent() {
                                                 {result.mileage ? `${result.mileage.toLocaleString()}mi` : ''}
                                               </span>
                     
-                                              {result.bidders && (
-                                                <span className="text-xs px-2 py-0.5 ml-1 bg-blue-100 text-blue-800 rounded-full">
-                                                  {result.bidders} {result.bidders === 1 ? 'bid' : 'bids'}
-                                                </span>
-                                              )}
                                             </div>
                                             {result.end_date && (
                                               <p className="text-xs text-gray-500 mt-1">
@@ -1005,8 +1000,14 @@ function AuctionsContent() {
                                                   day: '2-digit',
                                                   year: 'numeric'
                                                 })}
+                                                {result.bidders && (
+                                                <span className="text-xs px-2 py-1 ml-1 bg-blue-100 text-blue-800 rounded-full">
+                                                  {result.bidders} {result.bidders === 1 ? 'bid' : 'bids'}
+                                                </span>
+                                              )}
                                               </p>
                                             )}
+                                            
                                             <div className="flex items-center mt-1 space-x-2">
                                               <a 
                                                 href={result.url} 
@@ -1048,65 +1049,72 @@ function AuctionsContent() {
                         <div className="bg-gray-50 rounded-lg p-4">
                           <h3 className="text-lg font-medium mb-3">Data Summary</h3>
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {aiResults.map((result, index) => {
-                              // Find the first property that could be a category identifier 
-                              // (excluding price, counts and metadata fields)
-                              let categoryKey = '';
-                              let categoryValue = '';
-                              const keys = Object.keys(result);
-                              const ignoredKeys = ['price', 'sold_price', 'bid_amount', 'url', 'images', 'bidders', 'watchers', 'comments', 'mileage', 'end_date'];
-                              
-                              // Try to find a good category key (like color, make, model, year, etc.)
-                              for (const key of keys) {
-                                if (!ignoredKeys.includes(key) && result[key] !== undefined && result[key] !== null) {
-                                  categoryKey = key;
-                                  categoryValue = String(result[key]);
-                                  break;
+                            {aiResults
+                              .filter((result: AuctionResult) => {
+                                // Ensure the first key value is not null
+                                const firstKey = Object.keys(result)[0];
+                                return result[firstKey] !== null;
+                              })
+                              .map((result: AuctionResult, index: number) => {
+                                // Find the first property that could be a category identifier 
+                                // (excluding price, counts and metadata fields)
+                                let categoryKey = '';
+                                let categoryValue = '';
+                                const keys = Object.keys(result);
+                                const ignoredKeys = ['price', 'sold_price', 'bid_amount', 'url', 'images', 'bidders', 'watchers', 'comments', 'mileage', 'end_date'];
+                                
+                                // Try to find a good category key (like color, make, model, year, etc.)
+                                for (const key of keys) {
+                                  if (!ignoredKeys.includes(key) && result[key] !== undefined && result[key] !== null) {
+                                    categoryKey = key;
+                                    categoryValue = String(result[key]);
+                                    break;
+                                  }
                                 }
-                              }
-                              
-                              // Use category value if available, otherwise fallback to title/make or generic category
-                              const cardTitle = categoryValue || result.title || result.make || `Category ${index + 1}`;
-                              const cardValue = result.sold_price || result.bid_amount || (result.price ? `${result.price.toLocaleString()}` : '');
-                              
-                              return (
-                                <Card key={index} className="bg-white">
-                                  <CardHeader className="p-4 pb-2">
-                                    <CardTitle className="text-md">{cardTitle}</CardTitle>
-                                    {cardValue && <p className="text-xl font-bold">{cardValue}</p>}
-                                  </CardHeader>
-                                  
-                                  <CardContent className="p-4 pt-0">
-                                    {/* Display any additional fields that might be present */}
-                                    <div className="text-sm text-gray-600">
-                                      {Object.entries(result).map(([key, val]) => {
-                                        // Skip already displayed fields, the category key we used for the title, and empty values
-                                        if (['title', 'make', 'sold_price', 'bid_amount', 'price', 'url', 'images'].includes(key) || 
-                                            key === categoryKey || !val) return null;
-                                        
-                                        // Handle different value types
-                                        let displayValue: React.ReactNode;
-                                        if (typeof val === 'object') {
-                                          // For complex objects, display a simplified representation
-                                          displayValue = JSON.stringify(val).substring(0, 30) + '...';
-                                        } else if (typeof val === 'number') {
-                                          displayValue = val.toLocaleString();
-                                        } else {
-                                          displayValue = String(val);
-                                        }
-                                        
-                                        return (
-                                          <div key={key} className="flex justify-between items-center mt-1">
-                                            <span className="capitalize">{key.replace(/_/g, ' ')}:</span>
-                                            <span className="font-medium">{displayValue}</span>
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                  </CardContent>
-                                </Card>
-                              );
-                            })}
+                                
+                                // Use category value if available, otherwise fallback to title/make or generic category
+                                const cardTitle = categoryValue || result.title || result.make || `Category ${index + 1}`;
+                                const cardValue = result.sold_price || result.bid_amount || (result.price ? `${result.price.toLocaleString()}` : '');
+                                
+                                return (
+                                  <Card key={index} className="bg-white">
+                                    <CardHeader className="p-4 pb-2">
+                                      <CardTitle className="text-md">{cardTitle}</CardTitle>
+                                      {cardValue && <p className="text-xl font-bold">{cardValue}</p>}
+                                    </CardHeader>
+                                    
+                                    <CardContent className="p-4 pt-0">
+                                      {/* Display any additional fields that might be present */}
+                                      <div className="text-sm text-gray-600">
+                                        {Object.entries(result).map(([key, val]: [string, any]) => {
+                                          // Skip already displayed fields, the category key we used for the title, and empty values
+                                          if (['title', 'make', 'sold_price', 'bid_amount', 'price', 'url', 'images'].includes(key) || 
+                                              key === categoryKey || !val) return null;
+                                          
+                                          // Handle different value types
+                                          let displayValue: React.ReactNode;
+                                          if (typeof val === 'object') {
+                                            // For complex objects, display a simplified representation
+                                            displayValue = JSON.stringify(val).substring(0, 30) + '...';
+                                          } else if (typeof val === 'number') {
+                                            displayValue = val.toLocaleString();
+                                          } else {
+                                            displayValue = String(val);
+                                          }
+                                          
+                                          return (
+                                            <div key={key} className="flex justify-between items-center mt-1">
+                                              <span className="capitalize">{key.replace(/_/g, ' ')}:</span>
+                                              <span className="font-medium">{displayValue}</span>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    </CardContent>
+                                  </Card>
+                                );
+                              })
+                            }
                           </div>
                         </div>
                       ) : (
