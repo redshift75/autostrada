@@ -1092,7 +1092,7 @@ function AuctionsContent() {
                       
                       // Use category value if available, otherwise fallback to title/make or generic category
                       const cardTitle = categoryValue || result.title || result.make || `Category ${index + 1}`;
-                      const cardValue = result.sold_price || result.bid_amount || (result.price ? `$${result.price.toLocaleString()}` : '');
+                      const cardValue = result.sold_price || result.bid_amount || (result.price ? `${result.price.toLocaleString()}` : '');
                       
                       return (
                         <Card key={index} className="bg-white">
