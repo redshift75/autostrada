@@ -435,7 +435,6 @@ function AuctionsContent() {
       }
       
       const data = await visualizationsResponse.json();
-      console.log('API response received');
       
       // Check if we have valid visualization specifications and results
       if (data.visualizations && data.results.length > 0) {

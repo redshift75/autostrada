@@ -112,10 +112,89 @@ export default function VegaChart({ spec, className, onSignalClick }: VegaChartP
           }
         };
 
+        // Check if this is a Price vs Mileage scatter plot
+        // First try to use chartType property (more reliable), then fall back to description check
+        const isPriceMileageScatter = 
+          specAny.chartType === 'priceMileageScatter' || 
+          (specAny.description?.toLowerCase().includes('price') && 
+          specAny.description?.toLowerCase().includes('mileage'));
+          
+        if (isPriceMileageScatter) {
+          if (!responsiveSpec.encoding) {
+            responsiveSpec.encoding = {};
+          }
+          
+          // Handle x-axis (mileage)
+          if (!responsiveSpec.encoding.x) {
+            responsiveSpec.encoding.x = { scale: { domain: [0, null] } };
+          } else if (typeof responsiveSpec.encoding.x === 'object') {
+            // Only set minimum without affecting other scale properties
+            responsiveSpec.encoding.x = {
+              ...responsiveSpec.encoding.x,
+              scale: { 
+                ...(responsiveSpec.encoding.x.scale || {}), 
+                domainMin: 0 
+              }
+            };
+          }
+          
+          // Handle y-axis (price)
+          if (!responsiveSpec.encoding.y) {
+            responsiveSpec.encoding.y = { scale: { domain: [0, null] } };
+          } else if (typeof responsiveSpec.encoding.y === 'object') {
+            // Only set minimum without affecting other scale properties
+            responsiveSpec.encoding.y = {
+              ...responsiveSpec.encoding.y,
+              scale: { 
+                ...(responsiveSpec.encoding.y.scale || {}), 
+                domainMin: 0 
+              }
+            };
+          }
+
+          // Handle layered charts for Price vs Mileage
+          if (responsiveSpec.layer && Array.isArray(responsiveSpec.layer)) {
+            responsiveSpec.layer.forEach((layer: any) => {
+              if (!layer.encoding) {
+                layer.encoding = {};
+              }
+              
+              // Set x-axis for layer
+              if (typeof layer.encoding.x === 'object') {
+                layer.encoding.x = {
+                  ...layer.encoding.x,
+                  scale: { 
+                    ...(layer.encoding.x.scale || {}), 
+                    domainMin: 0
+                  }
+                };
+              }
+              
+              // Set y-axis for layer
+              if (typeof layer.encoding.y === 'object') {
+                layer.encoding.y = {
+                  ...layer.encoding.y,
+                  scale: { 
+                    ...(layer.encoding.y.scale || {}), 
+                    domainMin: 0
+                  }
+                };
+              }
+            });
+          }
+        }
+
         // Add signals for histogram selection if it's a histogram
-        const isHistogram = specAny.description?.includes('Distribution');
-        const isPriceHistogram = specAny.description?.includes('Price Distribution');
-        const isMileageHistogram = specAny.description?.includes('Mileage Distribution');
+        // First try to use chartType property, then fall back to description check
+        const isHistogram = 
+          specAny.chartType === 'priceHistogram' ||
+          specAny.description?.includes('Distribution');
+        const isPriceHistogram = 
+          specAny.chartType === 'priceHistogram' ||
+          specAny.description?.includes('Price Distribution');
+        const isMileageHistogram = 
+          specAny.chartType === 'mileageHistogram' ||
+          specAny.description?.includes('Mileage Distribution');
         
         if (isHistogram) {
           // For Vega-Lite, we need to use a different approach for signals
