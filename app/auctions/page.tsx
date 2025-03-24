@@ -438,12 +438,6 @@ function AuctionsContent() {
       
       // Check if we have valid visualization specifications and results
       if (data.visualizations && data.results.length > 0) {
-        console.log('Visualization data types:', {
-          timeSeriesChart: typeof data.visualizations.timeSeriesChart,
-          priceHistogram: typeof data.visualizations.priceHistogram,
-          priceMileageScatter: typeof data.visualizations.priceMileageScatter
-        });
-        
         // Ensure we have valid Vega-Lite specifications
         if (typeof data.visualizations.timeSeriesChart === 'string') {
           console.log('Time series chart is a string, attempting to parse');
