@@ -64,7 +64,7 @@ export function AuctionResultsTable({ results, className }: AuctionResultsTableP
       cell: ({ row }) => {
         const result = row.original
         return (
-          <div className="max-w-[200px] truncate">
+          <div className="max-w-[200px] wrap">
             {result.url ? (
               <a 
                 href={result.url} 
