@@ -30,7 +30,8 @@ export async function POST(request: NextRequest) {
     if (messages && Array.isArray(messages) && messages.length > 1) {
       const conversationHistory = messages
         .slice(0, -1) // Exclude the most recent user message (already in the query)
-        .map(msg => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`)
+        .filter(msg => msg.role === 'user') // Only include user messages
+        .map(msg => `User: ${msg.content}`)
         .join('\n');
       
       enhancedQuery = `Previous conversation:\n${conversationHistory}\n\nCurrent query: ${query}`;
