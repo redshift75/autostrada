@@ -1042,7 +1042,7 @@ function AuctionsContent() {
                     let categoryKey = '';
                     let categoryValue = '';
                     const keys = Object.keys(result);
-                    const ignoredKeys = ['price', 'sold_price', 'bid_amount', 'url', 'images', 'bidders', 'watchers', 'comments', 'mileage', 'status', 'end_date'];
+                    const ignoredKeys = ['price', 'sold_price', 'bid_amount', 'url', 'images', 'bidders', 'watchers', 'comments', 'mileage', 'end_date'];
                     
                     // Try to find a good category key (like color, make, model, year, etc.)
                     for (const key of keys) {
@@ -1129,7 +1129,11 @@ function AuctionsContent() {
                           )}
                         </td>
                         <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{result.sold_price || result.bid_amount}</td>
-                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{result.end_date}</td>
+                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(result.end_date).toLocaleDateString('en-US', {
+                                            month: '2-digit',
+                                            day: '2-digit',
+                                            year: 'numeric'
+                                          })}</td>
                         <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
                           {result.mileage && <span className="mr-2">{result.mileage.toLocaleString()} mi</span>}
                         </td>
