@@ -10,6 +10,8 @@ import VegaChart from '@/components/shared/VegaChart';
 import { formatPrice } from '@/lib/utils/index';
 import { validateVegaLiteSpec } from '@/lib/utils/visualization';
 import { isNumber } from 'util';
+// Import the auction results table
+import { AuctionResultsTable } from '@/components/ui/table/auction-results-table';
 
 // Define types for car data from Supabase
 type CarMake = {
@@ -1094,55 +1096,8 @@ function AuctionsContent() {
                 </div>
               </div>
             ) : (
-              // Standard table display for individual auction listings
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                    <th scope="col" className="px-4 py-3 w-24 sm:w-28 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
-                      <th scope="col" className="px-3 py-3 max-w-[120px] sm:max-w-xs text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
-                      <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                      <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                      <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mileage</th>
-                      <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {aiResults.map((result, index) => (
-                      <tr key={index} className="hover:bg-gray-50">
-                        <td className="px-2 py-4 w-24 sm:w-28 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {result.url ? (
-                            <a href={result.url} target="_blank" rel="noopener noreferrer">
-                              <img src={result.image_url} alt={result.title} className="w-20 h-20 rounded-md object-cover" />
-                            </a>
-                          ) : (
-                            <img src={result.image_url} alt={result.title} className="w-20 h-20 rounded-md object-cover" />
-                          )}
-                        </td>
-                        <td className="px-3 py-4 max-w-[120px] sm:max-w-xs whitespace-normal text-sm font-medium text-gray-900">
-                          {result.url ? (
-                            <a href={result.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                              {result.title}
-                            </a>
-                          ) : (
-                            result.title
-                          )}
-                        </td>
-                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{result.sold_price || result.bid_amount}</td>
-                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(result.end_date).toLocaleDateString('en-US', {
-                                            month: '2-digit',
-                                            day: '2-digit',
-                                            year: 'numeric'
-                                          })}</td>
-                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {result.mileage && <span className="mr-2">{result.mileage.toLocaleString()} mi</span>}
-                        </td>
-                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{result.sold_price ? 'Sold' : 'Not Sold'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              // Use the sortable table component for individual auction listings
+              <AuctionResultsTable results={aiResults} />
             )}
           </div>
         )}
