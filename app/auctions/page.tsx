@@ -12,6 +12,15 @@ import { validateVegaLiteSpec } from '@/lib/utils/visualization';
 import { isNumber } from 'util';
 // Import the auction results table
 import { AuctionResultsTable } from '@/components/ui/table/auction-results-table';
+// Import Shadcn UI components
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Form, FormSection, FormItem, FormLabel, FormControl } from '@/components/ui/form';
+import { Select, SelectValue, SelectTrigger, SelectContent, SelectItem } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
 
 // Define types for car data from Supabase
 type CarMake = {
@@ -590,179 +599,198 @@ function AuctionsContent() {
         </div>
         
         {/* Search Form */}
-        <div className="bg-white shadow-md rounded-lg p-6 mb-8">
-          <h2 className="text-xl font-semibold mb-4">Search Auction Results</h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-              <div className="flex flex-col relative">
-                <label htmlFor="make" className="mb-1 font-medium">
-                  Make <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  id="make"
-                  name="make"
-                  ref={makeInputRef}
-                  list="makes-list"
-                  defaultValue=""
-                  onChange={(e) => {
-                    if (modelInputRef.current) {
-                      modelInputRef.current.value = '';
-                    }
-                  }}
-                  className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
-                  placeholder={loadingMakes ? 'Loading makes...' : 'Start typing to select a make'}
-                  required
-                />
-                <datalist id="makes-list">
-                  {makes.map((make) => (
-                    <option key={make} value={make} />
-                  ))}
-                </datalist>
-                {dbConnectionError && (
-                  <p className="mt-1 text-sm text-red-500">
-                    Database connection error. Some makes may not be available.
-                  </p>
-                )}
-              </div>
-              
-              <div className="flex flex-col relative">
-                <label htmlFor="model" className="mb-1 font-medium">
-                  Model
-                </label>
-                <input
-                  type="text"
-                  id="model"
-                  name="model"
-                  ref={modelInputRef}
-                  onClick={(e) => e.stopPropagation()}
-                  className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
-                  autoComplete="off"
-                  placeholder={loadingMakes ? "Loading makes..." : (makeInputRef.current?.value ? `Enter ${makeInputRef.current.value} model...` : "First select a make...")}
-                />
-              </div>
-              
-              <div className="flex flex-col">
-                <label htmlFor="yearMin" className="mb-1 font-medium">
-                  Year (Min)
-                </label>
-                <input
-                  type="number"
-                  id="yearMin"
-                  name="yearMin"
-                  ref={yearMinInputRef}
-                  defaultValue={formData.yearMin}
-                  className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
-                  placeholder="e.g. 1950"
-                  min="1900"
-                  max="2025"
-                />
-              </div>
-              
-              <div className="flex flex-col">
-                <label htmlFor="yearMax" className="mb-1 font-medium">
-                  Year (Max)
-                </label>
-                <input
-                  type="number"
-                  id="yearMax"
-                  name="yearMax"
-                  ref={yearMaxInputRef}
-                  defaultValue={formData.yearMax}
-                  className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
-                  placeholder="e.g. 2025"
-                  min="1950"
-                  max="2025"
-                />
-              </div>
-              <div className="flex flex-col">
-                <label htmlFor="transmission" className="mb-1 font-medium">
-                  Transmission
-                </label>
-                <select
-                  id="transmission"
-                  name="transmission"
-                  value={formData.transmission}
-                  onChange={(e) => setFormData(prev => ({ ...prev, transmission: e.target.value }))}
-                  className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
-                >
-                  <option value="Any">Any</option>
-                  <option value="Automatic">Automatic</option>
-                  <option value="Manual">Manual</option>
-                </select>
-              </div>
-              <div className="md:col-span-2 lg:col-span-5 flex justify-end">
-                <button
-                  type="submit"
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-md transition-colors"
-                  disabled={loading}
-                >
-                  {loading ? 'Generating...' : 'Generate'}
-                </button>
-              </div>
-            </div>
-          </form>
-        </div>
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Search Auction Results</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Form onSubmit={handleSubmit}>
+              <FormSection className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <FormItem>
+                  <FormLabel htmlFor="make">
+                    Make <span className="text-red-500">*</span>
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      id="make"
+                      name="make"
+                      ref={makeInputRef}
+                      list="makes-list"
+                      defaultValue=""
+                      onChange={(e) => {
+                        if (modelInputRef.current) {
+                          modelInputRef.current.value = '';
+                        }
+                      }}
+                      placeholder={loadingMakes ? 'Loading makes...' : 'Start typing to select a make'}
+                      required
+                    />
+                  </FormControl>
+                  <datalist id="makes-list">
+                    {makes.map((make) => (
+                      <option key={make} value={make} />
+                    ))}
+                  </datalist>
+                  {dbConnectionError && (
+                    <p className="mt-1 text-sm text-red-500">
+                      Database connection error. Some makes may not be available.
+                    </p>
+                  )}
+                </FormItem>
+                
+                <FormItem>
+                  <FormLabel htmlFor="model">
+                    Model
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      id="model"
+                      name="model"
+                      ref={modelInputRef}
+                      onClick={(e) => e.stopPropagation()}
+                      autoComplete="off"
+                      placeholder={loadingMakes ? "Loading makes..." : (makeInputRef.current?.value ? `Enter ${makeInputRef.current.value} model...` : "First select a make...")}
+                    />
+                  </FormControl>
+                </FormItem>
+                
+                <FormItem>
+                  <FormLabel htmlFor="yearMin">
+                    Year (Min)
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      id="yearMin"
+                      name="yearMin"
+                      ref={yearMinInputRef}
+                      defaultValue={formData.yearMin}
+                      placeholder="e.g. 1950"
+                      min="1900"
+                      max="2025"
+                    />
+                  </FormControl>
+                </FormItem>
+                
+                <FormItem>
+                  <FormLabel htmlFor="yearMax">
+                    Year (Max)
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      id="yearMax"
+                      name="yearMax"
+                      ref={yearMaxInputRef}
+                      defaultValue={formData.yearMax}
+                      placeholder="e.g. 2025"
+                      min="1950"
+                      max="2025"
+                    />
+                  </FormControl>
+                </FormItem>
+                
+                <FormItem>
+                  <FormLabel htmlFor="transmission">
+                    Transmission
+                  </FormLabel>
+                  <FormControl>
+                    <select
+                      id="transmission"
+                      name="transmission"
+                      value={formData.transmission}
+                      onChange={(e) => setFormData(prev => ({ ...prev, transmission: e.target.value }))}
+                      className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600 w-full"
+                    >
+                      <option value="Any">Any</option>
+                      <option value="Automatic">Automatic</option>
+                      <option value="Manual">Manual</option>
+                    </select>
+                  </FormControl>
+                </FormItem>
+                
+                <div className="md:col-span-2 lg:col-span-5 flex justify-end">
+                  <Button type="submit" disabled={loading}>
+                    {loading ? 'Generating...' : 'Generate'}
+                  </Button>
+                </div>
+              </FormSection>
+            </Form>
+          </CardContent>
+        </Card>
         
         {/* Results Section */}
         {loading ? (
-          <div className="flex flex-col justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
-            <p className="text-gray-600">{loadingMessage}</p>
-          </div>
+          <Card className="py-12 flex flex-col justify-center items-center">
+            <CardContent className="flex flex-col items-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
+              <p className="text-gray-600 mb-4">{loadingMessage}</p>
+              <div className="w-64">
+                <Progress className="h-1.5 w-full" value={75} />
+              </div>
+            </CardContent>
+          </Card>
         ) : error ? (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
-          </div>
+          <Card className="bg-red-50 border-red-200 text-red-700 mb-4">
+            <CardContent className="p-4">
+              {error}
+            </CardContent>
+          </Card>
         ) : results && results.length > 0 ? (
-          <div className="bg-white shadow-md rounded-lg overflow-hidden">
-            <div className="p-6">
-              <h2 className="text-2xl font-bold mb-4">
-                {currentSearch?.make} {currentSearch?.model} Auction Results
-                {activeFilter && (
-                  <span className="ml-2 text-sm font-normal text-gray-500">
-                    (Filtered: {formatPrice(activeFilter.min.toString())} - {formatPrice(activeFilter.max.toString())})
-                  </span>
-                )}
-              </h2>
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <CardTitle>
+                  {currentSearch?.make} {currentSearch?.model} Auction Results
+                  {activeFilter && (
+                    <span className="ml-2 text-sm font-normal text-gray-500">
+                      (Filtered: {formatPrice(activeFilter.min.toString())} - {formatPrice(activeFilter.max.toString())})
+                    </span>
+                  )}
+                </CardTitle>
+              </div>
               
               {/* Data Source Indicator */}
               <div className="mb-4 text-sm text-gray-600">
                 Data source: <span className="font-semibold">{dataSource === 'supabase' ? 'Database' : 'Live Scraper'}</span>
                 {dataSource === 'supabase' && (
-                  <span className="ml-2 bg-green-100 text-green-800 text-xs px-2 py-1 rounded">Faster response</span>
+                  <Badge variant="success" className="ml-2 bg-green-100 text-green-800 text-xs px-2 py-1 rounded">Faster response</Badge>
                 )}
                 {dataSource === 'scraper' && (
-                  <span className="ml-2 bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">Fresh data</span>
+                  <Badge variant="warning" className="ml-2 bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">Fresh data</Badge>
                 )}
               </div>
               
               {summary && (
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
-                  <h2 className="text-xl font-semibold mb-4">Market Summary</h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                    <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md">
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Total Results</p>
-                      <p className="text-2xl font-bold">{summary.totalResults}</p>
+                <Card className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
+                  <CardHeader className="px-0 pt-0">
+                    <CardTitle className="text-xl font-semibold">Market Summary</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                      <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md">
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Total Results</p>
+                        <p className="text-2xl font-bold">{summary.totalResults}</p>
+                      </div>
+                      <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md">
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Average Sold Price</p>
+                        <p className="text-2xl font-bold">{formatPrice(summary.averageSoldPrice)}</p>
+                      </div>
+                      <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md">
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Highest Sold Price</p>
+                        <p className="text-2xl font-bold">{formatPrice(summary.highestSoldPrice)}</p>
+                      </div>                    
+                      <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md">
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Avg Mileage</p>
+                        <p className="text-2xl font-bold">{summary.averageMileage}</p>
+                      </div>
+                      <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md">
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Sold Percentage</p>
+                        <p className="text-2xl font-bold">{summary.soldPercentage}</p>
+                      </div>
                     </div>
-                    <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md">
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Average Sold Price</p>
-                      <p className="text-2xl font-bold">{formatPrice(summary.averageSoldPrice)}</p>
-                    </div>
-                    <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md">
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Highest Sold Price</p>
-                      <p className="text-2xl font-bold">{formatPrice(summary.highestSoldPrice)}</p>
-                    </div>                    
-                    <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md">
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Avg Mileage</p>
-                      <p className="text-2xl font-bold">{summary.averageMileage}</p>
-                    </div>
-                    <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md">
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Sold Percentage</p>
-                      <p className="text-2xl font-bold">{summary.soldPercentage}</p>
-                    </div>
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
               )}
               
               {/* Restructured layout with side-by-side charts and results */}
@@ -986,120 +1014,132 @@ function AuctionsContent() {
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         ) : !currentSearch ? (
-          <div className="text-center py-12 bg-white shadow-md rounded-lg">
-            <p className="text-gray-600 mb-4">Enter make and model above to analyze auction results</p>
-          </div>
+          <Card className="text-center py-12">
+            <CardContent>
+              <p className="text-gray-600 mb-4">Enter make and model above to analyze auction results</p>
+            </CardContent>
+          </Card>
         ) : (
-          <div className="bg-white shadow-md rounded-lg overflow-hidden p-8">
-            <div className="text-center">
-              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-              </svg>
-              <h3 className="mt-2 text-lg font-medium text-gray-900">No auction results found</h3>
-              <p className="mt-1 text-md text-gray-500">
-                We couldn't find any auction results matching your search criteria.
-              </p>
-              <div className="mt-6">
-                <h4 className="text-sm font-medium text-gray-900">Suggestions:</h4>
-                <ul className="mt-2 list-disc list-inside text-sm text-gray-500">
-                  <li>Check the spelling of the make and model</li>
-                  <li>Try a more popular make or model</li>
-                  <li>Expand your year range</li>
-                  <li>Remove any filters that might be too restrictive</li>
-                </ul>
+          <Card className="overflow-hidden">
+            <CardContent className="p-8">
+              <div className="text-center">
+                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                <h3 className="mt-2 text-lg font-medium text-gray-900">No auction results found</h3>
+                <p className="mt-1 text-md text-gray-500">
+                  We couldn't find any auction results matching your search criteria.
+                </p>
+                <div className="mt-6">
+                  <h4 className="text-sm font-medium text-gray-900">Suggestions:</h4>
+                  <ul className="mt-2 list-disc list-inside text-sm text-gray-500">
+                    <li>Check the spelling of the make and model</li>
+                    <li>Try a more popular make or model</li>
+                    <li>Expand your year range</li>
+                    <li>Remove any filters that might be too restrictive</li>
+                  </ul>
+                </div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         )}
         
         {/* Display AI Results if they exist and showAiResults is true */}
         {showAiResults && aiResults.length > 0 && (
-          <div className="mt-8 bg-white shadow-md rounded-lg p-6">
-            <div className="flex justify-between items-center mb-4">
+          <Card className="mt-8">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
               <div>
-                <h2 className="text-xl font-semibold">AI Analysis Results</h2>
-                <p className="text-sm text-gray-500">Results generated by the AI assistant</p>
+                <CardTitle>AI Analysis Results</CardTitle>
+                <CardDescription>Results generated by the AI assistant</CardDescription>
               </div>
-              <button 
+              <Button 
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
                 onClick={() => setShowAiResults(false)}
-                className="text-gray-500 hover:text-gray-700"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                 </svg>
-              </button>
-            </div>
+              </Button>
+            </CardHeader>
             
-            {isAggregateData(aiResults) ? (
-              // Display for aggregate/summary data
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h3 className="text-lg font-medium mb-3">Data Summary</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {aiResults.map((result, index) => {
-                    // Find the first property that could be a category identifier 
-                    // (excluding price, counts and metadata fields)
-                    let categoryKey = '';
-                    let categoryValue = '';
-                    const keys = Object.keys(result);
-                    const ignoredKeys = ['price', 'sold_price', 'bid_amount', 'url', 'images', 'bidders', 'watchers', 'comments', 'mileage', 'end_date'];
-                    
-                    // Try to find a good category key (like color, make, model, year, etc.)
-                    for (const key of keys) {
-                      if (!ignoredKeys.includes(key) && result[key] !== undefined && result[key] !== null) {
-                        categoryKey = key;
-                        categoryValue = String(result[key]);
-                        break;
+            <CardContent>
+              {isAggregateData(aiResults) ? (
+                // Display for aggregate/summary data
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h3 className="text-lg font-medium mb-3">Data Summary</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {aiResults.map((result, index) => {
+                      // Find the first property that could be a category identifier 
+                      // (excluding price, counts and metadata fields)
+                      let categoryKey = '';
+                      let categoryValue = '';
+                      const keys = Object.keys(result);
+                      const ignoredKeys = ['price', 'sold_price', 'bid_amount', 'url', 'images', 'bidders', 'watchers', 'comments', 'mileage', 'end_date'];
+                      
+                      // Try to find a good category key (like color, make, model, year, etc.)
+                      for (const key of keys) {
+                        if (!ignoredKeys.includes(key) && result[key] !== undefined && result[key] !== null) {
+                          categoryKey = key;
+                          categoryValue = String(result[key]);
+                          break;
+                        }
                       }
-                    }
-                    
-                    // Use category value if available, otherwise fallback to title/make or generic category
-                    const cardTitle = categoryValue || result.title || result.make || `Category ${index + 1}`;
-                    const cardValue = result.sold_price || result.bid_amount || (result.price ? `$${result.price.toLocaleString()}` : '');
-                    
-                    return (
-                      <div key={index} className="bg-white p-4 rounded-lg shadow-sm">
-                        <h4 className="font-medium text-gray-800">{cardTitle}</h4>
-                        {cardValue && <p className="text-xl font-bold mt-1">{cardValue}</p>}
-                        
-                        {/* Display any additional fields that might be present */}
-                        <div className="mt-2 text-sm text-gray-600">
-                          {Object.entries(result).map(([key, val]) => {
-                            // Skip already displayed fields, the category key we used for the title, and empty values
-                            if (['title', 'make', 'sold_price', 'bid_amount', 'price', 'url', 'images'].includes(key) || 
-                                key === categoryKey || !val) return null;
-                            
-                            // Handle different value types
-                            let displayValue: React.ReactNode;
-                            if (typeof val === 'object') {
-                              // For complex objects, display a simplified representation
-                              displayValue = JSON.stringify(val).substring(0, 30) + '...';
-                            } else if (typeof val === 'number') {
-                              displayValue = val.toLocaleString();
-                            } else {
-                              displayValue = String(val);
-                            }
-                            
-                            return (
-                              <div key={key} className="flex justify-between items-center mt-1">
-                                <span className="capitalize">{key.replace(/_/g, ' ')}:</span>
-                                <span className="font-medium">{displayValue}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
+                      
+                      // Use category value if available, otherwise fallback to title/make or generic category
+                      const cardTitle = categoryValue || result.title || result.make || `Category ${index + 1}`;
+                      const cardValue = result.sold_price || result.bid_amount || (result.price ? `$${result.price.toLocaleString()}` : '');
+                      
+                      return (
+                        <Card key={index} className="bg-white">
+                          <CardHeader className="p-4 pb-2">
+                            <CardTitle className="text-md">{cardTitle}</CardTitle>
+                            {cardValue && <p className="text-xl font-bold">{cardValue}</p>}
+                          </CardHeader>
+                          
+                          <CardContent className="p-4 pt-0">
+                            {/* Display any additional fields that might be present */}
+                            <div className="text-sm text-gray-600">
+                              {Object.entries(result).map(([key, val]) => {
+                                // Skip already displayed fields, the category key we used for the title, and empty values
+                                if (['title', 'make', 'sold_price', 'bid_amount', 'price', 'url', 'images'].includes(key) || 
+                                    key === categoryKey || !val) return null;
+                                
+                                // Handle different value types
+                                let displayValue: React.ReactNode;
+                                if (typeof val === 'object') {
+                                  // For complex objects, display a simplified representation
+                                  displayValue = JSON.stringify(val).substring(0, 30) + '...';
+                                } else if (typeof val === 'number') {
+                                  displayValue = val.toLocaleString();
+                                } else {
+                                  displayValue = String(val);
+                                }
+                                
+                                return (
+                                  <div key={key} className="flex justify-between items-center mt-1">
+                                    <span className="capitalize">{key.replace(/_/g, ' ')}:</span>
+                                    <span className="font-medium">{displayValue}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            ) : (
-              // Use the sortable table component for individual auction listings
-              <AuctionResultsTable results={aiResults} />
-            )}
-          </div>
+              ) : (
+                // Use the sortable table component for individual auction listings
+                <AuctionResultsTable results={aiResults} />
+              )}
+            </CardContent>
+          </Card>
         )}
         
         {/* Add AI Agent for auction results */}

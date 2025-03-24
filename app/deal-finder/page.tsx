@@ -6,6 +6,13 @@ import { TopLevelSpec } from 'vega-lite';
 import VegaChart from '@/components/shared/VegaChart';
 import { formatPrice } from '@/lib/utils/index';
 import { decodeHtmlEntities } from '@/components/shared/utils';
+// Import Shadcn UI components
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Form, FormSection, FormItem, FormLabel, FormControl } from '@/components/ui/form';
+import { Select, SelectValue, SelectTrigger, SelectContent, SelectItem } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 
 // Define types for the Deal Finder page
 type Deal = {
@@ -631,115 +638,157 @@ export default function DealFinder() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white sm:text-4xl">
-              Deal Finder
-            </h1>
-            <p className="mt-2 text-lg text-gray-500 dark:text-gray-300">
-              Find the best deals on current auctions
-            </p>
-          </div>
+    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
+            Deal Finder
+          </h1>
+          <p className="mt-3 max-w-2xl mx-auto text-xl text-gray-500 sm:mt-4">
+            Find current auctions likely to end below market value
+          </p>
         </div>
-
-        {dbConnectionError && (
-          <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-6">
-            <p className="font-medium">Database connection unavailable</p>
-            <p className="text-sm">Some features may be limited. Please try again later.</p>
+        
+        {/* Search Form */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Search Criteria</CardTitle>
+            <CardDescription>Enter vehicle details to find matching deals</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form onSubmit={handleSubmit}>
+              <FormSection className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <FormItem>
+                  <FormLabel htmlFor="make">Make</FormLabel>
+                  <FormControl>
+                    <Input
+                      id="make"
+                      name="make"
+                      ref={makeInputRef}
+                      type="text"
+                      list="makes-list"
+                      placeholder="Enter make..."
+                      onChange={handleMakeChange}
+                      onBlur={handleMakeSelect}
+                    />
+                  </FormControl>
+                  <datalist id="makes-list">
+                    {availableMakes.map((make) => (
+                      <option key={make} value={make} />
+                    ))}
+                  </datalist>
+                </FormItem>
+                
+                <FormItem>
+                  <FormLabel htmlFor="model">Model</FormLabel>
+                  <FormControl>
+                    <select
+                      id="model"
+                      name="model"
+                      ref={modelInputRef}
+                      className="w-full border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
+                      disabled={availableModels.length === 0}
+                    >
+                      <option value="">Any model</option>
+                      {availableModels.map((model) => (
+                        <option key={model} value={model}>{model}</option>
+                      ))}
+                    </select>
+                  </FormControl>
+                </FormItem>
+                
+                <FormItem>
+                  <FormLabel htmlFor="yearMin">Year (Min)</FormLabel>
+                  <FormControl>
+                    <Input
+                      id="yearMin"
+                      name="yearMin"
+                      ref={yearMinInputRef}
+                      type="number"
+                      placeholder="e.g. 1990"
+                      min="1900"
+                      max="2025"
+                    />
+                  </FormControl>
+                </FormItem>
+                
+                <FormItem>
+                  <FormLabel htmlFor="yearMax">Year (Max)</FormLabel>
+                  <FormControl>
+                    <Input
+                      id="yearMax"
+                      name="yearMax"
+                      ref={yearMaxInputRef}
+                      type="number"
+                      placeholder="e.g. 2023"
+                      min="1900"
+                      max="2025"
+                    />
+                  </FormControl>
+                </FormItem>
+                
+                <FormItem>
+                  <FormLabel htmlFor="maxDeals">Max Deals</FormLabel>
+                  <FormControl>
+                    <select
+                      id="maxDeals"
+                      name="maxDeals"
+                      value={formData.maxDeals}
+                      onChange={(e) => setFormData(prev => ({ ...prev, maxDeals: e.target.value }))}
+                      className="w-full border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
+                    >
+                      <option value="5">5</option>
+                      <option value="10">10</option>
+                      <option value="20">20</option>
+                      <option value="50">50</option>
+                    </select>
+                  </FormControl>
+                </FormItem>
+                
+                <div className="md:col-span-2 lg:col-span-5 flex justify-end gap-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={fetchEndingSoonDeals}
+                    disabled={loading}
+                  >
+                    Show Ending Soon
+                  </Button>
+                  
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                  >
+                    Find Deals
+                  </Button>
+                </div>
+              </FormSection>
+            </Form>
+          </CardContent>
+        </Card>
+        
+        {/* Sort Options */}
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-bold">
+            {deals.length > 0 ? 'Deals Found' : 'No deals found'} 
+            {loading && <span className="ml-2 text-sm font-normal text-gray-500">Loading...</span>}
+          </h2>
+          
+          <div className="mt-3 sm:mt-0">
+            <label htmlFor="sort-order" className="mr-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+              Sort by:
+            </label>
+            <select
+              id="sort-order"
+              value={sortOrder}
+              onChange={(e) => handleSortChange(e.target.value as 'timeAsc' | 'timeDesc' | 'dealScore')}
+              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
+            >
+              <option value="timeAsc">Ending Soon</option>
+              <option value="timeDesc">Ending Later</option>
+              <option value="dealScore">Best Deal</option>
+            </select>
           </div>
-        )}
-
-        <div className="bg-white shadow-md rounded-lg p-6 mb-8">
-          <h2 className="text-xl font-semibold mb-4">Find Deals</h2>
-          <form onSubmit={handleSubmit}>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="flex flex-col">
-                <label htmlFor="make" className="mb-1 font-medium">
-                  Make <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  id="make"
-                  name="make"
-                  ref={makeInputRef}
-                  defaultValue={formData.make}
-                  onChange={handleMakeChange}
-                  onBlur={handleMakeSelect}
-                  list="makes-list"
-                  className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
-                  placeholder={availableMakes.length ? 'Start typing to select a make' : 'Loading makes...'}
-                  required
-                />
-                <datalist id="makes-list">
-                  {availableMakes.map((make) => (
-                    <option key={make} value={make} />
-                  ))}
-                </datalist>
-              </div>
-              
-              <div className="flex flex-col">
-                <label htmlFor="model" className="mb-1 font-medium">
-                  Model
-                </label>
-                <select
-                  id="model"
-                  name="model"
-                  ref={modelInputRef}
-                  defaultValue={formData.model}
-                  className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
-                  disabled={!makeInputRef.current?.value}
-                >
-                  <option value="">Select model...</option>
-                  {availableModels.map((model) => (
-                    <option key={model} value={model}>
-                      {model}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              <div className="flex flex-col">
-                <label htmlFor="yearMin" className="mb-1 font-medium">
-                  Year (Min)
-                </label>
-                <input
-                  type="text"
-                  id="yearMin"
-                  name="yearMin"
-                  ref={yearMinInputRef}
-                  defaultValue={formData.yearMin}
-                  className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
-                  placeholder="e.g. 1950"
-                />
-              </div>
-              
-              <div className="flex flex-col">
-                <label htmlFor="yearMax" className="mb-1 font-medium">
-                  Year (Max)
-                </label>
-                <input
-                  type="text"
-                  id="yearMax"
-                  name="yearMax"
-                  ref={yearMaxInputRef}
-                  defaultValue={formData.yearMax}
-                  className="border rounded-md p-2 dark:bg-gray-700 dark:border-gray-600"
-                  placeholder="e.g. 2025"
-                />
-              </div>
-              <div className="md:col-span-2 lg:col-span-4 flex justify-end">
-                <button
-                  type="submit"
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-md transition-colors"
-                  disabled={loading}
-                >
-                  {loading ? 'Searching...' : 'Find Deals'}
-                </button>
-              </div>
-            </div>
-          </form>
         </div>
 
         {/* Error Message */}
@@ -771,37 +820,6 @@ export default function DealFinder() {
         {/* Results */}
         {!loading && deals.length > 0 && (
           <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden p-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                {formData.make || formData.model || formData.yearMin || formData.yearMax ? 
-                  `${deals.length} Deal${deals.length !== 1 ? 's' : ''} Found` : 
-                  `Top ${deals.length} Auctions Ending Soon`
-                }
-              </h2>
-              
-              <div className="mt-3 sm:mt-0">
-                <label htmlFor="sort-order" className="mr-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Sort by:
-                </label>
-                <select
-                  id="sort-order"
-                  value={sortOrder}
-                  onChange={(e) => handleSortChange(e.target.value as 'timeAsc' | 'timeDesc' | 'dealScore')}
-                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
-                >
-                  <option value="timeAsc">Ending Soon</option>
-                  <option value="timeDesc">Ending Later</option>
-                  <option value="dealScore">Best Deal</option>
-                </select>
-              </div>
-            </div>
-            
-            {!formData.make && !formData.model && !formData.yearMin && !formData.yearMax && (
-              <div className="mb-6 text-gray-600 dark:text-gray-300">
-                <p>Showing the top auctions ending soonest across all makes and models. Use the search form above to find specific deals by make, model, and year range.</p>
-              </div>
-            )}
-            
             <div className="space-y-8">
               {sortedDeals.map((deal, index) => (
                 <div key={index} className="bg-gray-50 dark:bg-gray-700 shadow rounded-lg overflow-hidden">

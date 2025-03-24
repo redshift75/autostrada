@@ -271,6 +271,9 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // Limit the number of results to 100
+      query = query.limit(100);
+
       // Execute the query
       const { data: supabaseResults, error: supabaseError } = await query;
 
