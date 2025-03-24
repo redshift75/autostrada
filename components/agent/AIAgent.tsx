@@ -151,7 +151,7 @@ export default function AIAgent({
                 <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-300"></span>
               </span>
             </div>
-            <span className="pr-2">Ask AI Assistant</span>
+            <span className="pr-2">Ask AI</span>
           </>
         )}
       </button>

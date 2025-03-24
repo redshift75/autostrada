@@ -792,23 +792,23 @@ function AuctionsContent() {
                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                             <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md">
                               <p className="text-sm text-gray-500 dark:text-gray-400">Total Results</p>
-                              <p className="text-2xl font-bold">{summary.totalResults}</p>
+                              <p className="text-xl font-bold">{summary.totalResults}</p>
                             </div>
                             <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md">
                               <p className="text-sm text-gray-500 dark:text-gray-400">Average Sold Price</p>
-                              <p className="text-2xl font-bold">{formatPrice(summary.averageSoldPrice)}</p>
+                              <p className="text-xl font-bold">{formatPrice(summary.averageSoldPrice)}</p>
                             </div>
                             <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md">
                               <p className="text-sm text-gray-500 dark:text-gray-400">Highest Sold Price</p>
-                              <p className="text-2xl font-bold">{formatPrice(summary.highestSoldPrice)}</p>
+                              <p className="text-xl font-bold">{formatPrice(summary.highestSoldPrice)}</p>
                             </div>                    
                             <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md">
                               <p className="text-sm text-gray-500 dark:text-gray-400">Avg Mileage</p>
-                              <p className="text-2xl font-bold">{summary.averageMileage}</p>
+                              <p className="text-xl font-bold">{summary.averageMileage}</p>
                             </div>
                             <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md">
                               <p className="text-sm text-gray-500 dark:text-gray-400">Sold Percentage</p>
-                              <p className="text-2xl font-bold">{summary.soldPercentage}</p>
+                              <p className="text-xl font-bold">{summary.soldPercentage}</p>
                             </div>
                           </div>
                         </CardContent>
