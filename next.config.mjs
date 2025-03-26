@@ -1,6 +1,7 @@
 // @ts-check
 
 /** @type {import('next').NextConfig} */
+
 const nextConfig = {
   images: {
     remotePatterns: [
@@ -62,6 +63,14 @@ const nextConfig = {
     };
 
     return config;
+  },
+  async rewrites() {
+    return [
+      {
+        source: '/models',
+        destination: 'http://127.0.0.1:5328/models', // Proxy to Backend
+      },
+    ]
   },
 };
 
