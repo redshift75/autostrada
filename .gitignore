@@ -47,7 +47,7 @@ yarn-error.log*
 next-env.d.ts
 
 # model files
-models/*.joblib
+models/*/*.pkl
 
 # trigger data
 .trigger
