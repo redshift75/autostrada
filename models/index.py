@@ -1,24 +1,16 @@
 from flask import Flask, request, jsonify
-import joblib
+import pickle
 import numpy as np
 import pandas as pd
-
+import os
+from supabase import create_client
 app = Flask(__name__)
-
-# Load the model
-try:
-    carmodel = joblib.load('model_Porsche_2025-03-26.joblib')
-    labels_model = joblib.load('labels_Porsche_model.joblib')
-    labels_color = joblib.load('labels_Porsche_color.joblib')
-    labels_transmission = joblib.load('labels_Porsche_transmission.joblib')
-except Exception as e:
-    print(f"Error loading model: {e}")
-    carmodel = None
+SUPABASE_URL = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
+SUPABASE_SERVICE_KEY = os.getenv("NEXT_PUBLIC_SUPABASE_SERVICE_KEY")
+supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
 @app.route('/models/predict', methods=['POST'])
 def predict():
-    if carmodel is None:
-        return jsonify({"error": "Model not loaded"}), 500
 
     try:
         # Get data from request
@@ -37,7 +29,29 @@ def predict():
         # Check if all required features are present
         if any(feature is None for feature in features):
             return jsonify({"error": "Missing required features"}), 400
-            
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+    # Download the model from the bucket
+    try:
+        bucket_name = "models"
+        model_file_path = f"{data.get('make')}/model.pkl"
+        labels_color_file_path = f"{data.get('make')}/labels_color.pkl"
+        labels_model_file_path = f"{data.get('make')}/labels_model.pkl"
+        labels_transmission_file_path = f"{data.get('make')}/labels_transmission.pkl"
+
+        carmodel = pickle.loads(supabase.storage.from_(bucket_name).download(model_file_path))
+        labels_color = pickle.loads(supabase.storage.from_(bucket_name).download(labels_color_file_path))
+        labels_model = pickle.loads(supabase.storage.from_(bucket_name).download(labels_model_file_path))
+        labels_transmission = pickle.loads(supabase.storage.from_(bucket_name).download(labels_transmission_file_path))
+
+    except Exception as e:
+        return jsonify({"error": f"Error downloading file: {e}"}), 500
+
+    if carmodel is None:
+        return jsonify({"error": "Model not loaded"}), 500
+    else:
         # Create input data DataFrame
         input_data = pd.DataFrame({
             'year': [data.get('year')],
@@ -65,24 +79,12 @@ def predict():
             price = np.exp(price_scaled)
             
             return jsonify({
-                "prediction": float(price[0]),
-                "features": {
-                    "make": features[0],
-                    "model": features[1],
-                    "year": features[2],
-                    "mileage": features[3],
-                    "normalized_color": features[4],
-                    "transmission": features[5]
+                "prediction": int(price[0]),
                 }
-            })
+            )
             
         except Exception as e:
-            print(f"Error during transformation: {str(e)}")
             return jsonify({"error": f"Error during feature transformation: {str(e)}"}), 400
-        
-    except Exception as e:
-        print(f"Error in predict endpoint: {str(e)}")
-        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(port=5328)
