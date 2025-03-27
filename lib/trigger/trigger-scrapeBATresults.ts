@@ -62,6 +62,7 @@ export const batScheduledTask = schedules.task({
             bid_date: item.bid_date ? new Date(item.bid_date) : null,
             year: item.year,
             make: item.make,
+            exterior_color: item.color,
             model: item.model,
             mileage: item.mileage,
             source_file: 'cron job',
