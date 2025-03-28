@@ -5,14 +5,13 @@
  * for scraping data from multiple sources.
  */
 
-import { BaseBATScraper, ScraperConfig } from './BaseBATScraper';
+import { ScraperConfig } from './BaseBATScraper';
 import { BringATrailerResultsScraper, BaTResultsScraperParams as BaTScraperParams } from './BringATrailerResultsScraper';
-import { ListingSource } from '../standardization/listingData';
 
 // Types for scraper manager configuration
 export interface ScraperManagerConfig {
   globalConfig?: ScraperConfig;
-  sourceConfigs?: Partial<Record<ListingSource, ScraperConfig>>;
+  sourceConfigs?: Partial<Record<string, ScraperConfig>>;
 }
 
 // Types for search parameters
@@ -23,125 +22,55 @@ export interface SearchParams {
   yearFrom?: number;
   yearTo?: number;
   limit?: number;
-  sources?: ListingSource[];
 }
 
 export class ScraperManager {
-  private scrapers: Map<ListingSource, BaseBATScraper> = new Map();
+  private scraper: BringATrailerResultsScraper = new BringATrailerResultsScraper();
   private config: ScraperManagerConfig;
   
   constructor(config: ScraperManagerConfig = {}) {
     this.config = config;
-    this.initializeScrapers();
   }
   
   /**
-   * Initialize all scrapers
+   * Get the configuration for the scraper
    */
-  private initializeScrapers(): void {
-    // Initialize Bring a Trailer scraper
-    this.registerScraper(
-      ListingSource.BRING_A_TRAILER,
-      new BringATrailerResultsScraper()
-    );
-    
-    // Add more scrapers here as they are implemented
-    // this.registerScraper(ListingSource.RM_SOTHEBYS, new RMSothebyScraper(...));
-    // this.registerScraper(ListingSource.GOODING, new GoodingScraper(...));
-    // etc.
-  }
-  
-  /**
-   * Register a scraper for a specific source
-   */
-  public registerScraper(source: ListingSource, scraper: BaseBATScraper): void {
-    this.scrapers.set(source, scraper);
-  }
-  
-  /**
-   * Get a scraper for a specific source
-   */
-  public getScraper(source: ListingSource): BaseBATScraper | undefined {
-    return this.scrapers.get(source);
-  }
-  
-  /**
-   * Get the configuration for a specific scraper
-   */
-  private getScraperConfig(source: ListingSource): ScraperConfig {
+  private getScraperConfig(): ScraperConfig {
     return {
       ...this.config.globalConfig,
-      ...this.config.sourceConfigs?.[source]
+      ...this.config.sourceConfigs?.['bringATrailer']
     };
   }
   
   /**
-   * Search for listings across all sources or specific sources
+   * Search for listings
    */
   public async search(params: SearchParams): Promise<any[]> {
-    const results: any[] = [];
-    const sources = params.sources || Array.from(this.scrapers.keys());
-    
-    // Create an array of promises for each source
-    const promises = sources.map(async (source) => {
-      const scraper = this.scrapers.get(source);
-      if (!scraper) return [];
+    try {
+      // Convert generic search params to BaT-specific params
+      const batParams: BaTScraperParams = {
+        make: params.make,
+        model: params.model,
+        yearMin: params.yearFrom,
+        yearMax: params.yearTo
+      };
       
-      try {
-        // Convert generic search params to source-specific params
-        const sourceParams = this.convertToSourceParams(source, params);
-        
-        // Scrape the source
-        const sourceResults = await scraper.scrape(sourceParams);
-        
-        // For now, just return the results as-is
-        // In the future, we can add standardization here
-        return sourceResults;
-      } catch (error) {
-        console.error(`Error scraping ${source}:`, error);
-        return [];
-      }
-    });
-    
-    // Wait for all promises to resolve
-    const resultsArrays = await Promise.all(promises);
-    
-    // Flatten the results
-    for (const resultsArray of resultsArrays) {
-      results.push(...resultsArray);
-    }
-    
-    return results;
-  }
-  
-  /**
-   * Convert generic search params to source-specific params
-   */
-  private convertToSourceParams(source: ListingSource, params: SearchParams): any {
-    switch (source) {
-      case ListingSource.BRING_A_TRAILER:
-        // Convert to BaT-specific params
-        const batParams: BaTScraperParams = {
-          make: params.make,
-          model: params.model,
-          yearMin: params.yearFrom,
-          yearMax: params.yearTo
-        };
-        return batParams;
+      // Scrape Bring a Trailer
+      const results = await this.scraper.scrape(batParams);
       
-      // Add more cases for other sources as they are implemented
-      
-      default:
-        // Return the params as-is for unknown sources
-        return params;
+      // For now, just return the results as-is
+      // In the future, we can add standardization here
+      return results;
+    } catch (error) {
+      console.error('Error scraping Bring a Trailer:', error);
+      return [];
     }
   }
   
   /**
-   * Clean up all scrapers
+   * Clean up the scraper
    */
   public async cleanup(): Promise<void> {
-    const promises = Array.from(this.scrapers.values()).map(scraper => scraper.cleanup());
-    await Promise.all(promises);
+    await this.scraper.cleanup();
   }
 } 
