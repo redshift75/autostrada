@@ -1,4 +1,4 @@
-# Classic Car Market Intelligence
+# Automotive Market Intelligence
 
 A comprehensive platform for analyzing classic car market trends, tracking prices, and providing insights for collectors and investors.
 
