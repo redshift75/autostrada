@@ -5,48 +5,17 @@
  * - Rate limiting and request throttling
  * - Error handling and retry mechanisms
  * - Logging utilities
- * - Caching mechanisms for responses
  */
 
 import '../server-only';
 
 // Import Node.js modules conditionally
 let setTimeout: any;
-let createHash: any;
-let fs: any;
-let path: any;
 
 // Only import Node.js modules on the server
 if (typeof window === 'undefined') {
   // Use regular imports instead of node: protocol
   setTimeout = global.setTimeout;
-  
-  import('crypto').then(module => { createHash = module.createHash }).catch(() => {
-    // Provide a fallback or no-op implementation
-    createHash = (algorithm: string) => ({
-      update: (data: string) => ({
-        digest: (encoding: string) => 'mock-hash'
-      })
-    });
-  });
-  
-  import('fs/promises').then(module => { fs = module }).catch(() => {
-    // Provide a fallback or no-op implementation
-    fs = {
-      readFile: async () => '',
-      writeFile: async () => {},
-      mkdir: async () => {},
-      access: async () => { throw new Error('File not found'); }
-    };
-  });
-  
-  import('path').then(module => { path = module }).catch(() => {
-    // Provide a fallback or no-op implementation
-    path = {
-      join: (...parts: string[]) => parts.join('/'),
-      dirname: (p: string) => p.split('/').slice(0, -1).join('/')
-    };
-  });
 }
 
 // Types for scraper configuration
@@ -59,11 +28,6 @@ export interface ScraperConfig {
   maxRetries?: number;
   retryDelay?: number; // in milliseconds
   retryMultiplier?: number; // multiplier for exponential backoff
-  
-  // Caching configuration
-  cacheEnabled?: boolean;
-  cacheTTL?: number; // in milliseconds
-  cacheDir?: string;
   
   // User agent rotation
   userAgents?: string[];
@@ -82,9 +46,6 @@ const DEFAULT_CONFIG: ScraperConfig = {
   maxRetries: 3,
   retryDelay: 1000,
   retryMultiplier: 2,
-  cacheEnabled: false,
-  cacheTTL: 24 * 60 * 60 * 1000, // 24 hours
-  cacheDir: '/tmp',
   userAgents: [
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15',
@@ -102,26 +63,6 @@ export abstract class BaseBATScraper {
   constructor(config: ScraperConfig = {}) {
     // Merge provided config with defaults
     this.config = { ...DEFAULT_CONFIG, ...config };
-    
-    // Initialize cache directory asynchronously
-    if (this.config.cacheEnabled && this.config.cacheDir) {
-      // We'll initialize the cache directory asynchronously
-      // but we won't wait for it to complete
-      this.initializeCacheDir();
-    }
-  }
-  
-  /**
-   * Initialize the cache directory asynchronously
-   */
-  private async initializeCacheDir(): Promise<void> {
-    try {
-      // Wait a bit to ensure imports have completed
-      await new Promise(resolve => setTimeout(resolve, 100));
-      await this.ensureCacheDir();
-    } catch (error: any) {
-      this.log('error', `Failed to initialize cache directory: ${error.message}`);
-    }
   }
   
   /**
@@ -131,20 +72,9 @@ export abstract class BaseBATScraper {
   abstract scrape(params?: any): Promise<any>;
   
   /**
-   * Fetch a URL with rate limiting, retries, and caching
+   * Fetch a URL with rate limiting and retries
    */
   protected async fetch(url: string, options: RequestInit = {}): Promise<Response> {
-    const cacheKey = this.getCacheKey(url, options);
-    
-    // Check cache first if enabled
-    if (this.config.cacheEnabled) {
-      const cachedResponse = await this.getCachedResponse(cacheKey);
-      if (cachedResponse) {
-        this.log('debug', `Cache hit for ${url}`);
-        return cachedResponse;
-      }
-    }
-    
     // Apply rate limiting
     await this.applyRateLimiting();
     
@@ -176,16 +106,6 @@ export abstract class BaseBATScraper {
         // Check if the response is successful
         if (!response.ok) {
           throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
-        }
-        
-        // Clone the response before caching it
-        const responseClone = response.clone();
-        
-        // Cache the response if caching is enabled
-        if (this.config.cacheEnabled) {
-          this.cacheResponse(cacheKey, responseClone).catch(err => {
-            this.log('error', `Failed to cache response: ${err.message}`);
-          });
         }
         
         return response;
@@ -244,121 +164,6 @@ export abstract class BaseBATScraper {
     
     // Increment request count
     this.requestCount++;
-  }
-  
-  /**
-   * Generate a cache key for a request
-   */
-  protected getCacheKey(url: string, options: RequestInit): string {
-    const hash = createHash('md5');
-    hash.update(url);
-    
-    // Include relevant parts of options in the cache key
-    if (options.method) {
-      hash.update(options.method);
-    }
-    
-    if (options.body) {
-      hash.update(String(options.body));
-    }
-    
-    return hash.digest('hex');
-  }
-  
-  /**
-   * Get a cached response if it exists and is not expired
-   */
-  protected async getCachedResponse(cacheKey: string): Promise<Response | null> {
-    if (!this.config.cacheEnabled || !this.config.cacheDir) {
-      return null;
-    }
-    
-    const cacheFilePath = path.join(this.config.cacheDir, `${cacheKey}.json`);
-    
-    try {
-      // Check if cache file exists
-      await fs.access(cacheFilePath);
-      
-      // Read cache file
-      const cacheData = JSON.parse(await fs.readFile(cacheFilePath, 'utf-8'));
-      
-      // Check if cache is expired
-      if (Date.now() - cacheData.timestamp > (this.config.cacheTTL || 0)) {
-        this.log('debug', `Cache expired for key ${cacheKey}`);
-        return null;
-      }
-      
-      // Reconstruct response from cache
-      return new Response(cacheData.body, {
-        status: cacheData.status,
-        statusText: cacheData.statusText,
-        headers: cacheData.headers
-      });
-    } catch (error) {
-      // If file doesn't exist or can't be read, return null
-      return null;
-    }
-  }
-  
-  /**
-   * Cache a response
-   */
-  protected async cacheResponse(cacheKey: string, response: Response): Promise<void> {
-    if (!this.config.cacheEnabled || !this.config.cacheDir) {
-      return;
-    }
-    
-    // Clone the response to avoid consuming it
-    const responseClone = response.clone();
-    
-    // Extract data to cache
-    const body = await responseClone.text();
-    const headers = Object.fromEntries(responseClone.headers.entries());
-    
-    const cacheData = {
-      timestamp: Date.now(),
-      url: responseClone.url,
-      status: responseClone.status,
-      statusText: responseClone.statusText,
-      headers,
-      body
-    };
-    
-    // Write to cache file
-    const cacheFilePath = path.join(this.config.cacheDir, `${cacheKey}.json`);
-    await fs.writeFile(cacheFilePath, JSON.stringify(cacheData), 'utf-8');
-  }
-  
-  /**
-   * Ensure cache directory exists
-   */
-  protected async ensureCacheDir(): Promise<void> {
-    if (!this.config.cacheDir) {
-      return;
-    }
-    
-    // Ensure fs is available
-    if (typeof fs === 'undefined') {
-      try {
-        fs = await import('fs/promises');
-      } catch (error: any) {
-        this.log('error', `Failed to import fs module: ${error.message}`);
-        return;
-      }
-    }
-    
-    try {
-      await fs.access(this.config.cacheDir);
-    } catch (error) {
-      // Directory doesn't exist, create it
-      try {
-        await fs.mkdir(this.config.cacheDir, { recursive: true });
-      } catch (mkdirError: any) {
-        this.log('error', `Failed to create cache directory: ${mkdirError.message}`);
-        // Set cacheEnabled to false to prevent further attempts
-        this.config.cacheEnabled = false;
-      }
-    }
   }
   
   /**
@@ -422,7 +227,7 @@ export abstract class BaseBATScraper {
   }
   
   /**
-   * Fetches HTML content from a URL with caching and rate limiting
+   * Fetches HTML content from a URL with rate limiting
    * @param url The URL to fetch
    * @param options Optional fetch options
    * @returns The HTML content as a string
@@ -443,7 +248,7 @@ export abstract class BaseBATScraper {
         headers
       };
       
-      // Use the fetch method which handles caching and rate limiting
+      // Use the fetch method which handles rate limiting
       const response = await this.fetch(url, fetchOptions);
       
       // Get the HTML text from the response

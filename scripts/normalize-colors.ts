@@ -5,6 +5,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { count } from 'console';
 
 // Load environment variables
 dotenv.config();
@@ -157,7 +158,23 @@ export async function processCarColors(options: { maxBatches?: number, shouldUps
   console.log(`Starting to process up to ${maxBatches === Infinity ? 'all' : maxBatches} batches of car colors from Supabase...`);
   
   while (hasMoreData && batchCount < maxBatches) {
+
+    const { count, error } = await supabase
+    .from('bat_completed_auctions')
+    .select('listing_id', { count: 'exact' })
+    .neq('exterior_color', null)
+    .is('normalized_color', null)
+    .neq('mileage', null)
+
+    console.log(`Total number of cars to process: ${count}`);
+
+    if (error) {
+      console.error('Supabase count error:', error);
+      break;
+    }
+
     try {
+
       // Fetch a batch of car data
       const { data, error } = await supabase
         .from('bat_completed_auctions')

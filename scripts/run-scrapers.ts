@@ -60,14 +60,8 @@ async function processMake(currentMake: string) {
   
   // Create a temporary argv object with the current make
   const tempArgv = { ...argv, make: currentMake };
-  
-  if (mode === 'completed' || mode === 'both') {
-    await runResultsScraper(currentMake);
-  }
-  
-  if (mode === 'active' || mode === 'both') {
-    await runActiveScraper(currentMake);
-  }
+
+  await runResultsScraper(currentMake);
 }
 
 async function runResultsScraper(currentMake: string = make) {
@@ -139,8 +133,7 @@ async function runResultsScraper(currentMake: string = make) {
   }
 }
 
-async function runActiveScraper(currentMake: string = make) {
-  console.log(`Testing BringATrailerActiveListingScraper for ${currentMake}...`);
+async function runActiveScraper() {
   
   // Create results directory if it doesn't exist
   const resultsDir = path.join(process.cwd(), 'results');
@@ -166,29 +159,12 @@ async function runActiveScraper(currentMake: string = make) {
     });
   }
   
-  // If make and model are provided, filter the results
-  if (currentMake && model) {
-    const filteredListings = allListings.filter(listing => {
-      const listingMake = listing.make?.toLowerCase() || '';
-      const listingModel = listing.model?.toLowerCase() || '';
-      const searchMake = currentMake.toLowerCase();
-      const searchModel = model.toLowerCase();
-      
-      return listingMake === searchMake && listingModel.includes(searchModel);
-    });
-    
-    console.log(`\nFound ${filteredListings.length} active ${currentMake} ${model} auctions`);
-    
-    if (filteredListings.length > 0) {
-      // Save filtered results to file
-      const makeForFilename = currentMake ? currentMake.toLowerCase() : 'all';
-      const modelForFilename = model ? model.toLowerCase() : 'all';
-      const filteredFile = path.join(resultsDir, `${makeForFilename}_${modelForFilename}_active_results.json`);
-      fs.writeFileSync(filteredFile, JSON.stringify(filteredListings, null, 2));
-      console.log(`Saved ${filteredListings.length} active ${currentMake} ${model} auctions to ${filteredFile}`);
-    }
-    
-    return filteredListings;
+  if (allListings.length > 0) {
+    // Save filtered results to file
+    console.log("Saving active results to file");
+    const file = path.join(resultsDir, `bat_active_results.json`);
+    fs.writeFileSync(file, JSON.stringify(allListings, null, 2));
+    console.log(`Saved ${allListings.length} active auctions to ${file}`);
   }
   
   return allListings;
@@ -199,7 +175,14 @@ async function runScrape() {
   try {
     console.log(`Running scraper in ${mode} mode`);
     
-    // get all makes from supabase
+    if (mode === 'active') {
+      // Run active scraper
+      console.log(`Running BringATrailerActiveListingScraper for all makes...`);
+      await runActiveScraper();
+      return;
+    }
+
+    // For completed auctions, get makes from DB if no specific make is provided
     let makes = [];
     if (make) {
       makes = [make];
@@ -207,7 +190,7 @@ async function runScrape() {
       makes = await readMakesFromDB();
     }
 
-    // Process each make in the list
+    // Run completed scraper for each make in the list
     for (const currentMake of makes) {
       await processMake(currentMake);
       
