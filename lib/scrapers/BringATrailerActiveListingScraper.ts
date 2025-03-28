@@ -74,7 +74,6 @@ export interface BaTActiveScraperParams {
 export class BringATrailerActiveListingScraper extends BaseBATScraper {
   private baseUrl = 'https://bringatrailer.com';
   private searchUrl = 'https://bringatrailer.com/auctions/';
-  private static debuggedAuction = false;
   private scrapeDetails: boolean;
 
   constructor(params: BaTActiveScraperParams = {}) {
