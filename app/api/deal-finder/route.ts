@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     const maxDeals = parseInt(searchParams.get('maxDeals') || '10');
 
     // Initialize scraper for active listings
-    const activeListingScraper = new BringATrailerActiveListingScraper();
+    const activeListingScraper = new BringATrailerActiveListingScraper({ scrapeDetails: false });
 
     // Fetch active auctions - first get all listings, then filter them
     const activeListings = await activeListingScraper.scrape();
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
     // Filter by year if provided
     if (yearMin || yearMax) {
       filteredListings = filteredListings.filter(listing => {
-        const year = parseInt(listing.year);
+        const year = listing.year;
         const minMatch = !yearMin || year >= yearMin;
         const maxMatch = !yearMax || year <= yearMax;
         return minMatch && maxMatch;
@@ -109,7 +109,7 @@ export async function GET(request: NextRequest) {
         const listingMake = activeListing.make;
         // Extract model from the listing title using the listing's make
         const listingModel = activeListing.model;
-        const listingYear = parseInt(activeListing.year);
+        const listingYear = activeListing.year;
         
         // Set year range to be within 2 years of the active listing's year
         const histYearMin = listingYear - 2;

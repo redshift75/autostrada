@@ -8,13 +8,14 @@ import {
   filterListingsByModel,
   filterListingsByYear
 } from './BaTScraperUtils';
+import { fetchDetailsFromListingPage } from './BATDetailsExtractor';
 
 // Define our own BaTListing interface
 export interface BaTActiveListing {
   id: number;
   url: string;
   title: string;
-  year: string;
+  year: number;
   make: string;
   model: string;
   current_bid: number;
@@ -36,6 +37,8 @@ export interface BaTActiveListing {
   bidders?: number; // Number of bidders on the listing
   watchers?: number; // Number of users watching the listing
   comments?: number; // Number of comments on the listing
+  transmission?: 'automatic' | 'manual'; // Transmission type
+  color?: string; // Vehicle color
 }
 
 // Interface for auction data from the website
@@ -65,20 +68,21 @@ export interface BaTActiveScraperParams {
   model?: string;
   yearMin?: number;
   yearMax?: number;
+  scrapeDetails?: boolean;
 }
 
 export class BringATrailerActiveListingScraper extends BaseBATScraper {
   private baseUrl = 'https://bringatrailer.com';
   private searchUrl = 'https://bringatrailer.com/auctions/';
   private static debuggedAuction = false;
+  private scrapeDetails: boolean;
 
-  constructor() {
+  constructor(params: BaTActiveScraperParams = {}) {
     super({
       requestsPerMinute: 10,
       minRequestInterval: 3000,
-      cacheEnabled: true,
-      cacheTTL: 3600000 // 1 hour
     });
+    this.scrapeDetails = params.scrapeDetails ?? true;
   }
 
   async scrape(): Promise<BaTActiveListing[]> {
@@ -99,9 +103,12 @@ export class BringATrailerActiveListingScraper extends BaseBATScraper {
       
       console.log(`Found ${auctionsData.auctions.length} auctions in the HTML`);
       
-      const listings: BaTActiveListing[] = auctionsData.auctions.map(auction => 
+      // Convert auctions to listings with additional details
+      const listingsPromises = auctionsData.auctions.map(auction => 
         this.convertAuctionToBaTListing(auction)
       );
+      
+      const listings = await Promise.all(listingsPromises);
       return listings;
     } catch (error) {
       console.error('Error scraping BaT:', error);
@@ -346,7 +353,7 @@ export class BringATrailerActiveListingScraper extends BaseBATScraper {
     }
   }
 
-  private convertAuctionToBaTListing(auction: BaTAuction): BaTActiveListing {
+  private async convertAuctionToBaTListing(auction: BaTAuction): Promise<BaTActiveListing> {
     // Extract location from country
     const location = auction.country || '';
     
@@ -367,12 +374,15 @@ export class BringATrailerActiveListingScraper extends BaseBATScraper {
     const make = extractMakeFromTitle(auction.title);
     const model = extractModelFromTitle(auction.title, make);
     
-    // Create the listing object
+    // Parse year as integer
+    const year = parseInt(auction.year, 10);
+    
+    // Create the base listing object
     const listing: BaTActiveListing = {
       id: auction.id,
       url: auction.url,
       title: auction.title,
-      year: auction.year,
+      year,
       make,
       model,
       current_bid: auction.current_bid,
@@ -386,6 +396,27 @@ export class BringATrailerActiveListingScraper extends BaseBATScraper {
       status: isEnded ? 'ended' : 'active',
       sold_price: soldPrice > 0 ? soldPrice : undefined,
     };
+
+    // Only fetch additional details if scrapeDetails is true
+    if (this.scrapeDetails) {
+      try {
+        console.log(`Fetching additional details for listing ${auction.id}...`);
+        const details = await fetchDetailsFromListingPage(auction.url);
+        
+        // Add the additional details to the listing
+        if (details.mileage) listing.mileage = details.mileage;
+        if (details.bidders) listing.bidders = details.bidders;
+        if (details.watchers) listing.watchers = details.watchers;
+        if (details.comments) listing.comments = details.comments;
+        if (details.transmission) listing.transmission = details.transmission;
+        if (details.color) listing.color = details.color;
+        
+        console.log(`Successfully added additional details for listing ${auction.id}`);
+      } catch (error) {
+        console.error(`Error fetching additional details for listing ${auction.id}:`, error);
+      }
+    }
+
     return listing;
   }
 } 

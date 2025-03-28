@@ -212,7 +212,7 @@ async function uploadActiveAuctionsToSupabase() {
     
     // Get all JSON files in the results directory that contain active listings
     const resultFiles = fs.readdirSync(resultsDir)
-      .filter(file => file.endsWith('_active_listings.json') || file === 'active_listings.json');
+      .filter(file => file.endsWith('_active_results.json') || file === 'active_results.json');
     
     if (resultFiles.length === 0) {
       console.log('No active auction listing files found');
@@ -245,9 +245,9 @@ async function uploadActiveAuctionsToSupabase() {
         image_url: listing.image_url,
         current_bid: listing.current_bid,
         current_bid_formatted: listing.current_bid_formatted,
-        end_date: new Date(listing.endDate),
+        endDate: listing.endDate,
         status: listing.status || 'active',
-        year: listing.year ? parseInt(listing.year) : null,
+        year: listing.year,
         make: listing.make ? listing.make.replace(/-/g, ' ') : null,
         model: listing.model,
         location: listing.location,
@@ -255,7 +255,13 @@ async function uploadActiveAuctionsToSupabase() {
         premium: listing.premium || false,
         source_file: file,
         created_at: new Date(),
-        updated_at: new Date()
+        updated_at: new Date(),
+        mileage: listing.mileage || null,
+        bidders: listing.bidders || null,
+        watchers: listing.watchers || null,
+        comments: listing.comments || null,
+        transmission: listing.transmission || null,
+        exterior_color: listing.color || null
       }));
       
       // Deduplicate listings to avoid the "ON CONFLICT DO UPDATE command cannot affect row a second time" error
