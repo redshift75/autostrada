@@ -14,7 +14,10 @@
     "run-scrapers:completed": "npx tsx -r dotenv/config ./scripts/run-scrapers.ts --mode=completed",
     "upload-to-supabase": "npx tsx -r dotenv/config ./scripts/upload-to-supabase.ts",
     "upload-completed": "npx tsx -r dotenv/config ./scripts/upload-to-supabase.ts --completed",
-    "upload-active": "npx tsx -r dotenv/config ./scripts/upload-to-supabase.ts --active"
+    "upload-active": "npx tsx -r dotenv/config ./scripts/upload-to-supabase.ts --active",
+    "predict-prices": "npx tsx -r dotenv/config ./scripts/predict-prices.ts",
+    "normalize-colors": "npx tsx -r dotenv/config ./scripts/normalize-colors.ts",
+    "normalize-colors:active": "npx tsx -r dotenv/config ./scripts/normalize-colors.ts --active"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.12.6",

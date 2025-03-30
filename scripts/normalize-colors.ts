@@ -5,7 +5,6 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-import { count } from 'console';
 
 // Load environment variables
 dotenv.config();
@@ -107,11 +106,13 @@ async function normalizeCarColors(colorData: Array<{listing_id: string, exterior
 /**
  * Updates normalized color data in Supabase
  * @param normalizedColors Array of objects with listing_id and normalized_color
+ * @param isActive Boolean indicating whether to update active listings or completed auctions
  * @returns Promise with the update result
  */
-async function upsertNormalizedColors(normalizedColors: Array<{listing_id: string, normalized_color: string}>) {
+async function upsertNormalizedColors(normalizedColors: Array<{listing_id: string, normalized_color: string}>, isActive: boolean = false) {
   try {
-    console.log(`Updating ${normalizedColors.length} normalized colors in Supabase...`);
+    const tableName = isActive ? 'bat_active_auctions' : 'bat_completed_auctions';
+    console.log(`Updating ${normalizedColors.length} normalized colors in Supabase table ${tableName}...`);
     
     // Track successful updates
     let successCount = 0;
@@ -119,7 +120,7 @@ async function upsertNormalizedColors(normalizedColors: Array<{listing_id: strin
     // Update each record individually to avoid not-null constraint issues
     for (const item of normalizedColors) {
       const { error } = await supabase
-        .from('bat_completed_auctions')
+        .from(tableName)
         .update({ normalized_color: item.normalized_color })
         .eq('listing_id', item.listing_id);
       
@@ -143,7 +144,7 @@ async function upsertNormalizedColors(normalizedColors: Array<{listing_id: strin
  * @param options Optional configuration parameters
  * @returns Promise with normalized color data
  */
-export async function processCarColors(options: { maxBatches?: number, shouldUpsert?: boolean } = {}) {
+export async function processCarColors(options: { maxBatches?: number, shouldUpsert?: boolean, isActive?: boolean } = {}) {
   const batchSize = 50;
   let startIndex = 0;
   let hasMoreData = true;
@@ -154,30 +155,18 @@ export async function processCarColors(options: { maxBatches?: number, shouldUps
   // Use provided options or default values
   const maxBatches = options.maxBatches ?? Infinity;
   const shouldUpsert = options.shouldUpsert ?? true;
+  const isActive = options.isActive ?? false;
+  const tableName = isActive ? 'bat_active_auctions' : 'bat_completed_auctions';
 
-  console.log(`Starting to process up to ${maxBatches === Infinity ? 'all' : maxBatches} batches of car colors from Supabase...`);
+  console.log(`Starting to process up to ${maxBatches === Infinity ? 'all' : maxBatches} batches of car colors from Supabase table ${tableName}...`);
   
   while (hasMoreData && batchCount < maxBatches) {
-
-    const { count, error } = await supabase
-    .from('bat_completed_auctions')
-    .select('listing_id', { count: 'exact' })
-    .neq('exterior_color', null)
-    .is('normalized_color', null)
-    .neq('mileage', null)
-
-    console.log(`Total number of cars to process: ${count}`);
-
-    if (error) {
-      console.error('Supabase count error:', error);
-      break;
-    }
 
     try {
 
       // Fetch a batch of car data
       const { data, error } = await supabase
-        .from('bat_completed_auctions')
+        .from(tableName)
         .select('listing_id, exterior_color')
         .range(startIndex, startIndex + batchSize - 1)
         .neq('exterior_color', null)
@@ -206,7 +195,7 @@ export async function processCarColors(options: { maxBatches?: number, shouldUps
         console.log(`Processed ${normalizedBatch.length} valid colors in batch ${batchCount}.`);
         
         // Save batch results to a file
-        const batchFileName = path.join(resultsDir, `batch_${batchCount}_normalized_colors_${timestamp}.json`);
+        const batchFileName = path.join(resultsDir, `batch_${batchCount}_normalized_colors_${isActive ? 'active_' : ''}${timestamp}.json`);
         fs.writeFileSync(
           batchFileName, 
           JSON.stringify(normalizedBatch, null, 2)
@@ -215,7 +204,7 @@ export async function processCarColors(options: { maxBatches?: number, shouldUps
         
         // Upsert to Supabase if the flag is set
         if (shouldUpsert) {
-          await upsertNormalizedColors(normalizedBatch);
+          await upsertNormalizedColors(normalizedBatch, isActive);
         }
       } else {
         console.log('No valid colors found in this batch.');
@@ -237,7 +226,7 @@ export async function processCarColors(options: { maxBatches?: number, shouldUps
       console.error(`Error processing batch ${batchCount}:`, error);
       
       // Save what we have so far even after an error
-      const errorBatchFileName = path.join(resultsDir, `batch_${batchCount}_error_partial.json`);
+      const errorBatchFileName = path.join(resultsDir, `batch_${batchCount}_error_partial_${isActive ? 'active_' : ''}${timestamp}.json`);
       fs.writeFileSync(
         errorBatchFileName, 
         JSON.stringify(allResults, null, 2)
@@ -250,7 +239,7 @@ export async function processCarColors(options: { maxBatches?: number, shouldUps
   
   // Save all accumulated results to a file
   if (allResults.length > 0) {
-    const allResultsFileName = path.join(resultsDir, `all_normalized_colors_${timestamp}.json`);
+    const allResultsFileName = path.join(resultsDir, `all_normalized_colors_${isActive ? 'active_' : ''}${timestamp}.json`);
     fs.writeFileSync(
       allResultsFileName, 
       JSON.stringify(allResults, null, 2)
@@ -277,6 +266,7 @@ if (isMainModule) {
   const maxBatchesArg = args.find(arg => arg.startsWith('--batches='));
   const maxBatches = maxBatchesArg ? parseInt(maxBatchesArg.split('=')[1]) : Infinity;
   const shouldUpsert = args.includes('--upsert');
+  const isActive = args.includes('--active');
   
   // Run the script
   async function main() {
@@ -284,8 +274,9 @@ if (isMainModule) {
       console.log('Starting car color normalization process...');
       console.log(`Will process ${maxBatches === Infinity ? 'all available' : maxBatches} batches`);
       console.log(`Upsert to Supabase: ${shouldUpsert ? 'Enabled' : 'Disabled'}`);
+      console.log(`Processing ${isActive ? 'active listings' : 'completed auctions'}`);
       
-      const results = await processCarColors({ maxBatches, shouldUpsert });
+      const results = await processCarColors({ maxBatches, shouldUpsert, isActive });
       console.log(`Completed with ${results.length} normalized color entries.`);
     } catch (error) {
       console.error('Failed to complete the normalization process:', error);

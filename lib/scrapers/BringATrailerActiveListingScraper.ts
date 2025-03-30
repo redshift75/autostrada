@@ -12,7 +12,7 @@ import { fetchDetailsFromListingPage } from './BATDetailsExtractor';
 
 // Define our own BaTListing interface
 export interface BaTActiveListing {
-  id: number;
+  listing_id: number;
   url: string;
   title: string;
   year: number;
@@ -378,7 +378,7 @@ export class BringATrailerActiveListingScraper extends BaseBATScraper {
     
     // Create the base listing object
     const listing: BaTActiveListing = {
-      id: auction.id,
+      listing_id: auction.id,
       url: auction.url,
       title: auction.title,
       year,

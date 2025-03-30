@@ -239,7 +239,7 @@ async function uploadActiveAuctionsToSupabase() {
       
       // Transform listings to database format
       const dbListings = listings.map(listing => ({
-        listing_id: listing.id.toString(),
+        listing_id: listing.listing_id,
         url: listing.url,
         title: listing.title,
         image_url: listing.image_url,
@@ -264,20 +264,14 @@ async function uploadActiveAuctionsToSupabase() {
         exterior_color: listing.color || null
       }));
       
-      // Deduplicate listings to avoid the "ON CONFLICT DO UPDATE command cannot affect row a second time" error
-      const uniqueDbListings = deduplicateListings(dbListings);
-      if (uniqueDbListings.length < dbListings.length) {
-        console.log(`Removed ${dbListings.length - uniqueDbListings.length} duplicate listings`);
-      }
-      
       // Upload in batches to avoid hitting Supabase limits
       const BATCH_SIZE = 100;
       let successCount = 0;
       let errorCount = 0;
       
-      for (let i = 0; i < uniqueDbListings.length; i += BATCH_SIZE) {
-        const batch = uniqueDbListings.slice(i, i + BATCH_SIZE);
-        console.log(`Uploading batch ${i / BATCH_SIZE + 1} of ${Math.ceil(uniqueDbListings.length / BATCH_SIZE)}...`);
+      for (let i = 0; i < dbListings.length; i += BATCH_SIZE) {
+        const batch = dbListings.slice(i, i + BATCH_SIZE);
+        console.log(`Uploading batch ${i / BATCH_SIZE + 1} of ${Math.ceil(dbListings.length / BATCH_SIZE)}...`);
         
         try {
           // Insert data with upsert (update if exists, insert if not)
