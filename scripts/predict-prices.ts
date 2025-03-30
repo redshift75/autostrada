@@ -37,7 +37,8 @@ interface ActiveListing {
 async function getPredictedPrice(listing: ActiveListing): Promise<number | null> {
   try {
     // Skip if required fields are missing
-    if (!listing.make || !listing.model || !listing.year) {
+    if (!listing.make || !listing.model || !listing.year || !listing.mileage 
+        || !listing.normalized_color || !listing.transmission) {
       console.log(`Skipping listing ${listing.listing_id}: Missing required fields`);
       return null;
     }
@@ -53,7 +54,7 @@ async function getPredictedPrice(listing: ActiveListing): Promise<number | null>
     console.log(`Prediction for ${listing.make} ${listing.model}:`, response.data.prediction);
     return response.data.prediction;
   } catch (error) {
-    console.error(`Error getting prediction :`, error);
+    console.error(`Error getting prediction for ${listing.make} ${listing.model}:`);
     return null;
   }
 }

@@ -146,8 +146,6 @@ async function upsertNormalizedColors(normalizedColors: Array<{listing_id: strin
  */
 export async function processCarColors(options: { maxBatches?: number, shouldUpsert?: boolean, isActive?: boolean } = {}) {
   const batchSize = 50;
-  let startIndex = 0;
-  let hasMoreData = true;
   let allResults: Array<{listing_id: string, exterior_color: string, normalized_color: string}> = [];
   let batchCount = 0;
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -158,38 +156,39 @@ export async function processCarColors(options: { maxBatches?: number, shouldUps
   const isActive = options.isActive ?? false;
   const tableName = isActive ? 'bat_active_auctions' : 'bat_completed_auctions';
 
-  console.log(`Starting to process up to ${maxBatches === Infinity ? 'all' : maxBatches} batches of car colors from Supabase table ${tableName}...`);
+  console.log(`Starting to process car colors from Supabase table ${tableName}...`);
   
-  while (hasMoreData && batchCount < maxBatches) {
+  try {
+    // Fetch all data at once
+    const { data, error } = await supabase
+      .from(tableName)
+      .select('listing_id, exterior_color')
+      .neq('exterior_color', null)
+      .is('normalized_color', null)
+      .order('listing_id');
+    
+    if (error) {
+      console.error('Supabase query error:', error);
+      return [];
+    }
+    
+    if (!data || data.length === 0) {
+      console.log('No data to process.');
+      return [];
+    }
 
-    try {
-
-      // Fetch a batch of car data
-      const { data, error } = await supabase
-        .from(tableName)
-        .select('listing_id, exterior_color')
-        .range(startIndex, startIndex + batchSize - 1)
-        .neq('exterior_color', null)
-        .is('normalized_color', null)
-        .order('listing_id');
-      
-      if (error) {
-        console.error('Supabase query error:', error);
-        break;
-      }
-      
-      if (!data || data.length === 0) {
-        hasMoreData = false;
-        console.log('No more data to process.');
-        break;
-      }
-      
+    console.log(`Found ${data.length} total records to process.`);
+    
+    // Process data in memory batches
+    for (let i = 0; i < data.length && batchCount < maxBatches; i += batchSize) {
+      const batch = data.slice(i, i + batchSize);
       batchCount++;
-      console.log(`Processing batch ${batchCount} of ${data.length} records (starting from index ${startIndex})...`);
-
-      if (data.length > 0) {
+      
+      console.log(`Processing batch ${batchCount} of ${Math.ceil(data.length / batchSize)} records (${i + 1} to ${Math.min(i + batchSize, data.length)})...`);
+      
+      if (batch.length > 0) {
         // Normalize the colors for this batch
-        const normalizedBatch = await normalizeCarColors(data);
+        const normalizedBatch = await normalizeCarColors(batch);
         allResults = [...allResults, ...normalizedBatch];
         
         console.log(`Processed ${normalizedBatch.length} valid colors in batch ${batchCount}.`);
@@ -210,47 +209,40 @@ export async function processCarColors(options: { maxBatches?: number, shouldUps
         console.log('No valid colors found in this batch.');
       }
       
-      // Move to the next batch
-      startIndex += batchSize;
-      
-      // If we got fewer records than the batch size, we've reached the end
-      if (data.length < batchSize) {
-        hasMoreData = false;
-        console.log('Reached the end of the data.');
-      }
-      
       // Optional: Add a small delay to avoid rate limiting
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
-    } catch (error) {
-      console.error(`Error processing batch ${batchCount}:`, error);
-      
-      // Save what we have so far even after an error
-      const errorBatchFileName = path.join(resultsDir, `batch_${batchCount}_error_partial_${isActive ? 'active_' : ''}${timestamp}.json`);
+    }
+    
+    // Save all accumulated results to a file
+    if (allResults.length > 0) {
+      const allResultsFileName = path.join(resultsDir, `all_normalized_colors_${isActive ? 'active_' : ''}${timestamp}.json`);
+      fs.writeFileSync(
+        allResultsFileName, 
+        JSON.stringify(allResults, null, 2)
+      );
+      console.log(`Successfully processed ${allResults.length} car colors across ${batchCount} batches.`);
+      console.log(`Complete results saved to ${allResultsFileName}`);
+    } else {
+      console.log('No colors were processed.');
+    }
+    
+    return allResults;
+    
+  } catch (error) {
+    console.error(`Error processing data:`, error);
+    
+    // Save what we have so far even after an error
+    if (allResults.length > 0) {
+      const errorBatchFileName = path.join(resultsDir, `error_partial_${isActive ? 'active_' : ''}${timestamp}.json`);
       fs.writeFileSync(
         errorBatchFileName, 
         JSON.stringify(allResults, null, 2)
       );
       console.log(`Saved partial results after error to ${errorBatchFileName}`);
-      
-      break;
     }
+    
+    return allResults;
   }
-  
-  // Save all accumulated results to a file
-  if (allResults.length > 0) {
-    const allResultsFileName = path.join(resultsDir, `all_normalized_colors_${isActive ? 'active_' : ''}${timestamp}.json`);
-    fs.writeFileSync(
-      allResultsFileName, 
-      JSON.stringify(allResults, null, 2)
-    );
-    console.log(`Successfully processed ${allResults.length} car colors across ${batchCount} batches.`);
-    console.log(`Complete results saved to ${allResultsFileName}`);
-  } else {
-    console.log('No colors were processed.');
-  }
-  
-  return allResults;
 }
 
 // ES module equivalent of __filename and __dirname
