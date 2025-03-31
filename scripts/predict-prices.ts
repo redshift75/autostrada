@@ -76,7 +76,7 @@ async function updateListingWithPrediction(listingId: string, predictedPrice: nu
   }
 }
 
-async function processActiveListings() {
+export async function processActiveListings() {
   try {
     console.log('Fetching active listings from Supabase...');
     

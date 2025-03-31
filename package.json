@@ -32,6 +32,7 @@
     "@radix-ui/react-slot": "^1.1.2",
     "@supabase/supabase-js": "^2.49.1",
     "@tanstack/react-table": "^8.21.2",
+    "@trigger.dev/python": "^3.3.17",
     "@trigger.dev/sdk": "^3.3.17",
     "axios": "^1.8.4",
     "cheerio": "^1.0.0",
