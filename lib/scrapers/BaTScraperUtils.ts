@@ -41,7 +41,7 @@ export function extractMakeFromTitle(title: string): string {
     'Toyota', 'Honda', 'Nissan', 'Mazda', 'Subaru', 'Lexus', 'Acura', 'Infiniti',
     'Ford', 'Chevrolet', 'Chevy', 'Dodge', 'Jeep', 'Cadillac', 'Lincoln', 'Buick',
     'Jaguar', 'Land Rover', 'Range Rover', 'Aston Martin', 'Bentley', 'Rolls-Royce',
-    'Lamborghini', 'Maserati', 'Alfa-Romeo', 'Fiat', 'Lancia', 'Bugatti'
+    'Lamborghini', 'Maserati', 'Alfa Romeo', 'Fiat', 'Lancia', 'Bugatti'
   ];
   
   // Convert title to lowercase for case-insensitive matching
