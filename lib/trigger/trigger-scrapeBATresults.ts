@@ -1,6 +1,7 @@
 import { logger, schedules, wait } from "@trigger.dev/sdk/v3";
 import { BringATrailerResultsScraper } from '../scrapers/BringATrailerResultsScraper';
 import { supabase } from '../supabase/client';
+import { processCarColors } from "@/scripts/normalize-colors";
 
 type CarMake = {
   make: string;
@@ -107,10 +108,22 @@ export const batScheduledTask = schedules.task({
           logger.error(`Error scraping ${currentMake}:`, error);
         }
       }
-      return results;
     } catch (error: any) {
       logger.error('Error in cron job for scraping auction results:', error);
       return error;
     }
+
+    logger.log("Starting car color normalization");
+      
+      // Call the processCarColors function with default parameters
+      // This will process all available records and update the database
+      const results = await processCarColors({
+        shouldUpsert: true,
+        isActive: false
+      });
+      
+      logger.log(`Completed normalization for ${results.length} car colors`);
+
+      return results;
   },
 });
