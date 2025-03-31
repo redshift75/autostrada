@@ -70,3 +70,39 @@ create index IF not exists idx_completed_sold_price on public.bat_completed_auct
 create trigger update_bat_completed_auctions_updated_at BEFORE
 update on bat_completed_auctions for EACH row
 execute FUNCTION update_updated_at_column ();
+
+create table public.bat_active_auctions (
+  id integer not null default nextval('bat_completed_auctions_id_seq'::regclass),
+  listing_id text not null,
+  url text not null,
+  title text not null,
+  image_url text null,
+  current_bid integer null,
+  status text null,
+  year integer null,
+  make text null,
+  model text null,
+  source_file text null,
+  created_at timestamp without time zone null default now(),
+  updated_at timestamp without time zone null default now(),
+  mileage integer null,
+  bidders integer null,
+  watchers integer null,
+  comments integer null,
+  transmission text null,
+  exterior_color text null,
+  normalized_color text null,
+  location text null,
+  no_reserve boolean null,
+  premium boolean null,
+  current_bid_formatted text null,
+  "endDate" bigint null,
+  predicted_price integer null,
+  constraint bat_active_actions_listing_id_key unique (listing_id)
+) TABLESPACE pg_default;
+
+create index IF not exists bat_active_actions_make_model_idx on public.bat_active_auctions using btree (make, model) TABLESPACE pg_default;
+
+create index IF not exists bat_active_actions_year_idx on public.bat_active_auctions using btree (year) TABLESPACE pg_default;
+
+create index IF not exists bat_active_actions_status_idx on public.bat_active_auctions using btree (status) TABLESPACE pg_default;

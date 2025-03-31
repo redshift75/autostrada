@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { BringATrailerActiveListingScraper } from '@/lib/scrapers/BringATrailerActiveListingScraper';
-import { fetchDetailsFromListingPage } from '@/lib/scrapers/BATDetailsExtractor';
+import { createClient } from '@supabase/supabase-js';
 import { auth } from '@clerk/nextjs/server'
+
+// Initialize Supabase client
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+// Check if Supabase credentials are configured
+const isSupabaseConfigured = supabaseUrl && supabaseKey;
+
+// Create client only if credentials are available
+const supabase = isSupabaseConfigured ? createClient(supabaseUrl, supabaseKey) : null;
 
 // Define the response type for the Deal Finder API
 type DealFinderResponse = {
@@ -16,6 +25,7 @@ type DealFinderResponse = {
     };
     priceDifference: number;
     percentageDifference: number;
+    predicted_price: number | null;
     dealScore: number; // 1-10 score, higher is better deal
     endingSoon: boolean; // Whether the auction is ending within 24 hours
   }>;
@@ -23,6 +33,15 @@ type DealFinderResponse = {
 
 export async function GET(request: NextRequest) {
   try {
+    // Check if Supabase is configured
+    if (!isSupabaseConfigured || !supabase) {
+      console.error('Supabase environment variables are not configured');
+      return NextResponse.json(
+        { error: 'Database connection not configured. Check server environment variables.' }, 
+        { status: 503 }
+      );
+    }
+
     // Get the token from session
     const { getToken } = await auth()
     const token = await getToken()
@@ -35,70 +54,62 @@ export async function GET(request: NextRequest) {
     const yearMax = parseInt(searchParams.get('yearMax') || '0') || undefined;
     const maxDeals = parseInt(searchParams.get('maxDeals') || '10');
 
-    // Initialize scraper for active listings
-    const activeListingScraper = new BringATrailerActiveListingScraper({ scrapeDetails: false });
+    // Build the Supabase query for active auctions
+    let query = supabase
+      .from('bat_active_auctions')
+      .select('*')
+      .eq('status', 'active');
 
-    // Fetch active auctions - first get all listings, then filter them
-    const activeListings = await activeListingScraper.scrape();
-    console.log(`Fetched ${activeListings.length} active listings`);
-    
-    // Filter by make/model if provided
-    let filteredListings = activeListings;
-    if (make || model) {
-      console.log(`Filtering by make: "${make}" and model: "${model}"`);
-      
-      filteredListings = activeListings.filter(listing => {
-        // More robust make matching
-        const makeMatch = !make || 
-          listing.make.toLowerCase() === make.toLowerCase() || 
-          listing.make.toLowerCase().includes(make.toLowerCase()) || 
-          listing.title.toLowerCase().includes(make.toLowerCase());
-        
-        const modelMatch = !model || 
-          listing.model.toLowerCase() === model.toLowerCase() || 
-          listing.model.toLowerCase().includes(model.toLowerCase()) || 
-          listing.title.toLowerCase().includes(model.toLowerCase());
-        return makeMatch && modelMatch;
-      });
+    // Apply filters if provided
+    if (make) {
+      query = query.ilike('make', `%${make}%`);
     }
-    
-    // Filter by year if provided
-    if (yearMin || yearMax) {
-      filteredListings = filteredListings.filter(listing => {
-        const year = listing.year;
-        const minMatch = !yearMin || year >= yearMin;
-        const maxMatch = !yearMax || year <= yearMax;
-        return minMatch && maxMatch;
-      });
+    if (model) {
+      query = query.ilike('model', `%${model}%`);
     }
-    console.log(`After filtering: ${filteredListings.length} listings`);
+    if (yearMin) {
+      query = query.gte('year', yearMin);
+    }
+    if (yearMax) {
+      query = query.lte('year', yearMax);
+    }
 
-    // Filter for auctions ending within the next 3 days (instead of just today)
-    // This gives us more results to work with
+    // Execute the query
+    const { data: activeListings, error } = await query;
+
+    if (error) {
+      console.error('Error fetching active listings:', error);
+      return NextResponse.json(
+        { error: 'Failed to fetch active listings from database' },
+        { status: 500 }
+      );
+    }
+
+    console.log(`Fetched ${activeListings.length} active listings from database`);
+
+    // Filter for auctions ending within the next 3 days
     const now = new Date();
     const endDate = new Date(now);
-    endDate.setDate(endDate.getDate() + 3); // Look for auctions ending in the next 3 days
+    endDate.setDate(endDate.getDate() + 3);
 
-    let endingSoon = filteredListings.filter(listing => {
+    let endingSoon = activeListings.filter(listing => {
       if (!listing.endDate) {
         console.log(`Listing missing endDate: ${listing.title}`);
         return false;
       }
       
-      // The endDate is already in milliseconds, no need to multiply by 1000 again
       const auctionEndDate = new Date(listing.endDate);
-      
       return auctionEndDate >= now && auctionEndDate <= endDate;
     });
 
     endingSoon = endingSoon.slice(0, maxDeals);
-    console.log(`Auctions ending soon : ${endingSoon.length}`);
+    console.log(`Auctions ending soon: ${endingSoon.length}`);
     
     if (endingSoon.length === 0) {
       return NextResponse.json({ 
         message: "No auctions ending soon found matching your criteria",
         totalActive: activeListings.length,
-        afterFiltering: filteredListings.length
+        afterFiltering: endingSoon.length
       });
     }
     
@@ -107,7 +118,6 @@ export async function GET(request: NextRequest) {
       endingSoon.map(async (activeListing) => {
         // Fetch historical data for this specific make/model/year range using the auction results API
         const listingMake = activeListing.make;
-        // Extract model from the listing title using the listing's make
         const listingModel = activeListing.model;
         const listingYear = activeListing.year;
         
@@ -210,6 +220,7 @@ export async function GET(request: NextRequest) {
             maxPrice,
             recentSales
           },
+          predicted_price: activeListing.predicted_price || null,
           priceDifference,
           percentageDifference,
           dealScore,
@@ -222,12 +233,6 @@ export async function GET(request: NextRequest) {
     const validDeals = deals
       .filter(deal => deal !== null)
       .sort((a, b) => b!.dealScore - a!.dealScore);
-    
-    // Get mileage from listing page
-    for (const validDeal of validDeals) {
-      const data = await fetchDetailsFromListingPage(validDeal.activeListing.url);
-      validDeal.activeListing.mileage = data.mileage;
-    }
 
     console.log(`Found ${validDeals.length} valid deals`);
 

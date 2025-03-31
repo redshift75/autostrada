@@ -37,6 +37,7 @@ type Deal = {
     premium?: boolean;
     featured?: boolean;
     mileage: number;
+    predicted_price: number | null;
   };
   historicalData: {
     averagePrice: number;
@@ -887,7 +888,6 @@ export default function DealFinder() {
                             <p className="text-sm text-gray-500 dark:text-gray-400">Current Bid</p>
                             <p className="text-lg font-semibold text-gray-900 dark:text-white">
                               {deal.activeListing.current_bid_formatted}
-   
                             </p>
                           </div>
                           <div>
@@ -925,6 +925,17 @@ export default function DealFinder() {
                               ({deal.percentageDifference > 0 ? '+' : ''}{deal.percentageDifference.toFixed(1)}%)
                             </p>
                           </div>
+                          {deal.activeListing.predicted_price && (
+                            <div>
+                              <p className="text-sm text-gray-500 dark:text-gray-400">Predicted Price</p>
+                              <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                                {formatPrice(deal.activeListing.predicted_price)}
+                                <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">
+                                  (AI Prediction)
+                                </span>
+                              </p>
+                            </div>
+                          )}
                         </div>
                         
                         {/* Price Comparison Chart */}
