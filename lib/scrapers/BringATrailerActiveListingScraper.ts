@@ -301,7 +301,7 @@ export class BringATrailerActiveListingScraper extends BaseBATScraper {
           
           // Improved bid extraction
           const currentBidText = $el.find('.auction-price').text().trim();
-          const currentBid = parseBidAmount(currentBidText);
+          const currentBid = currentBidText ? parseBidAmount(currentBidText) : 0;
           
           const thumbnailUrl = $el.find('img').attr('src') || '';
           const country = $el.find('.auction-location').text().trim();
