@@ -33,22 +33,6 @@ const COMPLETED_AUCTIONS_TABLE = 'bat_completed_auctions';
 const ACTIVE_AUCTIONS_TABLE = 'bat_active_auctions';
 
 /**
- * Deduplicate listings by listing_id
- * @param listings Array of listings
- * @returns Deduplicated array
- */
-function deduplicateListings<T extends { listing_id: string }>(listings: T[]): T[] {
-  const seen = new Set<string>();
-  return listings.filter(listing => {
-    if (seen.has(listing.listing_id)) {
-      return false;
-    }
-    seen.add(listing.listing_id);
-    return true;
-  });
-}
-
-/**
  * Upload completed auction results to Supabase
  */
 async function uploadCompletedAuctionsToSupabase() {
@@ -116,20 +100,14 @@ async function uploadCompletedAuctionsToSupabase() {
         transmission: listing.transmission
       }));
       
-      // Deduplicate listings to avoid the "ON CONFLICT DO UPDATE command cannot affect row a second time" error
-      const uniqueDbListings = deduplicateListings(dbListings);
-      if (uniqueDbListings.length < dbListings.length) {
-        console.log(`Removed ${dbListings.length - uniqueDbListings.length} duplicate listings`);
-      }
-      
       // Upload in batches to avoid hitting Supabase limits
       const BATCH_SIZE = 100;
       let successCount = 0;
       let errorCount = 0;
       
-      for (let i = 0; i < uniqueDbListings.length; i += BATCH_SIZE) {
-        const batch = uniqueDbListings.slice(i, i + BATCH_SIZE);
-        console.log(`Uploading batch ${i / BATCH_SIZE + 1} of ${Math.ceil(uniqueDbListings.length / BATCH_SIZE)}...`);
+      for (let i = 0; i < dbListings.length; i += BATCH_SIZE) {
+        const batch = dbListings.slice(i, i + BATCH_SIZE);
+        console.log(`Uploading batch ${i / BATCH_SIZE + 1} of ${Math.ceil(dbListings.length / BATCH_SIZE)}...`);
         
         try {
      

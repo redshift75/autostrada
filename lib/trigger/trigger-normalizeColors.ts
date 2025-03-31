@@ -4,7 +4,7 @@ import { processCarColors } from '../../scripts/normalize-colors';
 export const normalizeColorsTask = schedules.task({
   id: "Normalize Car Colors",
   // Every day at 6:00UTC
-  cron: "0 6 * * *",
+  cron: "0 7 * * *",
   // Set a maxDuration to prevent tasks from running indefinitely
   maxDuration: 1800, // 30 minutes
   run: async (payload, { ctx }) => {
