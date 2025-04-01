@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { auth } from '@clerk/nextjs/server'
+import { auth } from '@clerk/nextjs/server';
+import { BringATrailerActiveListingScraper } from '@/lib/scrapers/BringATrailerActiveListingScraper';
 
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -11,6 +12,9 @@ const isSupabaseConfigured = supabaseUrl && supabaseKey;
 
 // Create client only if credentials are available
 const supabase = isSupabaseConfigured ? createClient(supabaseUrl, supabaseKey) : null;
+
+// Initialize scraper for active listings
+const activeListingScraper = new BringATrailerActiveListingScraper({ scrapeDetails: false });
 
 // Define the response type for the Deal Finder API
 type DealFinderResponse = {
@@ -74,6 +78,7 @@ export async function GET(request: NextRequest) {
       query = query.lte('year', yearMax);
     }
     query = query.order('endDate', { ascending: true });
+
     // Execute the query
     const { data: activeListings, error } = await query;
 
@@ -87,12 +92,34 @@ export async function GET(request: NextRequest) {
 
     console.log(`Fetched ${activeListings.length} active listings from database`);
 
+    // Fetch fresh current bids from the scraper
+    console.log('Fetching fresh current bids from Bring a Trailer...');
+    const freshListings = await activeListingScraper.scrape();
+    
+    // Create a map of fresh listings by URL for quick lookup
+    const freshListingsMap = new Map(
+      freshListings.map(listing => [listing.url, listing])
+    );
+
+    // Update active listings with fresh current bids
+    const updatedActiveListings = activeListings.map(listing => {
+      const freshListing = freshListingsMap.get(listing.url);
+      if (freshListing) {
+        return {
+          ...listing,
+          current_bid: freshListing.current_bid,
+          current_bid_formatted: freshListing.current_bid_formatted
+        };
+      }
+      return listing;
+    });
+
     // Filter for auctions ending within the next 3 days
     const now = new Date();
     const endDate = new Date(now);
     endDate.setDate(endDate.getDate() + 3);
 
-    let endingSoon = activeListings.filter(listing => {
+    let endingSoon = updatedActiveListings.filter(listing => {
       if (!listing.endDate) {
         console.log(`Listing missing endDate: ${listing.title}`);
         return false;
@@ -182,7 +209,7 @@ export async function GET(request: NextRequest) {
         const minPrice = prices[0];
         const maxPrice = prices[prices.length - 1];
 
-        // Get current bid
+        // Get current bid from the updated listing
         const currentBid = activeListing.current_bid;
 
         // Calculate price difference
@@ -238,7 +265,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ 
       deals: validDeals,
-      activeListings: activeListings
+      activeListings: updatedActiveListings
     });
   } catch (error) {
     console.error('Error finding deals:', error);
