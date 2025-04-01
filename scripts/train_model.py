@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from supabase import create_client
 import os
 import pickle
+import zipfile
 
 # Load environment variables
 load_dotenv()
@@ -97,18 +98,38 @@ def train_model(X, y):
     return car_model_rf
 
 def save_model(model, Lbl_model, Lbl_color, Lbl_trans, make):
-    """Save the trained model and label encoders"""
+    """Save the trained model and label encoders as a compressed zip file"""
     today_date = date.today().strftime('%Y-%m-%d')
     path = f"../models/{make}"
     if not os.path.exists(path):
         os.makedirs(path)
     
-    pickle.dump(model, open(f'{path}/model.pkl', 'wb'))
-    pickle.dump(Lbl_model, open(f'{path}/labels_model.pkl', 'wb'))
-    pickle.dump(Lbl_color, open(f'{path}/labels_color.pkl', 'wb'))
-    pickle.dump(Lbl_trans, open(f'{path}/labels_transmission.pkl', 'wb'))
+    # Save individual files first
+    model_path = f'{path}/model.pkl'
+    labels_model_path = f'{path}/labels_model.pkl'
+    labels_color_path = f'{path}/labels_color.pkl'
+    labels_trans_path = f'{path}/labels_transmission.pkl'
     
-    print(f"Model and encoders saved to {path}")
+    pickle.dump(model, open(model_path, 'wb'))
+    pickle.dump(Lbl_model, open(labels_model_path, 'wb'))
+    pickle.dump(Lbl_color, open(labels_color_path, 'wb'))
+    pickle.dump(Lbl_trans, open(labels_trans_path, 'wb'))
+    
+    # Create zip file
+    zip_path = f'{path}/model.zip'
+    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        zipf.write(model_path, os.path.basename(model_path))
+        zipf.write(labels_model_path, os.path.basename(labels_model_path))
+        zipf.write(labels_color_path, os.path.basename(labels_color_path))
+        zipf.write(labels_trans_path, os.path.basename(labels_trans_path))
+    
+    # Remove individual files after compression
+    os.remove(model_path)
+    os.remove(labels_model_path)
+    os.remove(labels_color_path)
+    os.remove(labels_trans_path)
+    
+    print(f"Model and encoders saved and compressed to {zip_path}")
 
 def main():
     # Get list of makes

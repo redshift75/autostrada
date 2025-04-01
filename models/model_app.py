@@ -4,6 +4,9 @@ import numpy as np
 import pandas as pd
 import os
 from supabase import create_client
+import zipfile
+import io
+import tempfile
 
 app = Flask(__name__)
 SUPABASE_URL = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
@@ -14,20 +17,30 @@ supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 models_cache = {}
 
 def load_models_for_make(make):
-    """Load models and label encoders for a specific make."""
+    """Load models and label encoders for a specific make from zipped file."""
     try:
         bucket_name = "models"
-        model_file_path = f"{make}/model.pkl"
-        labels_color_file_path = f"{make}/labels_color.pkl"
-        labels_model_file_path = f"{make}/labels_model.pkl"
-        labels_transmission_file_path = f"{make}/labels_transmission.pkl"
+        zip_file_path = f"{make}/model.zip"
 
-        return {
-            'model': pickle.loads(supabase.storage.from_(bucket_name).download(model_file_path)),
-            'labels_color': pickle.loads(supabase.storage.from_(bucket_name).download(labels_color_file_path)),
-            'labels_model': pickle.loads(supabase.storage.from_(bucket_name).download(labels_model_file_path)),
-            'labels_transmission': pickle.loads(supabase.storage.from_(bucket_name).download(labels_transmission_file_path))
-        }
+        # Download zip file from Supabase
+        zip_data = supabase.storage.from_(bucket_name).download(zip_file_path)
+        
+        # Create a BytesIO object to handle the zip data
+        zip_buffer = io.BytesIO(zip_data)
+        
+        # Create a temporary directory to extract files
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Extract zip contents
+            with zipfile.ZipFile(zip_buffer, 'r') as zip_ref:
+                zip_ref.extractall(temp_dir)
+            
+            # Load the extracted files
+            return {
+                'model': pickle.load(open(os.path.join(temp_dir, 'model.pkl'), 'rb')),
+                'labels_color': pickle.load(open(os.path.join(temp_dir, 'labels_color.pkl'), 'rb')),
+                'labels_model': pickle.load(open(os.path.join(temp_dir, 'labels_model.pkl'), 'rb')),
+                'labels_transmission': pickle.load(open(os.path.join(temp_dir, 'labels_transmission.pkl'), 'rb'))
+            }
     except Exception as e:
         print(f"Error loading models for {make}: {e}")
         return None
@@ -82,9 +95,6 @@ def predict():
         
         # Transform mileage using log1p
         input_data['mileage'] = np.log1p(input_data['mileage'])
-        
-        print("Transformed input data:")
-        print(input_data)
         
         # Run prediction
         price_scaled = carmodel.predict(input_data)
