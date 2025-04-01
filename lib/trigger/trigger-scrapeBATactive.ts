@@ -18,7 +18,6 @@ const dbListings = listings.map(listing => ({
   title: listing.title,
   image_url: listing.image_url,
   current_bid: listing.current_bid,
-  current_bid_formatted: listing.current_bid_formatted,
   endDate: listing.endDate,
   status: listing.status || 'active',
   year: listing.year,
