@@ -708,7 +708,7 @@ export default function DealFinder() {
                       name="yearMin"
                       ref={yearMinInputRef}
                       type="number"
-                      placeholder="e.g. 1990"
+                      placeholder="1950"
                       min="1900"
                       max="2025"
                     />
@@ -723,7 +723,7 @@ export default function DealFinder() {
                       name="yearMax"
                       ref={yearMaxInputRef}
                       type="number"
-                      placeholder="e.g. 2023"
+                      placeholder="2025"
                       min="1900"
                       max="2025"
                     />

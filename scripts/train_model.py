@@ -26,7 +26,7 @@ def get_makes():
     makes = [item['make'] for item in response.data]
     return makes
 
-def fetch_data(make="Ferrari", min_observations=20):
+def fetch_data(make="Ferrari", min_observations=10):
     """Fetch data from Supabase and filter based on criteria"""
     response = (
         supabase.table("bat_completed_auctions")
@@ -84,17 +84,17 @@ def encode_features(X):
     
     return X, Lbl_model, Lbl_color, Lbl_trans
 
-def train_model(X, y, make):
+def train_model(X, y):
     """Train the Random Forest model"""
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.10, random_state=42, shuffle=True)
+    #X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.10, random_state=42, shuffle=True)
     
-    car_model_rf = RandomForestRegressor(n_estimators=100, random_state=33, monotonic_cst=[0,0,-1,0,0,0])
-    car_model_rf.fit(X_train, y_train, sample_weight=X_train['W'])
+    car_model_rf = RandomForestRegressor(n_estimators=150, random_state=33, monotonic_cst=[0,0,-1,0,0,0])
+    car_model_rf.fit(X, y, sample_weight=X['W'])
     
-    print(f'Random Forest Regressor Train Score: {car_model_rf.score(X_train, y_train)}')
-    print(f'Random Forest Regressor Test Score: {car_model_rf.score(X_test, y_test)}')
+    print(f'Random Forest Regressor Train Score: {car_model_rf.score(X, y)}')
+    #print(f'Random Forest Regressor Test Score: {car_model_rf.score(X_test, y_test)}')
     
-    return car_model_rf, X_test, y_test
+    return car_model_rf
 
 def save_model(model, Lbl_model, Lbl_color, Lbl_trans, make):
     """Save the trained model and label encoders"""
@@ -129,7 +129,7 @@ def main():
             X, Lbl_model, Lbl_color, Lbl_trans = encode_features(X)
             
             # Train model
-            model, X_test, y_test = train_model(X, y, make)
+            model = train_model(X, y)
             
             # Save model and encoders
             save_model(model, Lbl_model, Lbl_color, Lbl_trans, make)
