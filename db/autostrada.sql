@@ -95,7 +95,6 @@ create table public.bat_active_auctions (
   location text null,
   no_reserve boolean null,
   premium boolean null,
-  current_bid_formatted text null,
   "endDate" bigint null,
   predicted_price integer null,
   constraint bat_active_actions_listing_id_key unique (listing_id)

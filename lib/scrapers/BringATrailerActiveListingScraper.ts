@@ -19,7 +19,6 @@ export interface BaTActiveListing {
   make: string;
   model: string;
   current_bid: number;
-  current_bid_formatted: string;
   endDate: number;
   image_url: string;
   image_url_thumb: string;
@@ -48,7 +47,6 @@ export interface BaTAuction {
   title: string;
   year: string;
   current_bid: number;
-  current_bid_formatted: string;
   timestamp_end: number;
   thumbnail_url: string;
   country: string;
@@ -325,7 +323,6 @@ export class BringATrailerActiveListingScraper extends BaseBATScraper {
               title,
               year,
               current_bid: currentBid,
-              current_bid_formatted: currentBidText || `USD $${currentBid.toLocaleString()}`,
               timestamp_end: timestampEnd,
               thumbnail_url: thumbnailUrl,
               country,
@@ -374,7 +371,7 @@ export class BringATrailerActiveListingScraper extends BaseBATScraper {
     const model = extractModelFromTitle(auction.title, make);
     
     // Parse year as integer
-    const year = parseInt(auction.year, 10);
+    const year = parseInt(auction.year);
     
     // Create the base listing object
     const listing: BaTActiveListing = {
@@ -385,7 +382,6 @@ export class BringATrailerActiveListingScraper extends BaseBATScraper {
       make,
       model,
       current_bid: auction.current_bid ? auction.current_bid : 0,
-      current_bid_formatted: auction.current_bid_formatted,
       endDate,
       image_url: auction.thumbnail_url,
       image_url_thumb: auction.thumbnail_url,

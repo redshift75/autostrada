@@ -148,20 +148,9 @@ async function runActiveScraper() {
   const allListings = await scraper.scrape();
   
   console.log(`Found ${allListings.length} active auctions`);
-  if (allListings.length > 0) {
-    console.log('First result:', {
-      title: allListings[0].title,
-      make: allListings[0].make,
-      model: allListings[0].model,
-      current_bid: allListings[0].current_bid_formatted,
-      end_date: new Date(allListings[0].endDate).toLocaleString(),
-      url: allListings[0].url
-    });
-  }
   
   if (allListings.length > 0) {
     // Save filtered results to file
-    console.log("Saving active results to file");
     const file = path.join(resultsDir, `bat_active_results.json`);
     fs.writeFileSync(file, JSON.stringify(allListings, null, 2));
     console.log(`Saved ${allListings.length} active auctions to ${file}`);

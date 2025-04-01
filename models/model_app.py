@@ -7,10 +7,11 @@ from supabase import create_client
 import zipfile
 import io
 import tempfile
+from dotenv import load_dotenv
 
 app = Flask(__name__)
-SUPABASE_URL = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
-SUPABASE_SERVICE_KEY = os.getenv("NEXT_PUBLIC_SUPABASE_SERVICE_KEY")
+SUPABASE_URL = "https://xqudlbewnkztvcwvtbqp.supabase.co"
+SUPABASE_SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhxdWRsYmV3bmt6dHZjd3Z0YnFwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MjU3MTE5OSwiZXhwIjoyMDU4MTQ3MTk5fQ.VPs8kA37wAZh6KUsUzHZIad5vaqDTiIbfhaYOCVSQ_s"
 supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
 # Global dictionary to store models and label encoders
