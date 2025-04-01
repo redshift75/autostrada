@@ -384,7 +384,7 @@ export class BringATrailerActiveListingScraper extends BaseBATScraper {
       year,
       make,
       model,
-      current_bid: auction.current_bid,
+      current_bid: auction.current_bid ? auction.current_bid : 0,
       current_bid_formatted: auction.current_bid_formatted,
       endDate,
       image_url: auction.thumbnail_url,
