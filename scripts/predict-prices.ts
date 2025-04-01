@@ -54,7 +54,11 @@ async function getPredictedPrice(listing: ActiveListing): Promise<number | null>
     console.log(`Prediction for ${listing.make} ${listing.model}:`, response.data.prediction);
     return response.data.prediction;
   } catch (error) {
-    console.error(`Error getting prediction for ${listing.make} ${listing.model}:`);
+    if (axios.isAxiosError(error)) {
+      console.error('API Error:', error.response?.data.error);
+    } else {
+      console.error('Error getting prediction:', error);
+    }
     return null;
   }
 }
