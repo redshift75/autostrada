@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
     if (yearMax) {
       query = query.lte('year', yearMax);
     }
-
+    query = query.order('endDate', { ascending: true });
     // Execute the query
     const { data: activeListings, error } = await query;
 
