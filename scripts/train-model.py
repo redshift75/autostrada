@@ -1,7 +1,7 @@
 from datetime import date
 import numpy as np
 import pandas as pd
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.preprocessing import LabelEncoder
 from sklearn.ensemble import RandomForestRegressor
 from dotenv import load_dotenv
@@ -87,15 +87,18 @@ def encode_features(X):
 
 def train_model(X, y):
     """Train the Random Forest model"""
-    #X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.10, random_state=42, shuffle=True)
+    param_grid = { 
+    'n_estimators': [100, 200, 300],
+    'criterion' :['squared_error', 'friedman_mse']
+    }
+
+    car_model_rf = RandomForestRegressor(random_state=33, monotonic_cst = [0,0,-1,0,0,0])
+    CV_rfc = GridSearchCV(estimator=car_model_rf, param_grid=param_grid, cv=5)
+    CV_rfc.fit(X, y, sample_weight=X['W'])
+    score = CV_rfc.score(X, y)
+    print('Random Forest Regressor Train Score is : ' ,  score)
     
-    car_model_rf = RandomForestRegressor(n_estimators=150, random_state=33, monotonic_cst=[0,0,-1,0,0,0])
-    car_model_rf.fit(X, y, sample_weight=X['W'])
-    
-    print(f'Random Forest Regressor Train Score: {car_model_rf.score(X, y)}')
-    #print(f'Random Forest Regressor Test Score: {car_model_rf.score(X_test, y_test)}')
-    
-    return car_model_rf
+    return CV_rfc, score, CV_rfc.best_params_
 
 def save_model(model, Lbl_model, Lbl_color, Lbl_trans, make):
     """Save the trained model and label encoders as a compressed zip file"""
@@ -131,6 +134,33 @@ def save_model(model, Lbl_model, Lbl_color, Lbl_trans, make):
     
     print(f"Model and encoders saved and compressed to {zip_path}")
 
+def save_model_params(model, score, params, make):
+    """Save model score and parameters to Supabase using upsert"""
+    try:
+        # First check if a record exists for this make
+        existing = supabase.table("prediction_models").select("*").eq("make", make).execute()
+        
+        if existing.data:
+            # Update existing record
+            response = supabase.table("prediction_models").update({
+                "score": float(score),
+                "params": params
+            }).eq("make", make).execute()
+            print(f"Successfully updated model parameters for {make}")
+        else:
+            # Insert new record
+            response = supabase.table("prediction_models").insert({
+                "make": make,
+                "score": float(score),
+                "params": params
+            }).execute()
+            print(f"Successfully inserted model parameters for {make}")
+            
+        return response
+    except Exception as e:
+        print(f"Error saving model parameters for {make}: {str(e)}")
+        return None
+
 def main():
     # Get list of makes
     makes = get_makes()
@@ -150,9 +180,10 @@ def main():
             X, Lbl_model, Lbl_color, Lbl_trans = encode_features(X)
             
             # Train model
-            model = train_model(X, y)
-            
+            model, score, params = train_model(X, y)
+
             # Save model and encoders
+            save_model_params(model, score, params, make)
             save_model(model, Lbl_model, Lbl_color, Lbl_trans, make)
             
         except Exception as e:
