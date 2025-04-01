@@ -889,7 +889,7 @@ export default function DealFinder() {
                           <div>
                             <p className="text-sm text-gray-500 dark:text-gray-400">Current Bid</p>
                             <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                              {deal.activeListing.current_bid_formatted}
+                              {formatPrice(deal.activeListing.current_bid)}
                             </p>
                           </div>
                           <div>
