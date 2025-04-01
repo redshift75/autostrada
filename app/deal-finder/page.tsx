@@ -639,15 +639,17 @@ export default function DealFinder() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
-            Deal Finder
-          </h1>
-          <p className="mt-3 max-w-2xl mx-auto text-xl text-gray-500 sm:mt-4">
-            Find current auctions likely to end below market value
-          </p>
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl">
+              Deal Finder
+            </h1>
+          <p className="mt-2 text-lg text-gray-500">
+              Find current auctions likely to end below market value
+            </p>
+          </div>
         </div>
         
         {/* Search Form */}
