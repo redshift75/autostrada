@@ -72,7 +72,8 @@ export const batScheduledTask = schedules.task({
             bidders: item.bidders,
             watchers: item.watchers,
             comments: item.comments,
-            transmission: item.transmission
+            transmission: item.transmission,
+            country_code: item.country_code
           }));
           
           // Insert the data into Supabase
