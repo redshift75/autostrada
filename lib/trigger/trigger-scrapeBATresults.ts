@@ -58,7 +58,7 @@ export const batScheduledTask = schedules.task({
             image_url: item.image_url,
             status: item.status,
             sold_price: item.sold_price ? parseInt(item.sold_price) : null,
-            end_date: item.end_date ? new Date(item.end_date) : null,
+            end_date: item.timestamp_end ? new Date(item.timestamp_end * 1000) : null,
             bid_amount: item.bid_amount ? parseInt(item.bid_amount) : null,
             bid_date: item.bid_date ? new Date(item.bid_date) : null,
             year: item.year,

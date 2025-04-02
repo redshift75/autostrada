@@ -40,7 +40,7 @@ export function extractMakeFromTitle(title: string): string {
     'Porsche', 'Ferrari', 'Mercedes-Benz', 'Mercedes-AMG', 'BMW', 'Audi', 'Volkswagen', 'VW',
     'Toyota', 'Honda', 'Nissan', 'Mazda', 'Subaru', 'Lexus', 'Acura', 'Infiniti',
     'Ford', 'Chevrolet', 'Chevy', 'Dodge', 'Jeep', 'Cadillac', 'Lincoln', 'Buick',
-    'Jaguar', 'Land Rover', 'Range Rover', 'Aston Martin', 'Bentley', 'Rolls-Royce',
+    'Jaguar', 'Land Rover', 'Aston Martin', 'Bentley', 'Rolls-Royce',
     'Lamborghini', 'Maserati', 'Alfa Romeo', 'Fiat', 'Lancia', 'Bugatti'
   ];
   

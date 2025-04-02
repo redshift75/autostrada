@@ -82,7 +82,7 @@ async function uploadCompletedAuctionsToSupabase() {
         title: listing.title,
         image_url: listing.image_url,
         sold_price: listing.sold_price ? parseInt(listing.sold_price) : null,
-        end_date: listing.end_date ? new Date(listing.end_date) : null,
+        end_date: listing.end_date ? new Date(listing.end_date) : (listing.timestamp_end ? new Date(listing.timestamp_end * 1000) : null),
         bid_amount: listing.bid_amount ? parseInt(listing.bid_amount) : null,
         bid_date: listing.bid_date ? new Date(listing.bid_date) : null,
         status: listing.status,
