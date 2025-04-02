@@ -9,6 +9,7 @@ from supabase import create_client
 import os
 import pickle
 import zipfile
+import argparse
 
 # Load environment variables
 load_dotenv()
@@ -166,19 +167,21 @@ def save_model_params(model, score, params, make):
         return None
 
 def main():
-    # Get list of makes
-    makes = get_makes()
-    print(f"Found {len(makes)} makes to process")
-    
-    # Process each make
-    for make in makes:
+    # Set up argument parser
+    parser = argparse.ArgumentParser(description='Train a car price prediction model for a specific make')
+    parser.add_argument('--make', type=str, help='The make of car to train the model for (e.g., Ferrari)')
+    args = parser.parse_args()
+
+    if args.make:
+        # Process single make
+        make = args.make
         print(f"\nProcessing {make}...")
         try:
             # Fetch and prepare data
             df = fetch_data(make)
             if len(df) < 20:  # Skip makes with too few observations
                 print(f"Skipping {make} - insufficient data")
-                continue
+                return
                 
             X, y = prepare_data(df)
             X, Lbl_model, Lbl_color, Lbl_trans = encode_features(X)
@@ -192,7 +195,34 @@ def main():
             
         except Exception as e:
             print(f"Error processing {make}: {str(e)}")
-            continue
+    else:
+        # Process all makes as before
+        makes = get_makes()
+        print(f"Found {len(makes)} makes to process")
+        
+        # Process each make
+        for make in makes:
+            print(f"\nProcessing {make}...")
+            try:
+                # Fetch and prepare data
+                df = fetch_data(make)
+                if len(df) < 20:  # Skip makes with too few observations
+                    print(f"Skipping {make} - insufficient data")
+                    continue
+                    
+                X, y = prepare_data(df)
+                X, Lbl_model, Lbl_color, Lbl_trans = encode_features(X)
+                
+                # Train model
+                model, score, params = train_model(X, y)
+
+                # Save model and encoders
+                save_model_params(model, score, params, make)
+                save_model(model, Lbl_model, Lbl_color, Lbl_trans, make)
+                
+            except Exception as e:
+                print(f"Error processing {make}: {str(e)}")
+                continue
 
 if __name__ == "__main__":
     main() 
