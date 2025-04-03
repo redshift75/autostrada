@@ -1,9 +1,10 @@
 from datetime import date
 import numpy as np
 import pandas as pd
-from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import LabelEncoder
 from sklearn.ensemble import RandomForestRegressor
+from xgboost import XGBRegressor
 from dotenv import load_dotenv
 from supabase import create_client
 import os
@@ -92,18 +93,29 @@ def encode_features(X):
 
 def train_model(X, y):
     """Train the Random Forest model"""
-    param_grid = { 
-    'n_estimators': [100, 200, 300],
+    param_grid_rf = { 
+    'n_estimators': [50, 100, 150],
     'criterion' :['squared_error', 'friedman_mse']
     }
 
-    car_model_rf = RandomForestRegressor(random_state=33, monotonic_cst = [0,0,-1,0,0,0])
-    CV_rfc = GridSearchCV(estimator=car_model_rf, param_grid=param_grid, cv=5)
-    CV_rfc.fit(X, y, sample_weight=X['W'])
-    score = CV_rfc.score(X, y)
-    print('Random Forest Regressor Train Score is : ' ,  score)
+    param_grid_xgb = { 
+    'n_estimators': [50, 100, 200]
+    }
+
+    if len(X) <= 200:
+        car_model_rf = RandomForestRegressor(random_state=33, monotonic_cst = (0,0,-1,0,0,0))
+        model = GridSearchCV(estimator=car_model_rf, param_grid=param_grid_rf, cv=2)
+        model.fit(X, y, sample_weight=X['W'])
+        score = model.score(X, y)
+        print('Random Forest Regressor Train Score is : ' ,  score)
+    else:
+        car_model_xgb = XGBRegressor(random_state=33, monotone_constraints = (0,0,-1,0,0,0))
+        model = GridSearchCV(estimator=car_model_xgb, param_grid=param_grid_xgb, cv=5)
+        model.fit(X, y, sample_weight=X['W'])
+        score = model.score(X, y)
+        print('XGB Regressor Train Score is : ' ,  score)
     
-    return CV_rfc, score, CV_rfc.best_params_
+    return model, score, model.best_params_
 
 def save_model(model, Lbl_model, Lbl_color, Lbl_trans, make):
     """Save the trained model and label encoders as a compressed zip file"""
