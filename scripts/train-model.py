@@ -92,7 +92,7 @@ def encode_features(X):
     return X, Lbl_model, Lbl_color, Lbl_trans
 
 def train_model(X, y):
-    """Train the Random Forest model"""
+    """Train the model"""
     param_grid_rf = { 
     'n_estimators': [50, 100, 150],
     'criterion' :['squared_error', 'friedman_mse']
@@ -109,7 +109,7 @@ def train_model(X, y):
         score = model.score(X, y)
         print('Random Forest Regressor Train Score is : ' ,  score)
     else:
-        car_model_xgb = XGBRegressor(random_state=33, monotone_constraints = (0,0,-1,0,0,0))
+        car_model_xgb = XGBRegressor(random_state=33, monotone_constraints = (0,0,-1,0,0,0), max_depth = 12)
         model = GridSearchCV(estimator=car_model_xgb, param_grid=param_grid_xgb, cv=5)
         model.fit(X, y, sample_weight=X['W'])
         score = model.score(X, y)
@@ -178,6 +178,34 @@ def save_model_params(model, score, params, make):
         print(f"Error saving model parameters for {make}: {str(e)}")
         return None
 
+def process_make(make):
+    """Process a single make of car through the model training pipeline"""
+    print(f"\nProcessing {make}...")
+    try:
+        # Fetch and prepare data
+        df = fetch_data(make)
+        if len(df) < 20:  # Skip makes with too few observations
+            print(f"Skipping {make} - insufficient data")
+            return False
+            
+        X, y = prepare_data(df)
+        X, Lbl_model, Lbl_color, Lbl_trans = encode_features(X)
+        
+        # Train model
+        model, score, params = train_model(X, y)
+
+        # Save model and encoders if score is high enough
+        if score > 0.8:
+            save_model_params(model, score, params, make)
+            save_model(model, Lbl_model, Lbl_color, Lbl_trans, make)
+            return True
+        else:
+            print(f"Skipping {make} - score is too low")
+            return False
+    except Exception as e:
+        print(f"Error processing {make}: {str(e)}")
+        return False
+
 def main():
     # Set up argument parser
     parser = argparse.ArgumentParser(description='Train a car price prediction model for a specific make')
@@ -186,55 +214,15 @@ def main():
 
     if args.make:
         # Process single make
-        make = args.make
-        print(f"\nProcessing {make}...")
-        try:
-            # Fetch and prepare data
-            df = fetch_data(make)
-            if len(df) < 20:  # Skip makes with too few observations
-                print(f"Skipping {make} - insufficient data")
-                return
-                
-            X, y = prepare_data(df)
-            X, Lbl_model, Lbl_color, Lbl_trans = encode_features(X)
-            
-            # Train model
-            model, score, params = train_model(X, y)
-
-            # Save model and encoders
-            save_model_params(model, score, params, make)
-            save_model(model, Lbl_model, Lbl_color, Lbl_trans, make)
-            
-        except Exception as e:
-            print(f"Error processing {make}: {str(e)}")
+        process_make(args.make)
     else:
-        # Process all makes as before
+        # Process all makes
         makes = get_makes()
         print(f"Found {len(makes)} makes to process")
         
         # Process each make
         for make in makes:
-            print(f"\nProcessing {make}...")
-            try:
-                # Fetch and prepare data
-                df = fetch_data(make)
-                if len(df) < 20:  # Skip makes with too few observations
-                    print(f"Skipping {make} - insufficient data")
-                    continue
-                    
-                X, y = prepare_data(df)
-                X, Lbl_model, Lbl_color, Lbl_trans = encode_features(X)
-                
-                # Train model
-                model, score, params = train_model(X, y)
-
-                # Save model and encoders
-                save_model_params(model, score, params, make)
-                save_model(model, Lbl_model, Lbl_color, Lbl_trans, make)
-                
-            except Exception as e:
-                print(f"Error processing {make}: {str(e)}")
-                continue
+            process_make(make)
 
 if __name__ == "__main__":
     main() 
