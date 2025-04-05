@@ -120,7 +120,7 @@ def train_model(X, y):
 def save_model(model, Lbl_model, Lbl_color, Lbl_trans, make):
     """Save the trained model and label encoders as a compressed zip file"""
     today_date = date.today().strftime('%Y-%m-%d')
-    path = f"../models/{make}"
+    path = f"../models/{today_date}/{make}"
     if not os.path.exists(path):
         os.makedirs(path)
     

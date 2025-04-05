@@ -52,3 +52,4 @@ models/*/*.zip
 # trigger data
 .trigger
 color_normalization_results/
+notebooks/__pycache__/*
