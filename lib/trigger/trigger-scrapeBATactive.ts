@@ -70,7 +70,12 @@ console.log('Completed uploading active auction listings to Supabase');
 
 export const batScheduledTask = schedules.task({
   id: "Scrape BAT Active",
-  machine: "medium-1x",
+  machine: "medium-2x",
+  retry: {
+    outOfMemory: {
+      machine: "large-1x",
+    },
+  },
   // Every day at 5:00UTC
   cron: "0 6 * * *",
   // Set an optional maxDuration to prevent tasks from running indefinitely
