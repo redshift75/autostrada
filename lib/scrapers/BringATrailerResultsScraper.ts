@@ -135,27 +135,30 @@ export class BringATrailerResultsScraper extends BaseBATScraper {
         console.log(`Fetching page ${page}/${maxPages}...`);
         
         try {
-          // Prepare request data
-          const requestData: any = {
-            page: page,
-            per_page: perPage,
-            get_items: 1,
-            get_stats: 0,
-            include_s: searchTerm,
-            minimum_year: params.yearMin,
-            maximum_year: params.yearMax
-          };
+          // Prepare query parameters for GET request
+          const queryParams = new URLSearchParams({
+            page: page.toString(),
+            per_page: perPage.toString(),
+            get_items: '1',
+            get_stats: '0',
+            include_s: searchTerm
+          });
 
-          // Add recency filter if provided
+          // Add optional parameters if provided
+          if (params.yearMin) {
+            queryParams.append('minimum_year', params.yearMin.toString());
+          }
+          if (params.yearMax) {
+            queryParams.append('maximum_year', params.yearMax.toString());
+          }
           if (params.recency) {
-            requestData.recency = params.recency;
+            queryParams.append('recency', params.recency);
           }
           
-          // Make POST request to the API
-          const response = await axios.post(this.apiBaseUrl, requestData, {
+          // Make GET request to the API
+          const response = await axios.get(`${this.apiBaseUrl}?${queryParams.toString()}`, {
             headers: {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-              'Content-Type': 'application/json',
               'Accept': 'application/json',
               'Accept-Language': 'en-US,en;q=0.5',
               'Connection': 'keep-alive',
