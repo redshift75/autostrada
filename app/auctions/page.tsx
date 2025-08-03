@@ -1115,7 +1115,39 @@ function AuctionsContent() {
                               }
                               
                               // Use category value if available, otherwise fallback to title/make or generic category
-                              const cardTitle = categoryValue || result.title || result.make || `Category ${index + 1}`;
+                              let cardTitle: any = categoryValue || result.title || result.make || `Category ${index + 1}`;
+                              
+                              // If the title is a complex object or array, try to extract meaningful information
+                              if (typeof cardTitle === 'object' && cardTitle !== null) {
+                                if (Array.isArray(cardTitle)) {
+                                  // If it's an array, try to get the title from the first item
+                                  if (cardTitle.length > 0) {
+                                    const firstItem = cardTitle[0] as any;
+                                    if (typeof firstItem === 'object' && firstItem !== null) {
+                                      cardTitle = firstItem.title || firstItem.name || firstItem.make || firstItem.model || `Category ${index + 1}`;
+                                    } else {
+                                      cardTitle = String(firstItem);
+                                    }
+                                  } else {
+                                    cardTitle = `Category ${index + 1}`;
+                                  }
+                                } else {
+                                  // If it's an object, try to extract a meaningful key
+                                  const keys = Object.keys(cardTitle);
+                                  if (keys.length > 0) {
+                                    const firstKey = keys[0];
+                                    const firstValue = (cardTitle as any)[firstKey];
+                                    if (typeof firstValue === 'object' && firstValue !== null) {
+                                      cardTitle = firstValue.title || firstValue.name || firstValue.make || firstValue.model || firstKey;
+                                    } else {
+                                      cardTitle = String(firstValue);
+                                    }
+                                  } else {
+                                    cardTitle = `Category ${index + 1}`;
+                                  }
+                                }
+                              }
+                              
                               const cardValue = result.sold_price || result.bid_amount || (result.price ? `${result.price.toLocaleString()}` : '');
                               
                               return (
@@ -1133,13 +1165,88 @@ function AuctionsContent() {
                                         if (['title', 'make', 'sold_price', 'bid_amount', 'price', 'url', 'images'].includes(key) || 
                                             key === categoryKey || !val) return null;
                                         
+                                        // Special handling for "Results" field which often contains complex data
+                                        if (key.toLowerCase() === 'results' && Array.isArray(val)) {
+                                          return (
+                                            <div key={key} className="mt-2">
+                                              <span className="capitalize font-medium">{key.replace(/_/g, ' ')}:</span>
+                                              <div className="mt-1 space-y-1">
+                                                {val.slice(0, 3).map((item: any, idx: number) => {
+                                                  if (typeof item === 'object' && item !== null) {
+                                                    const title = item.title || item.name || item.make || item.model || 'Item';
+                                                    return (
+                                                      <div key={idx} className="text-xs bg-gray-100 p-2 rounded">
+                                                        {title}
+                                                      </div>
+                                                    );
+                                                  } else {
+                                                    return (
+                                                      <div key={idx} className="text-xs bg-gray-100 p-2 rounded">
+                                                        {String(item)}
+                                                      </div>
+                                                    );
+                                                  }
+                                                })}
+                                                {val.length > 3 && (
+                                                  <div className="text-xs text-gray-500">
+                                                    ...and {val.length - 3} more
+                                                  </div>
+                                                )}
+                                              </div>
+                                            </div>
+                                          );
+                                        }
+                                        
                                         // Handle different value types
                                         let displayValue: React.ReactNode;
                                         if (typeof val === 'object') {
-                                          // For complex objects, display a simplified representation
-                                          displayValue = JSON.stringify(val).substring(0, 30) + '...';
+                                          // For complex objects, try to extract meaningful information
+                                          if (Array.isArray(val)) {
+                                            // Handle arrays - show count and first item if it's an object
+                                            if (val.length === 0) {
+                                              displayValue = 'Empty';
+                                            } else if (val.length === 1) {
+                                              const firstItem = val[0];
+                                              if (typeof firstItem === 'object' && firstItem !== null) {
+                                                // Try to extract title or name from the first object
+                                                const title = firstItem.title || firstItem.name || firstItem.make || firstItem.model;
+                                                displayValue = title ? `${title} (1 item)` : '1 item';
+                                              } else {
+                                                displayValue = `${firstItem} (1 item)`;
+                                              }
+                                            } else {
+                                              // For multiple items, try to show a summary
+                                              const firstItem = val[0];
+                                              if (typeof firstItem === 'object' && firstItem !== null) {
+                                                const title = firstItem.title || firstItem.name || firstItem.make || firstItem.model;
+                                                displayValue = title ? `${title} and ${val.length - 1} more...` : `${val.length} items`;
+                                              } else {
+                                                displayValue = `${val.length} items`;
+                                              }
+                                            }
+                                          } else if (val !== null) {
+                                            // Handle objects - try to extract key information
+                                            const keys = Object.keys(val);
+                                            if (keys.length === 0) {
+                                              displayValue = 'Empty object';
+                                            } else if (keys.length === 1) {
+                                              const key = keys[0];
+                                              const value = val[key];
+                                              displayValue = `${key}: ${value}`;
+                                            } else {
+                                              // Show the first few key-value pairs
+                                              const firstFew = keys.slice(0, 2).map(key => `${key}: ${val[key]}`).join(', ');
+                                              displayValue = keys.length > 2 ? `${firstFew}...` : firstFew;
+                                            }
+                                          } else {
+                                            displayValue = 'null';
+                                          }
                                         } else if (typeof val === 'number') {
                                           displayValue = val.toLocaleString();
+                                        } else if (typeof val === 'boolean') {
+                                          displayValue = val ? 'Yes' : 'No';
+                                        } else if (val === null || val === undefined) {
+                                          displayValue = '-';
                                         } else {
                                           displayValue = String(val);
                                         }
